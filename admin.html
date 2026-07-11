@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка · Центр ДПО факультета права</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --accent:#1658DA; --accent-dark:#123F9E; --bg:#FBF9F5; --bg-alt:#F2ECE1; --ink:#211E1B; --ink-soft:#48423A; --ink-mute:#6B6459; }
+  *{ box-sizing: border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans', sans-serif; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding: 48px 20px; }
+  .panel{ width:100%; max-width:640px; background:#fff; border:1px solid rgba(33,30,27,0.08); border-radius:20px; padding:36px; box-shadow: 0 1px 3px rgba(33,30,27,0.06); }
+  h1{ font-family:'Source Serif 4', serif; font-size:24px; font-weight:700; margin:0 0 4px; color:var(--accent); }
+  .sub{ font-size:13px; color:var(--ink-mute); margin: 0 0 28px; }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0; border-top:1px solid rgba(33,30,27,0.08); }
+  .row:first-of-type{ border-top:none; }
+  .label{ font-size:13px; color:var(--ink-mute); }
+  .value{ font-size:15px; font-weight:600; text-align:right; }
+  .value.ok{ color:#1F6F54; }
+  .value.err{ color:#B00020; }
+  .value.pending{ color:var(--ink-mute); }
+  button{ font:inherit; font-weight:600; font-size:15px; color:#fff; background:var(--accent); border:none; border-radius:999px; padding:14px 28px; cursor:pointer; width:100%; margin-top:24px; transition: background .15s, opacity .15s; }
+  button:hover{ background:var(--accent-dark); }
+  button:disabled{ opacity:0.6; cursor:default; }
+  .log{ margin-top:20px; font-size:12.5px; font-family: ui-monospace, monospace; color:var(--ink-mute); background:var(--bg-alt); border-radius:10px; padding:14px; white-space:pre-wrap; max-height:180px; overflow:auto; display:none; }
+  .log.visible{ display:block; }
+  .links{ margin-top:28px; display:flex; gap:16px; flex-wrap:wrap; }
+  .links a{ font-size:13.5px; color:var(--accent); text-decoration:none; }
+  .links a:hover{ text-decoration:underline; }
+  .banner{ display:none; margin-bottom:24px; padding:14px 16px; background:#FDECEC; border:1px solid #F3B9B9; border-radius:12px; font-size:13.5px; line-height:1.6; color:#7A1414; }
+  .banner.visible{ display:block; }
+  .banner code{ background:rgba(0,0,0,0.06); padding:1px 6px; border-radius:4px; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Центр ДПО · факультет права</h1>
+    <p class="sub">Обновление каталога программ факультета права НИУ ВШЭ</p>
+
+    <div class="banner" id="banner">
+      Не вижу локальный сервер на <code>127.0.0.1:5178</code>. Откройте терминал в папке проекта и запустите:<br>
+      <code>node admin-server.js</code><br>
+      затем откройте эту страницу по адресу <code>http://127.0.0.1:5178/admin.html</code> (а не двойным кликом по файлу).
+    </div>
+
+    <div class="row">
+      <span class="label">Последнее обновление</span>
+      <span class="value" id="lastUpdated">—</span>
+    </div>
+    <div class="row">
+      <span class="label">Программ в каталоге</span>
+      <span class="value" id="programCount">—</span>
+    </div>
+    <div class="row">
+      <span class="label">Статус</span>
+      <span class="value pending" id="status">Не проверялось</span>
+    </div>
+
+    <button id="refreshBtn">Обновить сейчас</button>
+    <pre class="log" id="log"></pre>
+
+    <div class="links">
+      <a href="Каталог программ.html" target="_blank">Открыть каталог →</a>
+      <a href="index.html" target="_blank">Открыть лендинг →</a>
+    </div>
+  </div>
+
+<script>
+  // Opened as a local file (double-clicked) instead of served by admin-server.js?
+  // Relative fetch('/api/...') would resolve against file:// and never reach the
+  // server, so route explicitly to it — the server also allows any origin via CORS.
+  const API_BASE = location.protocol === 'file:' ? 'http://127.0.0.1:5178' : '';
+
+  const lastUpdatedEl = document.getElementById('lastUpdated');
+  const programCountEl = document.getElementById('programCount');
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('refreshBtn');
+  const logEl = document.getElementById('log');
+  const bannerEl = document.getElementById('banner');
+
+  function renderStatus(data) {
+    bannerEl.classList.remove('visible');
+    lastUpdatedEl.textContent = data.updated || '—';
+    programCountEl.textContent = data.count != null ? data.count : '—';
+    statusEl.textContent = data.error ? 'Ошибка' : (data.updated ? 'Актуально' : 'Ещё не обновлялось');
+    statusEl.className = 'value ' + (data.error ? 'err' : (data.updated ? 'ok' : 'pending'));
+  }
+
+  async function loadStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/api/status`);
+      const data = await res.json();
+      renderStatus(data);
+    } catch (e) {
+      bannerEl.classList.add('visible');
+      statusEl.textContent = 'Сервер недоступен';
+      statusEl.className = 'value err';
+    }
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Обновляем…';
+    logEl.classList.remove('visible');
+    try {
+      const res = await fetch(`${API_BASE}/api/update`, { method: 'POST' });
+      const data = await res.json();
+      logEl.textContent = data.log || '';
+      logEl.classList.toggle('visible', !!data.log);
+      renderStatus(data);
+    } catch (e) {
+      bannerEl.classList.add('visible');
+      logEl.textContent = String(e);
+      logEl.classList.add('visible');
+      statusEl.textContent = 'Ошибка';
+      statusEl.className = 'value err';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Обновить сейчас';
+    }
+  });
+
+  loadStatus();
+</script>
+</body>
+</html>

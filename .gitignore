@@ -1,0 +1,10 @@
+# Локальные секреты и runtime-состояние админки — НЕ коммитить
+.admin-credentials.json
+.admin-status.json
+
+# Логи
+*.log
+
+# Системное
+.DS_Store
+node_modules/

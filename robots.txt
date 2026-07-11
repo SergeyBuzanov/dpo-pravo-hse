@@ -1,0 +1,7 @@
+# robots.txt — управляет доступом поисковых роботов.
+# ЗАМЕНИТЕ https://example.com на реальный домен после публикации сайта.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://example.com/sitemap.xml
