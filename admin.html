@@ -4,14 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Админка · Центр ДПО факультета права</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<link rel="stylesheet" href="fonts/fonts-main.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' http://127.0.0.1:5178; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <style>
   :root{ --accent:#1658DA; --accent-dark:#123F9E; --bg:#FBF9F5; --bg-alt:#F2ECE1; --ink:#211E1B; --ink-soft:#48423A; --ink-mute:#6B6459; }
   *{ box-sizing: border-box; }
-  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans', sans-serif; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding: 48px 20px; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'HSE Sans', 'IBM Plex Sans', sans-serif; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding: 48px 20px; }
   .panel{ width:100%; max-width:640px; background:#fff; border:1px solid rgba(33,30,27,0.08); border-radius:20px; padding:36px; box-shadow: 0 1px 3px rgba(33,30,27,0.06); }
-  h1{ font-family:'Source Serif 4', serif; font-size:24px; font-weight:700; margin:0 0 4px; color:var(--accent); }
+  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size:24px; font-weight:700; margin:0 0 4px; color:var(--accent); }
   .sub{ font-size:13px; color:var(--ink-mute); margin: 0 0 28px; }
   .row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0; border-top:1px solid rgba(33,30,27,0.08); }
   .row:first-of-type{ border-top:none; }
@@ -39,9 +42,10 @@
     <p class="sub">Обновление каталога программ факультета права НИУ ВШЭ</p>
 
     <div class="banner" id="banner">
-      Не вижу локальный сервер на <code>127.0.0.1:5178</code>. Откройте терминал в папке проекта и запустите:<br>
+      Админка работает только через локальный сервер. Откройте терминал в папке проекта и запустите:<br>
       <code>node admin-server.js</code><br>
-      затем откройте эту страницу по адресу <code>http://127.0.0.1:5178/admin.html</code> (а не двойным кликом по файлу).
+      затем откройте <code>http://127.0.0.1:5178/admin.html</code> и введите логин и пароль из терминала
+      (двойной клик по файлу не подойдёт — без сервера и авторизации запросы не работают).
     </div>
 
     <div class="row">
@@ -69,7 +73,8 @@
 <script>
   // Opened as a local file (double-clicked) instead of served by admin-server.js?
   // Relative fetch('/api/...') would resolve against file:// and never reach the
-  // server, so route explicitly to it — the server also allows any origin via CORS.
+  // server. The explicit base at least lets the page detect the situation and
+  // show the banner with instructions (auth + no CORS make file:// unusable).
   const API_BASE = location.protocol === 'file:' ? 'http://127.0.0.1:5178' : '';
 
   const lastUpdatedEl = document.getElementById('lastUpdated');

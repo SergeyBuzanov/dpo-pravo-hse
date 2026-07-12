@@ -19,9 +19,11 @@
 <meta name="twitter:title" content="Образование для профессионалов права · Центр ДПО НИУ ВШЭ">
 <meta name="twitter:description" content="Программы ДПО факультета права НИУ ВШЭ для юристов.">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<!-- Шрифты размещены локально (fonts/) — данные посетителей не уходят на внешние CDN (152-ФЗ). -->
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<link rel="stylesheet" href="fonts/fonts-main.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
   :root{
     --accent: #1658DA;
@@ -42,11 +44,11 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif;
     overflow-x: hidden;
   }
   a{ color: inherit; text-decoration: none; }
-  h1,h2,h3{ font-family: 'Source Serif 4', serif; margin: 0; }
+  h1,h2,h3{ font-family: 'HSE Slab', 'Source Serif 4', serif; margin: 0; }
 
   header{
     position: sticky; top: 0; z-index: 50;
@@ -57,7 +59,7 @@
     border-bottom: 1px solid rgba(33,30,27,0.08);
   }
   .logo{ display: flex; flex-direction: column; gap: 2px; }
-  .logo .name{ font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 22px; color: var(--accent); line-height: 1; }
+  .logo .name{ font-family: 'HSE Slab', 'Source Serif 4', serif; font-weight: 700; font-size: 22px; color: var(--accent); line-height: 1; }
   .logo .sub{ font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); }
   nav{ display: flex; align-items: center; gap: clamp(16px, 3vw, 36px); flex-wrap: wrap; }
   nav a.link{ font-size: 15px; color: var(--ink-soft); transition: color .15s; }
@@ -86,7 +88,7 @@
 
   .stats{ position: relative; margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: rgba(255,255,255,0.14); border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; }
   .stat{ padding: 22px 20px; background: rgba(6,15,40,0.55); }
-  .stat .n{ font-family: 'Source Serif 4', serif; font-size: clamp(22px, 2vw, 30px); font-weight: 600; color: #fff; }
+  .stat .n{ font-family: 'HSE Slab', 'Source Serif 4', serif; font-size: clamp(22px, 2vw, 30px); font-weight: 600; color: #fff; }
   .stat .label{ font-size: 12.5px; color: rgba(255,255,255,0.72); margin-top: 6px; line-height: 1.3; }
 
   section{ padding: clamp(64px, 9vw, 120px) clamp(20px, 6vw, 64px); }
@@ -98,13 +100,13 @@
   .intro p{ font-size: 17px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px; }
   .intro p:last-child{ margin-bottom: 0; }
   .quote-card{ background: var(--accent); border-radius: var(--radius-lg); padding: clamp(28px, 4vw, 40px); display: flex; flex-direction: column; gap: 16px; }
-  .quote-card .mark{ font-family: 'Source Serif 4', serif; font-size: 44px; line-height: 1; color: var(--gold); }
+  .quote-card .mark{ font-family: 'HSE Slab', 'Source Serif 4', serif; font-size: 44px; line-height: 1; color: var(--gold); }
   .quote-card p{ font-size: 18px; line-height: 1.55; color: #fff; margin: 0; }
   .quote-card span{ font-size: 13px; color: rgba(255,255,255,0.7); }
 
   .cards3{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
   .card{ background: #fff; border-radius: var(--radius-md); padding: 32px; display: flex; flex-direction: column; gap: 14px; border: 1px solid rgba(33,30,27,0.07); }
-  .card .num{ width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Source Serif 4', serif; font-size: 18px; font-weight: 600; }
+  .card .num{ width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'HSE Slab', 'Source Serif 4', serif; font-size: 18px; font-weight: 600; }
   .card h3{ font-size: 21px; font-weight: 600; margin: 4px 0 0; }
   .card p{ font-size: 15.5px; line-height: 1.6; color: #55503E; margin: 0; }
 
@@ -140,6 +142,26 @@
   .contact-card .phone{ font-size: 14.5px; color: var(--ink); }
   .contact-card .mail{ font-size: 14.5px; color: var(--accent); }
 
+  .vi-btn{
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--ink-soft); background: transparent; border: 1px solid rgba(33,30,27,0.25);
+    border-radius: var(--radius-sm); padding: 8px 14px; white-space: nowrap;
+  }
+  .vi-btn:hover{ border-color: var(--accent); color: var(--accent); }
+
+  /* Версия для слабовидящих (ГОСТ Р 52872-2019): белый фон, чёрный текст,
+     увеличенный масштаб, без декора и анимаций. */
+  html.vi-mode body{ zoom: 1.25; }
+  html.vi-mode *{ background: transparent !important; background-image: none !important;
+    color: #000 !important; box-shadow: none !important; text-shadow: none !important;
+    animation: none !important; transition: none !important; }
+  html.vi-mode body{ background: #fff !important; }
+  html.vi-mode a{ text-decoration: underline !important; }
+  html.vi-mode svg{ display: none !important; }
+  html.vi-mode .card, html.vi-mode .quote-card, html.vi-mode .contact-card,
+  html.vi-mode .stat, html.vi-mode .cta-banner{ border: 2px solid #000 !important; }
+  html.vi-mode .btn, html.vi-mode button{ border: 2px solid #000 !important; }
+
   footer{ padding: 32px clamp(20px, 6vw, 64px); border-top: 1px solid rgba(33,30,27,0.1); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
   footer .name{ font-size: 13.5px; color: var(--ink-mute); }
   footer .copy{ font-size: 13px; color: #948C7D; }
@@ -161,6 +183,7 @@
     <a href="#formats" class="link">Форматы</a>
     <a href="#teachers" class="link">Преподаватели</a>
     <a href="#contacts" class="link">Контакты</a>
+    <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Аа Для слабовидящих</button>
     <a href="#contacts" class="btn btn-accent">Записаться</a>
   </nav>
 </header>
@@ -292,7 +315,7 @@
         <span class="contact-icon">E</span>
         <div>
           <div class="contact-label">Email</div>
-          <a href="mailto:dpo-pravo@hse.ru" class="contact-value">dpo-pravo@hse.ru</a>
+          <a href="#" class="contact-value email-protect" data-u="dpo-pravo" data-d="hse.ru">dpo-pravo [собака] hse.ru</a>
         </div>
       </div>
       <div class="contact-row">
@@ -317,15 +340,39 @@
       <p>Руководство учебным процессом, взаимодействие с внутренними и внешними организациями.</p>
       <div class="divider"></div>
       <div class="phone">+7 (495) 772-95-90, доб. 22112</div>
-      <a href="mailto:eoshchegolkova@hse.ru" class="mail">eoshchegolkova@hse.ru</a>
+      <a href="#" class="mail email-protect" data-u="eoshchegolkova" data-d="hse.ru">eoshchegolkova [собака] hse.ru</a>
     </div>
   </div>
 </section>
 
 <footer>
   <span class="name">Центр дополнительного профессионального образования · Факультет права НИУ ВШЭ</span>
-  <span class="copy">© НИУ ВШЭ, 1993–2026</span>
+  <span style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
+    <a href="privacy.html" style="font-size:13px; color:var(--accent);">Политика обработки персональных данных</a>
+    <a href="https://www.hse.ru/sveden/" rel="noopener" style="font-size:13px; color:var(--accent);">Сведения об образовательной организации</a>
+    <span class="copy">© НИУ ВШЭ, 1993–2026</span>
+  </span>
 </footer>
 
+<script>
+  // Версия для слабовидящих: переключатель с сохранением выбора (функциональное
+  // хранение настройки — согласия по 152-ФЗ не требует, ПДн не содержит).
+  const viBtn = document.getElementById('viToggle');
+  function setVi(on) {
+    document.documentElement.classList.toggle('vi-mode', on);
+    viBtn.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
+  }
+  viBtn.addEventListener('click', () => setVi(!document.documentElement.classList.contains('vi-mode')));
+  try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+
+  // Защита email от спам-ботов: адрес собирается только в браузере (JS),
+  // в HTML-исходнике его нет — харвестеры получают "[собака]" вместо адреса.
+  document.querySelectorAll('.email-protect').forEach(function (a) {
+    var addr = a.dataset.u + '@' + a.dataset.d;
+    a.href = 'mailto:' + addr;
+    a.textContent = addr;
+  });
+</script>
 </body>
 </html>
