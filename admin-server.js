@@ -109,6 +109,9 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.woff2': 'font/woff2',
+  '.jpg': 'image/jpeg',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
 };
 
 // Applied to every response: no MIME sniffing, no framing, no referrer leakage,
@@ -274,11 +277,12 @@ const server = http.createServer((req, res) => {
       serveFile(res, path.join(ROOT, 'privacy.html'));
       return;
     }
-    if (req.method === 'GET' && url.startsWith('/fonts/')) {
-      // Locked to the fonts dir and css/woff2 extensions; path.normalize
-      // collapses any ../ so traversal outside fonts/ fails the prefix check.
+    if (req.method === 'GET' && (url.startsWith('/fonts/') || url.startsWith('/js/') || url.startsWith('/images/'))) {
+      // Locked to known asset dirs and extensions; path.normalize collapses
+      // any ../ so traversal outside the dir fails the prefix check.
       const safe = path.normalize(url).replace(/^[/\\]+/, '');
-      if (safe.startsWith('fonts' + path.sep) && /\.(css|woff2)$/.test(safe)) {
+      const allowedDir = ['fonts', 'js', 'images'].some((d) => safe.startsWith(d + path.sep));
+      if (allowedDir && /\.(css|woff2|js|jpg|png|svg)$/.test(safe)) {
         serveFile(res, path.join(ROOT, safe));
         return;
       }

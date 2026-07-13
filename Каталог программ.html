@@ -29,7 +29,7 @@
      фирменных HSE Sans / HSE Slab; PT Serif — официальный фолбэк самого hse.ru. -->
 <link rel="stylesheet" href="fonts/fonts-hse.css">
 <link rel="stylesheet" href="fonts/fonts-catalog.css">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
   :root{
@@ -402,5 +402,6 @@
   viBtn.addEventListener('click', () => setVi(!document.documentElement.classList.contains('vi-mode')));
   try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
 </script>
+<script src="js/cookie-consent.js" defer></script>
 </body>
 </html>

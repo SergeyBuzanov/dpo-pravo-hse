@@ -8,7 +8,7 @@
 <meta name="robots" content="index, follow">
 <link rel="stylesheet" href="fonts/fonts-hse.css">
 <link rel="stylesheet" href="fonts/fonts-main.css">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
   :root{ --accent:#1658DA; --bg:#FBF9F5; --ink:#211E1B; --ink-soft:#48423A; --ink-mute:#6B6459; }
@@ -45,11 +45,12 @@
   <h2>2. Какие данные обрабатывает Сайт</h2>
   <p>Сайт спроектирован по принципу минимизации данных:</p>
   <ul>
-    <li>Сайт <b>не использует cookies</b>, счётчики посещаемости и системы веб-аналитики;</li>
+    <li><b>Cookies веб-аналитики (Яндекс.Метрика) устанавливаются только с вашего согласия</b> — после нажатия «Принять» в баннере. При отказе счётчик не загружается и cookies не ставятся. Обезличенная статистика посещений обрабатывается сервисом Яндекс.Метрика (ООО «Яндекс», Российская Федерация);</li>
     <li>на Сайте <b>нет форм</b> сбора данных (регистрации, заявок, подписок) — запись на программы происходит на официальном сайте <a href="https://www.hse.ru/" rel="noopener">hse.ru</a>;</li>
-    <li>шрифты и все ресурсы Сайта размещены локально — данные о посещении <b>не передаются</b> сторонним CDN и иным третьим лицам, в том числе за пределы Российской Федерации;</li>
-    <li>настройка «версия для слабовидящих» хранится только в браузере посетителя (localStorage) и не содержит персональных данных.</li>
+    <li>шрифты и все ресурсы Сайта размещены локально — помимо Яндекс.Метрики (при вашем согласии), данные о посещении <b>не передаются</b> третьим лицам, в том числе за пределы Российской Федерации;</li>
+    <li>настройка «версия для слабовидящих» и ваш выбор по cookies хранятся только в браузере (localStorage) и не содержат персональных данных.</li>
   </ul>
+  <p>Изменить своё решение по cookies можно в любой момент: <a href="#" onclick="window.resetCookieConsent(); return false;">сбросить выбор и показать баннер заново</a>.</p>
 
   <h2>3. Данные, предоставляемые добровольно</h2>
   <p>Если вы обращаетесь к нам по электронной почте или телефону, указанным на Сайте, вы добровольно предоставляете персональные данные (имя, адрес электронной почты, иные сведения из обращения). Такие данные используются исключительно для ответа на обращение и не передаются третьим лицам, за исключением случаев, предусмотренных законодательством.</p>
@@ -80,5 +81,6 @@
     a.textContent = addr;
   });
 </script>
+<script src="js/cookie-consent.js" defer></script>
 </body>
 </html>
