@@ -429,7 +429,7 @@
           <div class="contact-value" style="font-weight:600; line-height:1.4;">Москва, Большой Трёхсвятительский переулок, д. 3</div>
         </div>
       </div>
-      <a href="#contacts" class="btn btn-accent-lg" style="margin-top: 8px; align-self: flex-start;">Подписаться на рассылку клуба</a>
+      <a href="#" id="subscribeLink" class="btn btn-accent-lg" style="margin-top: 8px; align-self: flex-start;">Подписаться на рассылку клуба</a>
     </div>
     <div class="contact-card">
       <span class="role">Координатор клуба выпускников</span>
@@ -471,6 +471,19 @@
     a.href = 'mailto:' + addr;
     a.textContent = addr;
   });
+
+  // Подписка на рассылку: бэкенда и форм у страницы нет (152-ФЗ, минимизация
+  // данных), поэтому подписка работает письмом — клик открывает почтовый
+  // клиент с готовой заявкой. Адрес собирается здесь же, не в HTML.
+  var subscribeLink = document.getElementById('subscribeLink');
+  if (subscribeLink) {
+    var subAddr = 'alumni-pravo' + '@' + 'hse.ru';
+    subscribeLink.href = 'mailto:' + subAddr
+      + '?subject=' + encodeURIComponent('Подписка на рассылку Клуба выпускников')
+      + '&body=' + encodeURIComponent(
+        'Здравствуйте!\n\nПрошу подписать меня на рассылку Клуба выпускников факультета права НИУ ВШЭ.\n\n'
+        + 'ФИО: \nГод выпуска: \nEmail для рассылки: \n');
+  }
 </script>
 </body>
 </html>
