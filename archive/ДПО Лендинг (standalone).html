@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- АРХИВ: страница выведена из публичного набора 13.07.2026.
+     Единственный лендинг ДПО — index.html (Design-версия). -->
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -20,8 +22,8 @@
 <meta name="twitter:description" content="Программы ДПО факультета права НИУ ВШЭ для юристов.">
 
 <!-- Шрифты размещены локально (fonts/) — данные посетителей не уходят на внешние CDN (152-ФЗ). -->
-<link rel="stylesheet" href="fonts/fonts-hse.css">
-<link rel="stylesheet" href="fonts/fonts-main.css">
+<link rel="stylesheet" href="../fonts/fonts-hse.css">
+<link rel="stylesheet" href="../fonts/fonts-main.css">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style>
@@ -75,7 +77,7 @@
   }
   /* Фирменный hero лендинга ДПО — фото Фемиды (как в Design-версии).
      Сетка-граф — визуал Клуба выпускников, здесь её быть не должно. */
-  .hero .photo{ position: absolute; inset: 0; background-image: url("images/hero-justice.jpg"); background-size: cover; background-position: center 30%; }
+  .hero .photo{ position: absolute; inset: 0; background-image: url("../images/hero-justice.jpg"); background-size: cover; background-position: center 30%; }
   .hero .fade{ position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,14,26,0.22) 0%, rgba(8,14,26,0.62) 62%, rgba(8,14,26,0.82) 100%); }
   .hero-inner{ position: relative; z-index: 1; width: 100%; padding: clamp(90px, 14vw, 160px) clamp(20px, 6vw, 64px) 0; display: flex; flex-direction: column; gap: 28px; }
   .eyebrow{ font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
@@ -198,7 +200,7 @@
     <h1>Образование для профессионалов права</h1>
     <p class="lead">Повышение квалификации и профессиональная переподготовка для юристов, in-house counsel и руководителей правовых департаментов — с преподавателями-практиками.</p>
     <div class="hero-ctas">
-      <a href="Каталог программ.html" class="btn btn-light">Смотреть все программы</a>
+      <a href="../Каталог программ.html" class="btn btn-light">Смотреть все программы</a>
       <a href="#formats" class="btn btn-outline">Посмотреть форматы</a>
     </div>
     <div class="stats">
@@ -258,7 +260,7 @@
       <h2 style="margin: 14px 0 12px;">Смотрите весь каталог программ</h2>
       <p>Полный список актуальных программ факультета — с ценами, форматом и датами старта — в отдельном каталоге.</p>
     </div>
-    <a href="Каталог программ.html" class="btn btn-accent-lg">Открыть каталог программ →</a>
+    <a href="../Каталог программ.html" class="btn btn-accent-lg">Открыть каталог программ →</a>
   </div>
 </section>
 
@@ -325,7 +327,7 @@
 <footer>
   <span class="name">Центр дополнительного профессионального образования · Факультет права НИУ ВШЭ</span>
   <span style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
-    <a href="privacy.html" style="font-size:13px; color:var(--accent);">Политика обработки персональных данных</a>
+    <a href="../privacy.html" style="font-size:13px; color:var(--accent);">Политика обработки персональных данных</a>
     <a href="https://www.hse.ru/sveden/" rel="noopener" style="font-size:13px; color:var(--accent);">Сведения об образовательной организации</a>
     <span class="copy">© НИУ ВШЭ, 1993–2026</span>
   </span>
@@ -351,6 +353,6 @@
     a.textContent = addr;
   });
 </script>
-<script src="js/cookie-consent.js" defer></script>
+<script src="../js/cookie-consent.js" defer></script>
 </body>
 </html>

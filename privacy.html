@@ -25,13 +25,22 @@
   p, li{ font-size:16px; color:var(--ink-soft); }
   ul{ padding-left:22px; }
   footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgba(33,30,27,0.1); font-size:13px; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .vi-btn{ font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft); background:transparent; border:1px solid rgba(33,30,27,0.25); border-radius:999px; padding:8px 14px; white-space:nowrap; }
+  .vi-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  /* Версия для слабовидящих (ГОСТ Р 52872-2019) */
+  html.vi-mode body{ zoom:1.25; background:#fff !important; }
+  html.vi-mode *{ background:transparent !important; color:#000 !important; box-shadow:none !important; }
+  html.vi-mode a{ text-decoration:underline !important; }
 </style>
 </head>
 <body>
 
 <header>
   <a href="index.html" class="logo">Право · Центр ДПО</a>
-  <a href="index.html">← На главную</a>
+  <span style="display:flex; align-items:center; gap:14px;">
+    <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
+    <a href="index.html">← На главную</a>
+  </span>
 </header>
 
 <main>
@@ -80,6 +89,16 @@
     a.href = 'mailto:' + addr;
     a.textContent = addr;
   });
+
+  // Версия для слабовидящих
+  var viBtn = document.getElementById('viToggle');
+  function setVi(on) {
+    document.documentElement.classList.toggle('vi-mode', on);
+    viBtn.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
+  }
+  viBtn.addEventListener('click', function () { setVi(!document.documentElement.classList.contains('vi-mode')); });
+  try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
 </script>
 <script src="js/cookie-consent.js" defer></script>
 </body>
