@@ -277,6 +277,10 @@ const server = http.createServer((req, res) => {
       serveFile(res, path.join(ROOT, 'privacy.html'));
       return;
     }
+    if (req.method === 'GET' && url === '/favicon.svg') {
+      serveFile(res, path.join(ROOT, 'favicon.svg'));
+      return;
+    }
     if (req.method === 'GET' && (url.startsWith('/fonts/') || url.startsWith('/js/') || url.startsWith('/images/'))) {
       // Locked to known asset dirs and extensions; path.normalize collapses
       // any ../ so traversal outside the dir fails the prefix check.
