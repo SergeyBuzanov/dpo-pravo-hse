@@ -59,10 +59,11 @@ def start_server():
 
 
 def collect_page(context, url, wait_selector=None):
-    """Открывает страницу в свежем контексте (чистый localStorage),
-    собирая ошибки консоли и внешние сетевые запросы."""
+    """Открывает страницу в свежем контексте (чистый localStorage), собирая
+    ошибки консоли, внешние сетевые запросы и битые ресурсы (4xx/5xx)."""
     console_errors = []
     external_hosts = set()
+    broken = []  # (url, status) для своих ресурсов со статусом ≥ 400
     page = context.new_page()
     page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: console_errors.append(str(e)))
@@ -72,11 +73,19 @@ def collect_page(context, url, wait_selector=None):
         if u.scheme in ("http", "https") and u.hostname not in ("127.0.0.1", "localhost"):
             external_hosts.add(u.hostname)
 
+    def on_response(resp):
+        u = urllib.parse.urlparse(resp.url)
+        # /favicon.ico — авто-проба браузера, а не ссылка со страницы; не считаем.
+        if (u.hostname in ("127.0.0.1", "localhost") and resp.status >= 400
+                and not u.path.endswith("/favicon.ico")):
+            broken.append((u.path, resp.status))
+
     page.on("request", on_request)
+    page.on("response", on_response)
     page.goto(url, wait_until="networkidle")
     if wait_selector:
         page.wait_for_selector(wait_selector, timeout=8000)
-    return page, console_errors, external_hosts
+    return page, console_errors, external_hosts, broken
 
 
 # ── тесты страниц ─────────────────────────────────────────────────────
@@ -84,7 +93,7 @@ def test_index(context):
     lbl = "index.html"
     print(f"\n{lbl} (главная, Claude Design)")
     try:
-        page, errors, external = collect_page(context, INDEX, wait_selector="#viToggle")
+        page, errors, external, broken = collect_page(context, INDEX, wait_selector="#viToggle")
     except PWError as e:
         check(lbl, "страница отрисовалась", False, str(e))
         return
@@ -112,6 +121,15 @@ def test_index(context):
     vi_off = not page.evaluate("document.documentElement.classList.contains('vi-mode')")
     check(lbl, "версия для слабовидящих вкл/выкл", vi_on and vi_off)
 
+    # сторож регрессии: клик должен работать и спустя время (делегированный
+    # обработчик переживает пересборку React-шапки рантаймом).
+    page.wait_for_timeout(2500)
+    page.click("#viToggle")
+    vi_late = page.evaluate("document.documentElement.classList.contains('vi-mode')")
+    page.click("#viToggle")
+    check(lbl, "переключатель работает и после ре-рендеров", vi_late,
+          "делегированный обработчик потерян")
+
     # куки-баннер: отклонить запоминается
     banner = page.query_selector("#cookieBanner")
     check(lbl, "куки-баннер показан", banner is not None)
@@ -135,6 +153,7 @@ def test_index(context):
           str(footer))
 
     check(lbl, "нет ошибок в консоли", not errors, "; ".join(errors[:3]))
+    check(lbl, "нет битых ресурсов (4xx/5xx)", not broken, str(broken))
     check(lbl, "ноль внешних запросов (152-ФЗ)", not external, f"внешние хосты: {sorted(external)}")
     page.close()
 
@@ -142,7 +161,7 @@ def test_index(context):
 def test_catalog(context):
     lbl = "Каталог программ.html"
     print(f"\n{lbl}")
-    page, errors, external = collect_page(context, CATALOG)
+    page, errors, external, broken = collect_page(context, CATALOG)
 
     total = page.eval_on_selector_all("#grid .card", "els => els.length")
     check(lbl, "карточки программ (≥17)", total >= 17, f"got {total}")
@@ -162,6 +181,7 @@ def test_catalog(context):
     check(lbl, "ссылка «← На лендинг» → index.html",
           page.eval_on_selector('header a.back', "el => el.getAttribute('href')") == "index.html")
     check(lbl, "нет ошибок в консоли", not errors, "; ".join(errors[:3]))
+    check(lbl, "нет битых ресурсов (4xx/5xx)", not broken, str(broken))
     check(lbl, "ноль внешних запросов (152-ФЗ)", not external, f"внешние хосты: {sorted(external)}")
     page.close()
 
@@ -169,7 +189,7 @@ def test_catalog(context):
 def test_privacy(context):
     lbl = "privacy.html"
     print(f"\n{lbl}")
-    page, errors, external = collect_page(context, PRIVACY)
+    page, errors, external, broken = collect_page(context, PRIVACY)
 
     check(lbl, "заголовок политики",
           "Политика обработки персональных данных" in page.inner_text("h1"))
@@ -181,6 +201,7 @@ def test_privacy(context):
           page.evaluate("""() => { const a = document.querySelector('.email-protect');
               return a && a.getAttribute('href').startsWith('mailto:') && a.textContent.includes('@'); }"""))
     check(lbl, "нет ошибок в консоли", not errors, "; ".join(errors[:3]))
+    check(lbl, "нет битых ресурсов (4xx/5xx)", not broken, str(broken))
     page.close()
 
 
