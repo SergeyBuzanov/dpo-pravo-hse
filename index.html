@@ -228,9 +228,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   </script>
 
 <!-- vi-mode-addon: «Версия для слабовидящих» для главной страницы ДПО.
-     Рантайм при загрузке перезаписывает содержимое страницы и уносит любые
-     статические <style> — поэтому и стили, и кнопку вставляет скрипт уже
-     ПОСЛЕ рендера (сам interval переживает удаление своего <script>-тега). -->
+     Кнопка живёт внутри React-шапки (header nav), которую рантайм пересобирает,
+     теряя навешенные напрямую JS-слушатели. Поэтому: (1) клик обрабатывается
+     ДЕЛЕГИРОВАНО на document — этот слушатель переживает и replaceWith, и
+     ре-рендеры; (2) ensure() постоянно гарантирует наличие стилей и кнопки,
+     переустанавливая их, если рантайм их снёс. -->
 <script>
 (function () {
   var CSS = [
@@ -254,27 +256,39 @@ document.addEventListener('DOMContentLoaded', async function() {
     try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
   }
 
-  var tries = 0;
-  var timer = setInterval(function () {
+  // Делегированный обработчик на document — переживает подмену <html> и
+  // пересборку шапки рантаймом (слушатель на самой кнопке был бы потерян).
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('#viToggle') : null;
+    if (!t) return;
+    e.preventDefault();
+    setVi(!document.documentElement.classList.contains('vi-mode'));
+  });
+
+  // Стили и кнопку рантайм может снести при ре-рендере — восстанавливаем их.
+  function ensure() {
+    if (!document.getElementById('vi-mode-style')) {
+      var style = document.createElement('style');
+      style.id = 'vi-mode-style';
+      style.textContent = CSS;
+      (document.head || document.documentElement).appendChild(style);
+    }
     var nav = document.querySelector('header nav');
-    if (!nav) { if (++tries > 75) clearInterval(timer); return; }
-    clearInterval(timer);
-
-    var style = document.createElement('style');
-    style.textContent = CSS;
-    document.head.appendChild(style);
-
-    var btn = document.createElement('button');
-    btn.id = 'viToggle';
-    btn.type = 'button';
-    btn.textContent = 'Версия для слабовидящих';
-    btn.title = 'Версия для слабовидящих';
-    btn.setAttribute('aria-pressed', 'false');
-    btn.addEventListener('click', function () {
-      setVi(!document.documentElement.classList.contains('vi-mode'));
-    });
-    nav.insertBefore(btn, nav.lastElementChild);
-    try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+    if (nav && !document.getElementById('viToggle')) {
+      var btn = document.createElement('button');
+      btn.id = 'viToggle';
+      btn.type = 'button';
+      btn.textContent = 'Версия для слабовидящих';
+      btn.title = 'Версия для слабовидящих';
+      btn.setAttribute('aria-pressed', document.documentElement.classList.contains('vi-mode') ? 'true' : 'false');
+      nav.insertBefore(btn, nav.lastElementChild);
+    }
+  }
+  var n = 0;
+  var timer = setInterval(function () {
+    ensure();
+    try { if (n === 0 && localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+    if (++n > 300) clearInterval(timer); // ~60с: хватает на все ре-рендеры загрузки
   }, 200);
 })();
 </script>

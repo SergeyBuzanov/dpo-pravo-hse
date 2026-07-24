@@ -8,3 +8,7 @@
 # Системное
 .DS_Store
 node_modules/
+
+# Тестовое окружение Playwright (создаётся tests/run.sh)
+.venv-tests/
+tests/__pycache__/
