@@ -73,12 +73,21 @@ function isLockedOut(ip) {
 function recordAuthFail(ip) {
   const rec = authFails.get(ip) || { count: 0, lockedUntil: 0 };
   rec.count += 1;
+  const attempt = rec.count;
   if (rec.count >= MAX_FAILS) {
     rec.lockedUntil = Date.now() + LOCKOUT_MS;
     rec.count = 0;
+    console.warn(`[auth] ${new Date().toISOString()} ${ip}: ${MAX_FAILS} неверных паролей — блокировка на ${LOCKOUT_MS / 60000} мин`);
+  } else {
+    console.warn(`[auth] ${new Date().toISOString()} ${ip}: неверный пароль (попытка ${attempt}/${MAX_FAILS})`);
   }
   authFails.set(ip, rec);
 }
+
+// Тарпит: ответ на НЕВЕРНЫЕ учётные данные задерживается — перебор словаря
+// становится в разы медленнее ещё до срабатывания блокировки. Первый запрос
+// браузера без Authorization (открытие диалога логина) не замедляется.
+const FAIL_DELAY_MS = 700;
 
 // Anti-bot throttle: an automated client hammering the server gets 429 well
 // before it can cause load; a human clicking the admin panel never hits this.
@@ -227,15 +236,18 @@ const server = http.createServer((req, res) => {
     if (!checkAuth(req)) {
       // Count only actual wrong credentials, not the browser's first
       // credential-less request that triggers the login dialog.
-      if (req.headers['authorization']) recordAuthFail(ip);
-      res.writeHead(401, {
-        ...SECURITY_HEADERS,
-        // HTTP header values must be Latin-1/ASCII — Node throws on Cyrillic here,
-        // which turned every unauthenticated request into a 500 instead of a 401.
-        'WWW-Authenticate': 'Basic realm="DPO Admin"',
-        'Content-Type': 'text/plain; charset=utf-8',
-      });
-      res.end('Требуется авторизация');
+      const wrongCreds = !!req.headers['authorization'];
+      if (wrongCreds) recordAuthFail(ip);
+      setTimeout(() => {
+        res.writeHead(401, {
+          ...SECURITY_HEADERS,
+          // HTTP header values must be Latin-1/ASCII — Node throws on Cyrillic here,
+          // which turned every unauthenticated request into a 500 instead of a 401.
+          'WWW-Authenticate': 'Basic realm="DPO Admin"',
+          'Content-Type': 'text/plain; charset=utf-8',
+        });
+        res.end('Требуется авторизация');
+      }, wrongCreds ? FAIL_DELAY_MS : 0);
       return;
     }
     authFails.delete(ip);
