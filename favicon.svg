@@ -1,0 +1,6 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Дизайн повторяет брендовый thumbnail загрузчика главной:
+       синий #1658DA + золотая «П» #F0B86E -->
+  <rect width="64" height="64" rx="12" fill="#1658DA"/>
+  <text x="32" y="46" font-family="Georgia, serif" font-size="40" font-weight="700" fill="#F0B86E" text-anchor="middle">П</text>
+</svg>
