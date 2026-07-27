@@ -110,6 +110,42 @@ html.vi-mode .dpo-reveal{
   transition: none !important;
 }
 
+/* «Чему мы учим» — Анонсы / Все программы / Предложить идею */
+#explore a.explore-card,
+section#explore a[href]{
+  display: block !important;
+  transition:
+    border-color .32s cubic-bezier(.22,1,.36,1),
+    box-shadow .35s cubic-bezier(.22,1,.36,1),
+    transform .32s cubic-bezier(.22,1,.36,1),
+    background .32s ease !important;
+  will-change: transform, box-shadow;
+  box-shadow: 0 0 0 rgba(33,30,27,0);
+}
+#explore a.explore-card:hover,
+section#explore a[href]:hover{
+  border-color: #1658DA !important;
+  transform: translateY(-5px) !important;
+  box-shadow: 0 18px 42px rgba(33,30,27,0.12) !important;
+  background: #FFFEFB !important;
+}
+#explore a .explore-arrow{
+  display: inline-block;
+  transition: transform .32s cubic-bezier(.22,1,.36,1);
+}
+#explore a:hover .explore-arrow{
+  transform: translateX(6px);
+}
+#explore a:hover h3{
+  letter-spacing: 0.01em;
+}
+@media (prefers-reduced-motion: reduce){
+  #explore a.explore-card:hover,
+  section#explore a[href]:hover{
+    transform: none !important;
+  }
+}
+
 /* Sticky mobile CTA (injected if page has no .mobile-cta) */
 .dpo-mobile-cta{
   display: none;
@@ -135,7 +171,10 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
 `.trim();
 
   const injectCss = () => {
+    // Design bundler does document.documentElement.replaceWith(...) which wipes
+    // any earlier <style>. Always re-attach if missing after the swap.
     if (document.getElementById('dpo-smooth-ui-css')) return;
+    if (!document.head) return;
     const style = document.createElement('style');
     style.id = 'dpo-smooth-ui-css';
     style.textContent = CSS;
@@ -228,8 +267,9 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   };
 
   const observeReveals = () => {
+    const nodes = document.querySelectorAll('.dpo-reveal:not(.dpo-in)');
     if (reduce) {
-      document.querySelectorAll('.dpo-reveal').forEach((el) => el.classList.add('dpo-in'));
+      nodes.forEach((el) => el.classList.add('dpo-in'));
       return;
     }
     const io = new IntersectionObserver(
@@ -241,9 +281,16 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
           }
         }
       },
-      { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
+      { root: null, rootMargin: '0px 0px -6% 0px', threshold: 0.08 },
     );
-    document.querySelectorAll('.dpo-reveal:not(.dpo-in)').forEach((el) => io.observe(el));
+    nodes.forEach((el) => io.observe(el));
+    // Failsafe: never leave content invisible if IO misses a frame after
+    // the Design bundler swaps documentElement.
+    window.setTimeout(() => {
+      document.querySelectorAll('.dpo-reveal:not(.dpo-in)').forEach((el) => {
+        el.classList.add('dpo-in');
+      });
+    }, 1800);
   };
 
   const bindActiveNav = () => {
@@ -322,17 +369,29 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   const boot = () => {
     start();
     let n = 0;
+    let lastHtml = null;
     const t = setInterval(() => {
       n += 1;
+      // Bundler replaces <html> — re-inject CSS whenever head is new.
+      injectCss();
       const hasHeader = document.querySelector('header');
-      const hasSection = document.querySelector('section, main');
-      if (hasHeader || hasSection) {
+      const hasSection = document.querySelector('section, main, #explore');
+      const htmlNow = document.documentElement;
+      if (htmlNow !== lastHtml) {
+        lastHtml = htmlNow;
+        // Fresh document after replaceWith — re-bind chrome
         markRevealTargets();
         observeReveals();
         bindActiveNav();
+        ensureMobileCta();
+      } else if (hasHeader || hasSection) {
+        markRevealTargets();
+        observeReveals();
+        bindActiveNav();
+        ensureMobileCta();
       }
-      if (n > 25) clearInterval(t);
-    }, 300);
+      if (n > 40) clearInterval(t);
+    }, 250);
   };
 
   if (document.readyState === 'loading') {

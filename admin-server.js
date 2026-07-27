@@ -697,6 +697,15 @@ async function createServer(credentials) {
         return;
       }
 
+      // Root-level favicon (not under fonts/js/images)
+      if (method === 'GET' && (pathname === '/favicon.svg' || pathname === '/favicon.ico')) {
+        const fav = path.join(ROOT, 'favicon.svg');
+        if (fs.existsSync(fav)) {
+          await serveFile(res, fav);
+          return;
+        }
+      }
+
       const topDir = safe.rel.split('/')[0];
       const ext = path.extname(safe.rel).toLowerCase();
       if (ASSET_DIRS.has(topDir) && ASSET_EXT.has(ext)) {
