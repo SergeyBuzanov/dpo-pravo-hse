@@ -124,6 +124,66 @@
     box-shadow: 0 6px 18px rgba(0, 45, 110, 0.28);
   }
 
+  .toolbar{
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 14px clamp(20px, 5vw, 56px) 4px;
+    background: var(--bg);
+  }
+  .search-wrap{
+    flex: 1 1 260px; position: relative; min-width: min(100%, 240px);
+  }
+  .search-wrap input{
+    width: 100%; font: inherit; font-size: 14.5px;
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 11px 40px 11px 16px; background: #fff; color: var(--ink);
+    transition: border-color .2s ease, box-shadow .25s ease;
+  }
+  .search-wrap input:focus{
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0, 80, 207, 0.12);
+  }
+  .search-wrap .search-icon{
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 14px; color: var(--ink-mute); pointer-events: none;
+  }
+  .toolbar .reset{
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    color: var(--blue-dark); background: #fff; border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 10px 16px;
+    transition: border-color .2s, background .2s, opacity .2s;
+  }
+  .toolbar .reset:hover{ border-color: var(--blue); }
+  .toolbar .reset:disabled{ opacity: 0.45; cursor: default; }
+  .toolbar .result-count{
+    font-size: 13px; color: var(--ink-mute); white-space: nowrap;
+  }
+
+  /* Sticky mobile CTA */
+  .mobile-cta{
+    display: none;
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60;
+    gap: 8px; padding: 10px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(15,15,20,0.14);
+  }
+  .mobile-cta a{
+    flex: 1; text-align: center; font-weight: 600; font-size: 14px;
+    padding: 12px 10px; border-radius: 999px; text-decoration: none;
+  }
+  .mobile-cta a.primary{ background: var(--blue); color: #fff; }
+  .mobile-cta a.secondary{
+    background: #fff; color: var(--blue);
+    border: 1px solid var(--line);
+  }
+  @media (max-width: 760px){
+    body{ padding-bottom: 84px; }
+    .mobile-cta{ display: flex; }
+    html.vi-mode .mobile-cta{ display: none !important; }
+  }
+
   main{ padding: clamp(28px, 5vw, 48px) clamp(20px, 5vw, 56px) clamp(64px, 8vw, 96px); }
   .grid{
     display: grid;
@@ -243,7 +303,7 @@
   <h1>Программы факультета права</h1>
   <p>Повышение квалификации и профессиональная переподготовка для юристов — выберите программу и перейдите на её страницу на hse.ru, чтобы увидеть полную программу и записаться.</p>
   <!-- CATALOG:META -->
-<span class="meta">Обновлено: <b>27 июля 2026 г. в 15:49</b> · 23 актуальных программ</span>
+<span class="meta">Обновлено: <b>27 июля 2026 г. в 16:06</b> · 23 актуальных программ</span>
   <!-- /CATALOG:META -->
 </section>
 
@@ -264,10 +324,19 @@
   <!-- /CATALOG:FILTERS_FORMAT -->
 </div>
 
+<div class="toolbar">
+  <div class="search-wrap">
+    <input type="search" id="searchInput" placeholder="Поиск по названию, типу, формату…" autocomplete="off" enterkeyhint="search" aria-label="Поиск программ">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+  </div>
+  <button type="button" class="reset" id="resetFilters" disabled>Сбросить фильтры</button>
+  <span class="result-count" id="resultCount" aria-live="polite"></span>
+</div>
+
 <main>
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->
-    <a href="https://www.hse.ru/edu/dpo/958734693" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/958734693" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="актуальные вопросы гражданского права пк онлайн асинхронный 3 августа 2026 г.">
       <span class="badge">ПК</span>
       <h3>Актуальные вопросы гражданского права</h3>
       <div class="meta">Онлайн асинхронный · 3 августа 2026 г.</div>
@@ -276,7 +345,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/959312137" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/959312137" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers пк онлайн асинхронный 3 августа 2026 г.">
       <span class="badge">ПК</span>
       <h3>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</h3>
       <div class="meta">Онлайн асинхронный · 3 августа 2026 г.</div>
@@ -285,7 +354,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/1129129055" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/1129129055" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса пк онлайн асинхронный 7 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</h3>
       <div class="meta">Онлайн асинхронный · 7 сентября 2026 г.</div>
@@ -294,7 +363,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/1008772871" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/1008772871" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="правовые вопросы банкротства: теории и практики пк онлайн синхронный 10 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Правовые вопросы банкротства: теории и практики</h3>
       <div class="meta">Онлайн синхронный · 10 сентября 2026 г.</div>
@@ -303,7 +372,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/961021723" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="mixed">
+    <a href="https://www.hse.ru/edu/dpo/961021723" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="mixed" data-search="французское (европейское) экономическое право / droit économique français (européen) пп смешанный 14 сентября 2026 г.">
       <span class="badge">ПП</span>
       <h3>Французское (европейское) экономическое право / Droit économique français (européen)</h3>
       <div class="meta">Смешанный · 14 сентября 2026 г.</div>
@@ -312,7 +381,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/1025688553" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/1025688553" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="контрактное право гонконга пк онлайн синхронный 15 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Контрактное право Гонконга</h3>
       <div class="meta">Онлайн синхронный · 15 сентября 2026 г.</div>
@@ -321,7 +390,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/894108285" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/894108285" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="введение в правовую систему китая пк онлайн синхронный 18 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Введение в правовую систему Китая</h3>
       <div class="meta">Онлайн синхронный · 18 сентября 2026 г.</div>
@@ -330,7 +399,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/829977883" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="mixed">
+    <a href="https://www.hse.ru/edu/dpo/829977883" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="mixed" data-search="персональный ассистент pro пк смешанный 2 недели 19 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Персональный ассистент PRO</h3>
       <div class="meta">Смешанный · 2 недели · 19 сентября 2026 г.</div>
@@ -339,7 +408,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/816497962" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline">
+    <a href="https://www.hse.ru/edu/dpo/816497962" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline" data-search="интеллектуальная собственность: от закона к практике пк очный 6 недель 21 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Интеллектуальная собственность: от закона к практике</h3>
       <div class="meta">Очный · 6 недель · 21 сентября 2026 г.</div>
@@ -348,7 +417,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/837181759" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/837181759" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="цифровое право для бизнеса пк онлайн синхронный 1,5 месяца 23 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Цифровое право для бизнеса</h3>
       <div class="meta">Онлайн синхронный · 1,5 месяца · 23 сентября 2026 г.</div>
@@ -357,7 +426,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/474599435" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="mixed">
+    <a href="https://www.hse.ru/edu/dpo/474599435" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="mixed" data-search="международное частное право: трансграничные операции пк смешанный 1,5 месяца 24 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Международное частное право: трансграничные операции</h3>
       <div class="meta">Смешанный · 1,5 месяца · 24 сентября 2026 г.</div>
@@ -366,7 +435,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/814248062" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/814248062" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="исламские финансы: правовые основы, комплаенс и бизнес-практика пк онлайн синхронный 3 месяца 28 сентября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Исламские финансы: правовые основы, комплаенс и бизнес-практика</h3>
       <div class="meta">Онлайн синхронный · 3 месяца · 28 сентября 2026 г.</div>
@@ -375,7 +444,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/474776084" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="hybrid">
+    <a href="https://www.hse.ru/edu/dpo/474776084" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="hybrid" data-search="право на английском / legal english пп гибридный (обучение проходит очно и параллельно в онлайн) 8 месяцев 30 сентября 2026 г.">
       <span class="badge">ПП</span>
       <h3>Право на английском / Legal English</h3>
       <div class="meta">Гибридный (обучение проходит очно и параллельно в онлайн) · 8 месяцев · 30 сентября 2026 г.</div>
@@ -384,7 +453,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/472681893" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline">
+    <a href="https://www.hse.ru/edu/dpo/472681893" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline" data-search="авторское право в информационном обществе пк очный 5 недель 5 октября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Авторское право в информационном обществе</h3>
       <div class="meta">Очный · 5 недель · 5 октября 2026 г.</div>
@@ -393,7 +462,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/1163275658" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="hybrid">
+    <a href="https://www.hse.ru/edu/dpo/1163275658" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="hybrid" data-search="правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (gr в фарме) пк гибридный (обучение проходит очно и параллельно в онлайн) 13 октября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</h3>
       <div class="meta">Гибридный (обучение проходит очно и параллельно в онлайн) · 13 октября 2026 г.</div>
@@ -402,7 +471,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/494685723" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="mixed">
+    <a href="https://www.hse.ru/edu/dpo/494685723" target="_blank" rel="noopener noreferrer" class="card" data-type="ПП" data-format="mixed" data-search="бизнес-медиация пп смешанный 6 месяцев 14 октября 2026 г.">
       <span class="badge">ПП</span>
       <h3>Бизнес-медиация</h3>
       <div class="meta">Смешанный · 6 месяцев · 14 октября 2026 г.</div>
@@ -411,7 +480,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/1057557281" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/1057557281" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="французский юридический язык: право, терминология и аргументация (le français juridique: droit, terminologie et argumentation) пк онлайн синхронный 26 октября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</h3>
       <div class="meta">Онлайн синхронный · 26 октября 2026 г.</div>
@@ -420,7 +489,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/856421092" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/856421092" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="английское контрактное право пк онлайн синхронный 1 месяц 9 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Английское контрактное право</h3>
       <div class="meta">Онлайн синхронный · 1 месяц · 9 ноября 2026 г.</div>
@@ -429,7 +498,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/906651510" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/906651510" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="морской арбитраж пк онлайн синхронный 10 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Морской арбитраж</h3>
       <div class="meta">Онлайн синхронный · 10 ноября 2026 г.</div>
@@ -438,7 +507,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/474596729" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/474596729" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="корпоративное право: основные проблемы пк онлайн синхронный 5 недель 16 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Корпоративное право: основные проблемы</h3>
       <div class="meta">Онлайн синхронный · 5 недель · 16 ноября 2026 г.</div>
@@ -447,7 +516,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/820703080" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/820703080" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="техники эффективного анализа юридических документов пк онлайн синхронный 4 недели 16 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Техники эффективного анализа юридических документов</h3>
       <div class="meta">Онлайн синхронный · 4 недели · 16 ноября 2026 г.</div>
@@ -456,7 +525,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/907279244" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online">
+    <a href="https://www.hse.ru/edu/dpo/907279244" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="общие вопросы договорного права пк онлайн синхронный 3 недели 25 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Общие вопросы договорного права</h3>
       <div class="meta">Онлайн синхронный · 3 недели · 25 ноября 2026 г.</div>
@@ -465,7 +534,7 @@
         <span class="go">Подробнее →</span>
       </div>
     </a>
-    <a href="https://www.hse.ru/edu/dpo/905186485" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline">
+    <a href="https://www.hse.ru/edu/dpo/905186485" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="offline" data-search="нейроправо пк очный 30 ноября 2026 г.">
       <span class="badge">ПК</span>
       <h3>Нейроправо</h3>
       <div class="meta">Очный · 30 ноября 2026 г.</div>
@@ -488,19 +557,44 @@
   </span>
 </footer>
 
+<nav class="mobile-cta" aria-label="Быстрые действия">
+  <a class="secondary" href="index.html">На главную</a>
+  <a class="primary" href="#filters">Фильтры</a>
+</nav>
+
 <script>
   // Client-side only — no backend, no accounts, no order/application flow.
   // Each card is a plain link out to the program's real page on hse.ru.
   const gridEl = document.getElementById('grid');
   const emptyEl = document.getElementById('empty');
+  const searchInput = document.getElementById('searchInput');
+  const resetBtn = document.getElementById('resetFilters');
+  const resultCount = document.getElementById('resultCount');
   const active = { type: 'all', format: 'all' };
+  let query = '';
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const LEAVE_MS = reduceMotion ? 0 : 280;
   const ENTER_STAGGER = reduceMotion ? 0 : 35;
+  const totalCards = () => gridEl.querySelectorAll('.card[data-type]').length;
 
   function matchesFilter(card) {
-    return (active.type === 'all' || card.dataset.type === active.type)
-      && (active.format === 'all' || card.dataset.format === active.format);
+    const typeOk = active.type === 'all' || card.dataset.type === active.type;
+    const formatOk = active.format === 'all' || card.dataset.format === active.format;
+    const q = query.trim().toLowerCase();
+    const searchOk = !q || (card.dataset.search || card.textContent || '').toLowerCase().includes(q);
+    return typeOk && formatOk && searchOk;
+  }
+
+  function isDirty() {
+    return active.type !== 'all' || active.format !== 'all' || query.trim() !== '';
+  }
+
+  function updateChrome(visible) {
+    resetBtn.disabled = !isDirty();
+    const total = totalCards();
+    resultCount.textContent = visible === total
+      ? `${total} программ`
+      : `Найдено: ${visible} из ${total}`;
   }
 
   function applyFilters() {
@@ -513,13 +607,11 @@
       else toHide.push(card);
     }
 
-    // 1) Fade out cards that no longer match
     for (const card of toHide) {
       if (card.classList.contains('is-hidden')) continue;
       card.classList.remove('is-entering', 'is-shown');
       card.classList.add('is-leaving');
       window.setTimeout(() => {
-        // Still should be hidden (filter may have changed mid-animation)
         if (!matchesFilter(card)) {
           card.classList.add('is-hidden');
           card.classList.remove('is-leaving');
@@ -527,7 +619,6 @@
       }, LEAVE_MS);
     }
 
-    // 2) Reveal matching cards with staggered fade-in
     let delay = 0;
     for (const card of toShow) {
       const wasHidden = card.classList.contains('is-hidden') || card.classList.contains('is-leaving');
@@ -535,7 +626,7 @@
 
       if (wasHidden && !reduceMotion) {
         card.classList.add('is-entering');
-        void card.offsetWidth; // reflow — иначе transition не стартанёт
+        void card.offsetWidth;
         window.setTimeout(() => {
           if (matchesFilter(card)) card.classList.remove('is-entering');
         }, delay);
@@ -546,6 +637,7 @@
     }
 
     emptyEl.classList.toggle('visible', toShow.length === 0);
+    updateChrome(toShow.length);
   }
 
   document.querySelectorAll('.filters[data-group]').forEach((row) => {
@@ -566,13 +658,43 @@
     });
   });
 
-  // a11y: chips as toggle buttons
+  let searchTimer = null;
+  searchInput.addEventListener('input', () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => {
+      query = searchInput.value;
+      applyFilters();
+    }, 160);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    active.type = 'all';
+    active.format = 'all';
+    query = '';
+    searchInput.value = '';
+    document.querySelectorAll('.filters[data-group]').forEach((row) => {
+      row.querySelectorAll('.chip').forEach((b, i) => {
+        const on = i === 0;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+    applyFilters();
+    searchInput.focus();
+  });
+
   document.querySelectorAll('.chip').forEach((chip) => {
     chip.setAttribute('aria-pressed', chip.classList.contains('active') ? 'true' : 'false');
   });
 
-  // Версия для слабовидящих: переключатель с сохранением выбора (функциональное
-  // хранение настройки — согласия по 152-ФЗ не требует, ПДн не содержит).
+  // seed data-search for existing cards without attribute (until next catalog refresh)
+  gridEl.querySelectorAll('.card[data-type]').forEach((card) => {
+    if (!card.dataset.search) {
+      card.dataset.search = (card.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+  });
+  updateChrome(totalCards());
+
   const viBtn = document.getElementById('viToggle');
   function setVi(on) {
     document.documentElement.classList.toggle('vi-mode', on);

@@ -19,6 +19,7 @@ const {
 } = require('./lib/hse-catalog');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
+const LANDING_FILE = path.join(__dirname, 'ДПО Лендинг (standalone).html');
 
 const MARKERS = Object.freeze({
   meta: Object.freeze(['<!-- CATALOG:META -->', '<!-- /CATALOG:META -->']),
@@ -27,6 +28,12 @@ const MARKERS = Object.freeze({
   list: Object.freeze(['<!-- CATALOG:LIST -->', '<!-- /CATALOG:LIST -->']),
   jsonld: Object.freeze(['<!-- CATALOG:JSONLD -->', '<!-- /CATALOG:JSONLD -->']),
 });
+
+const UPCOMING_MARKERS = Object.freeze([
+  '<!-- UPCOMING:STARTS -->',
+  '<!-- /UPCOMING:STARTS -->',
+]);
+const UPCOMING_LIMIT = 6;
 
 /** Schema.org courseMode values Google recognizes, keyed by our format bucket. */
 const COURSE_MODE = Object.freeze({
@@ -66,8 +73,11 @@ function renderCard(item) {
   const bucket = formatBucket(format);
   const date = formatDate(item);
   const metaBits = [format, item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
+  const search = escapeHtml(
+    [item.title, typeShort, format, item.duration, date].filter(Boolean).join(' ').toLowerCase(),
+  );
 
-  return `    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="card" data-type="${typeShort}" data-format="${bucket.value}">
+  return `    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-search="${search}">
       <span class="badge">${typeShort}</span>
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
@@ -76,6 +86,48 @@ function renderCard(item) {
         <span class="go">Подробнее →</span>
       </div>
     </a>`;
+}
+
+/** Nearest upcoming programs (with startDate), for landing teaser. */
+function pickUpcoming(items, limit = UPCOMING_LIMIT) {
+  const now = Date.now();
+  return items
+    .filter((it) => it.startDate && Number(it.startDate) >= now - 24 * 3600 * 1000)
+    .sort((a, b) => Number(a.startDate) - Number(b.startDate))
+    .slice(0, limit);
+}
+
+function renderUpcomingCard(item) {
+  const typeShort = escapeHtml(item.type?.shortTitle || item.type?.title || '');
+  const format = item.studyFormat?.title || '';
+  const date = formatDate(item) || 'Дата уточняется';
+  const metaBits = [typeShort, format, item.duration].filter(Boolean).map(escapeHtml).join(' · ');
+
+  return `    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="upcoming-card">
+      <span class="when">${escapeHtml(date)}</span>
+      <h3>${escapeHtml(item.title)}</h3>
+      <div class="meta">${metaBits}</div>
+      <div class="foot">
+        <span class="price">${formatPrice(item)}</span>
+        <span class="go">Подробнее →</span>
+      </div>
+    </a>`;
+}
+
+function buildUpcomingHtml(items) {
+  const upcoming = pickUpcoming(items);
+  if (!upcoming.length) {
+    return `    <a href="Каталог программ.html" class="upcoming-card">
+      <span class="when">Каталог</span>
+      <h3>Актуальные программы факультета права</h3>
+      <div class="meta">Откройте полный каталог — фильтры по типу, формату и поиск</div>
+      <div class="foot">
+        <span class="price">${items.length} программ</span>
+        <span class="go">Каталог →</span>
+      </div>
+    </a>`;
+  }
+  return upcoming.map(renderUpcomingCard).join('\n');
 }
 
 function renderChip(label, value, count, active) {
@@ -202,6 +254,19 @@ async function main() {
   html = replaceBetween(html, MARKERS.jsonld, buildJsonLd(items));
   await writeAtomic(CATALOG_FILE, html);
 
+  // Landing: «Ближайшие старты»
+  let upcomingCount = 0;
+  try {
+    let landing = await fs.readFile(LANDING_FILE, 'utf8');
+    const upcomingHtml = buildUpcomingHtml(items);
+    upcomingCount = pickUpcoming(items).length;
+    landing = replaceBetween(landing, UPCOMING_MARKERS, upcomingHtml);
+    await writeAtomic(LANDING_FILE, landing);
+    console.log(`Лендинг: ${upcomingCount} ближайших стартов в «${path.basename(LANDING_FILE)}».`);
+  } catch (err) {
+    console.warn(`Лендинг не обновлён (ближайшие старты): ${err.message}`);
+  }
+
   const durationMs = Date.now() - t0;
   const programs = items.map(summarizeProgram);
 
@@ -213,6 +278,7 @@ async function main() {
     onlyActual: true,
     durationMs,
     programs,
+    upcomingCount,
   };
 }
 

@@ -109,6 +109,29 @@ html.vi-mode .dpo-reveal{
   filter: none !important;
   transition: none !important;
 }
+
+/* Sticky mobile CTA (injected if page has no .mobile-cta) */
+.dpo-mobile-cta{
+  display: none;
+  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60;
+  gap: 8px; padding: 10px;
+  background: rgba(251,249,245,0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(33,30,27,0.1);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(33,30,27,0.16);
+}
+.dpo-mobile-cta a{
+  flex: 1; text-align: center; font-weight: 600; font-size: 14px;
+  padding: 12px 10px; border-radius: 999px; text-decoration: none;
+  color: #1658DA; background: #fff; border: 1px solid rgba(22,88,218,0.3);
+}
+.dpo-mobile-cta a.primary{ background: #1658DA; color: #fff; border-color: #1658DA; }
+@media (max-width: 760px){
+  body.dpo-has-mobile-cta{ padding-bottom: 84px; }
+  .dpo-mobile-cta{ display: flex; }
+}
+html.vi-mode .dpo-mobile-cta{ display: none !important; }
 `.trim();
 
   const injectCss = () => {
@@ -266,12 +289,33 @@ html.vi-mode .dpo-reveal{
     sync();
   };
 
+  const ensureMobileCta = () => {
+    if (document.querySelector('.mobile-cta, .dpo-mobile-cta')) return;
+    // Only on landing-like pages with a header
+    if (!document.querySelector('header')) return;
+    const nav = document.createElement('nav');
+    nav.className = 'dpo-mobile-cta';
+    nav.setAttribute('aria-label', 'Быстрые действия');
+    const catalogHref = encodeURI('Каталог программ.html');
+    nav.innerHTML =
+      `<a class="secondary" href="${catalogHref}">Программы</a>` +
+      `<a class="primary" href="#contacts">Контакты</a>`;
+    // Fallback if no #contacts
+    if (!document.querySelector('#contacts')) {
+      nav.querySelector('.primary').href = catalogHref;
+      nav.querySelector('.primary').textContent = 'Каталог';
+    }
+    document.body.appendChild(nav);
+    document.body.classList.add('dpo-has-mobile-cta');
+  };
+
   const start = () => {
     injectCss();
     bindAnchors();
     markRevealTargets();
     observeReveals();
     bindActiveNav();
+    ensureMobileCta();
   };
 
   // React / bundler shell may mount late — retry a few times
