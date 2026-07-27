@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка · Центр ДПО факультета права</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<link rel="stylesheet" href="fonts/fonts-main.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<style>
+  :root {
+    --accent: #1658DA;
+    --accent-dark: #123F9E;
+    --bg: #FBF9F5;
+    --bg-alt: #F2ECE1;
+    --ink: #211E1B;
+    --ink-mute: #6B6459;
+    --ok: #1F6F54;
+    --err: #B00020;
+    --line: rgba(33, 30, 27, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 36px 16px 64px;
+  }
+  .wrap { width: 100%; max-width: 1080px; margin: 0 auto; }
+  h1 {
+    font-family: 'HSE Slab', 'Source Serif 4', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--accent);
+  }
+  .sub { font-size: 13px; color: var(--ink-mute); margin: 0 0 20px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tab {
+    font: inherit;
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-mute);
+    cursor: pointer;
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 1px 3px rgba(33, 30, 27, 0.06);
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-family: 'HSE Slab', serif;
+    font-size: 18px;
+    margin: 0 0 12px;
+  }
+  .hidden { display: none !important; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+  .row:first-of-type { border-top: none; }
+  .label { font-size: 13px; color: var(--ink-mute); }
+  .value { font-size: 15px; font-weight: 600; text-align: right; }
+  .value.ok { color: var(--ok); }
+  .value.err { color: var(--err); }
+  .value.pending { color: var(--ink-mute); }
+  .action-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  .action-desc { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 14px; line-height: 1.55; }
+  .action-desc a { color: var(--accent); word-break: break-all; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  button, .btn {
+    font: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    padding: 11px 18px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  button.primary { width: 100%; padding: 14px; font-size: 15px; }
+  button.secondary, a.btn.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid rgba(22, 88, 218, 0.35);
+  }
+  button:hover:not(:disabled) { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .kpi {
+    background: var(--bg-alt);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .kpi .n {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-dark);
+    line-height: 1.2;
+  }
+  .kpi .t { font-size: 12px; color: var(--ink-mute); margin-top: 4px; }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+  .bars { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .bar-track { grid-column: 1 / -1; height: 8px; background: #eee; border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #4B8BFF); border-radius: 99px; min-width: 2px; }
+  .bar-count { text-align: right; color: var(--ink-mute); font-weight: 600; }
+  .hours {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    align-items: end;
+    height: 80px;
+    margin-top: 8px;
+  }
+  .hours span {
+    background: var(--accent);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    opacity: 0.85;
+  }
+  .hour-labels {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    font-size: 9px;
+    color: var(--ink-mute);
+    margin-top: 4px;
+  }
+  .insights { margin: 0; padding-left: 18px; color: var(--ink-mute); font-size: 13.5px; line-height: 1.55; }
+  .insights li { margin-bottom: 6px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.data th, table.data td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.data th { color: var(--ink-mute); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #E8F0FE;
+    color: var(--accent-dark);
+  }
+  .log, .box {
+    margin-top: 14px;
+    font-size: 12.5px;
+    font-family: ui-monospace, monospace;
+    color: var(--ink-mute);
+    background: var(--bg-alt);
+    border-radius: 10px;
+    padding: 14px;
+    white-space: pre-wrap;
+    max-height: 220px;
+    overflow: auto;
+    display: none;
+  }
+  .log.visible, .box.visible { display: block; }
+  .programs { margin-top: 14px; display: none; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+  .programs.visible { display: block; }
+  .programs table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .programs th, .programs td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .programs th { position: sticky; top: 0; background: var(--bg-alt); }
+  .programs a { color: var(--accent); text-decoration: none; }
+  .banner {
+    display: none;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: #FDECEC;
+    border: 1px solid #F3B9B9;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #7A1414;
+  }
+  .banner.visible { display: block; }
+  .banner code, .hint code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+  }
+  .hint { margin-top: 12px; font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
+  .links { margin-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .links a { font-size: 13.5px; color: var(--accent); text-decoration: none; }
+  .range { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .range label { font-size: 13px; color: var(--ink-mute); margin-right: 4px; }
+  .muted { color: var(--ink-mute); font-size: 12.5px; }
+  .path-chip {
+    display: inline-block;
+    background: var(--bg-alt);
+    border-radius: 6px;
+    padding: 1px 6px;
+    margin: 1px 2px;
+    font-size: 11.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Центр ДПО · факультет права</h1>
+    <p class="sub">Админка: каталог, диагностика и менеджерская аналитика посещений</p>
+
+    <div class="banner" id="banner" role="alert">
+      Запустите <code>node admin-server.js</code> и откройте
+      <code>http://127.0.0.1:5178/admin.html</code>. Для сбора статистики посетителей
+      также используйте <code>npm run serve</code> (порт 5180) — посетители должны
+      <b>принять cookies</b>.
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-tab="catalog">Каталог</button>
+      <button type="button" class="tab" data-tab="analytics">Аналитика</button>
+      <button type="button" class="tab" data-tab="health">Диагностика</button>
+    </div>
+
+    <!-- ═══ CATALOG ═══ -->
+    <div id="tab-catalog">
+      <div class="panel">
+        <div class="row"><span class="label">Последнее обновление</span><span class="value" id="lastUpdated">—</span></div>
+        <div class="row"><span class="label">Актуальных программ</span><span class="value" id="programCount">—</span></div>
+        <div class="row"><span class="label">Изменение</span><span class="value pending" id="delta">—</span></div>
+        <div class="row"><span class="label">Длительность</span><span class="value pending" id="duration">—</span></div>
+        <div class="row"><span class="label">Статус</span><span class="value pending" id="status">Не проверялось</span></div>
+        <div class="row"><span class="label">Сервер</span><span class="value pending" id="serverInfo">—</span></div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
+          <p class="action-title">Актуализировать программы обучения</p>
+          <p class="action-desc">
+            Только <b>актуальные</b> программы с
+            <a href="https://www.hse.ru/edu/dpo/?orgUnit=22753" target="_blank" rel="noopener noreferrer">hse.ru/edu/dpo/?orgUnit=22753</a>
+            → «Каталог программ.html».
+          </p>
+          <button id="refreshBtn" class="primary" type="button">Актуализировать программы обучения</button>
+        </div>
+
+        <div style="margin-top:18px">
+          <div class="btn-row">
+            <a id="exportBtn" class="btn secondary" href="/api/programs.json">Скачать JSON</a>
+            <button id="toggleProgramsBtn" class="secondary" type="button">Показать список</button>
+          </div>
+          <div class="programs" id="programsBox">
+            <table>
+              <thead><tr><th>Тип</th><th>Программа</th><th>Формат</th></tr></thead>
+              <tbody id="programsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <pre class="log" id="log" aria-live="polite"></pre>
+      </div>
+    </div>
+
+    <!-- ═══ ANALYTICS ═══ -->
+    <div id="tab-analytics" class="hidden">
+      <div class="panel">
+        <div class="range">
+          <label>Период:</label>
+          <button type="button" class="secondary range-btn active" data-days="7">7 дней</button>
+          <button type="button" class="secondary range-btn" data-days="30">30 дней</button>
+          <button type="button" class="secondary range-btn" data-days="90">90 дней</button>
+          <button type="button" class="secondary" id="analyticsRefresh">Обновить</button>
+          <button type="button" class="secondary" id="seedDemoBtn">Демо-данные</button>
+        </div>
+        <p class="muted" id="analyticsMeta">Загрузка…</p>
+
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <h2>Выводы для менеджера</h2>
+        <ul class="insights" id="insights"></ul>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Что смотрят (страницы)</h2>
+          <div class="bars" id="topPages"></div>
+        </div>
+        <div class="panel">
+          <h2>Интерес к программам</h2>
+          <div class="bars" id="topPrograms"></div>
+          <p class="muted" style="margin-top:10px">Клики «Подробнее» / карточки каталога → hse.ru</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Что интереснее всего</h2>
+          <div class="bars" id="topInterest"></div>
+          <p class="muted" style="margin-top:10px">Сводный рейтинг: просмотры + время + клики по программам</p>
+        </div>
+        <div class="panel">
+          <h2>Куда ходят (переходы)</h2>
+          <div class="bars" id="topPaths"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Источники трафика</h2>
+          <div class="bars" id="topReferrers"></div>
+        </div>
+        <div class="panel">
+          <h2>Устройства</h2>
+          <div class="bars" id="devices"></div>
+          <h2 style="margin-top:18px">Фильтры каталога</h2>
+          <div class="bars" id="topFilters"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Активность по часам</h2>
+        <div class="hours" id="hoursChart"></div>
+        <div class="hour-labels" id="hourLabels"></div>
+        <h2 style="margin-top:18px">Динамика просмотров</h2>
+        <div class="bars" id="daily"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Глубина прокрутки</h2>
+        <div class="bars" id="scrollDepth"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Последние сессии</h2>
+        <div style="overflow:auto">
+          <table class="data" id="sessionsTable">
+            <thead>
+              <tr>
+                <th>Сессия</th>
+                <th>Устройство</th>
+                <th>Стр.</th>
+                <th>Время</th>
+                <th>Маршрут</th>
+                <th>Программы</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="hint">
+          Данные first-party: без IP и без передачи третьим лицам. Сбор только после
+          согласия на cookies. Хранение: папка <code>.analytics/</code> (в git не попадает).
+        </p>
+      </div>
+    </div>
+
+    <!-- ═══ HEALTH ═══ -->
+    <div id="tab-health" class="hidden">
+      <div class="panel">
+        <p class="action-title">Диагностика сайта</p>
+        <p class="action-desc">Файлы, маркеры каталога, доступность hse.ru.</p>
+        <button id="healthBtn" class="secondary" type="button">Проверить здоровье сайта</button>
+        <div class="box" id="healthBox"></div>
+        <div class="links">
+          <a href="Каталог программ.html" target="_blank" rel="noopener">Каталог →</a>
+          <a href="index.html" target="_blank" rel="noopener">Лендинг →</a>
+          <a href="http://127.0.0.1:5180/" target="_blank" rel="noopener">Публичный serve :5180 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  const API_BASE = location.protocol === 'file:' ? 'http://127.0.0.1:5178' : '';
+  const BTN_LABEL = 'Актуализировать программы обучения';
+  const $ = (id) => document.getElementById(id);
+
+  let csrfToken = '';
+  let lastPrograms = [];
+  let analyticsDays = 7;
+
+  // tabs
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const name = tab.dataset.tab;
+      $('tab-catalog').classList.toggle('hidden', name !== 'catalog');
+      $('tab-analytics').classList.toggle('hidden', name !== 'analytics');
+      $('tab-health').classList.toggle('hidden', name !== 'health');
+      if (name === 'analytics') loadAnalytics();
+    });
+  });
+
+  const setStatus = (text, kind = 'pending') => {
+    $('status').textContent = text;
+    $('status').className = `value ${kind}`;
+  };
+
+  const fmtDuration = (ms) => {
+    if (ms == null || ms === 0) return '—';
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s} с`;
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    if (m < 60) return rs ? `${m} мин ${rs} с` : `${m} мин`;
+    return `${Math.floor(m / 60)} ч ${m % 60} мин`;
+  };
+
+  const fmtDelta = (d) => {
+    if (d == null) return '—';
+    if (d === 0) return 'без изменений';
+    return d > 0 ? `+${d}` : String(d);
+  };
+
+  const api = async (path, options = {}) => {
+    const res = await fetch(`${API_BASE}${path}`, {
+      credentials: 'same-origin',
+      ...options,
+      headers: { Accept: 'application/json', ...(options.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && res.status !== 503) {
+      const err = new Error(data.error || `HTTP ${res.status}`);
+      err.data = data;
+      err.status = res.status;
+      throw err;
+    }
+    if (data.csrfToken) csrfToken = data.csrfToken;
+    return data;
+  };
+
+  const ensureCsrf = async () => {
+    if (csrfToken) return csrfToken;
+    const c = await api('/api/csrf');
+    csrfToken = c.csrfToken;
+    return csrfToken;
+  };
+
+  // ── catalog status ────────────────────────────────────────────
+  const renderPrograms = (programs = []) => {
+    lastPrograms = programs;
+    const body = $('programsBody');
+    body.replaceChildren();
+    for (const p of programs) {
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = p.type || '—';
+      td1.append(b);
+      const td2 = document.createElement('td');
+      const a = document.createElement('a');
+      a.href = p.url || '#';
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = p.title || '—';
+      td2.append(a);
+      const td3 = document.createElement('td');
+      td3.textContent = p.format || '—';
+      tr.append(td1, td2, td3);
+      body.append(tr);
+    }
+  };
+
+  const renderStatus = (data = {}) => {
+    $('banner').classList.remove('visible');
+    $('lastUpdated').textContent = data.updated || '—';
+    $('programCount').textContent = data.count != null ? data.count : '—';
+    $('delta').textContent = fmtDelta(data.delta);
+    $('delta').className = `value ${data.delta > 0 ? 'ok' : data.delta < 0 ? 'err' : 'pending'}`;
+    $('duration').textContent = data.durationMs != null ? (data.durationMs < 1000 ? data.durationMs + ' мс' : (data.durationMs / 1000).toFixed(1) + ' с') : '—';
+    if (data.server) {
+      $('serverInfo').textContent = `${data.server.node} · uptime ${fmtDuration(data.server.uptimeSec * 1000)}`;
+    }
+    if (data.error) setStatus('Ошибка', 'err');
+    else if (data.updated) setStatus('Актуально', 'ok');
+    else setStatus('Ещё не обновлялось', 'pending');
+    if (Array.isArray(data.programs)) renderPrograms(data.programs);
+  };
+
+  const showLog = (text) => {
+    $('log').textContent = text || '';
+    $('log').classList.toggle('visible', Boolean(text));
+  };
+
+  const loadStatus = async () => {
+    try {
+      renderStatus(await api('/api/status'));
+    } catch {
+      $('banner').classList.add('visible');
+      setStatus('Сервер недоступен', 'err');
+    }
+  };
+
+  $('refreshBtn').addEventListener('click', async () => {
+    const btn = $('refreshBtn');
+    btn.disabled = true;
+    btn.textContent = 'Загружаем актуальные с hse.ru…';
+    showLog('');
+    try {
+      await ensureCsrf();
+      const data = await api('/api/update', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+      showLog(data.log || '');
+      renderStatus(data);
+    } catch (e) {
+      showLog((e.data && (e.data.log || e.data.error)) || e.message);
+      setStatus('Ошибка', 'err');
+      csrfToken = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = BTN_LABEL;
+    }
+  });
+
+  $('toggleProgramsBtn').addEventListener('click', () => {
+    if (!lastPrograms.length) {
+      showLog('Сначала актуализируйте программы.');
+      return;
+    }
+    const open = $('programsBox').classList.toggle('visible');
+    $('toggleProgramsBtn').textContent = open ? 'Скрыть список' : 'Показать список';
+  });
+
+  $('exportBtn').addEventListener('click', async (ev) => {
+    if (location.protocol === 'file:') return;
+    ev.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/programs.json`, { credentials: 'same-origin' });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dpo-programs-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showLog(String(e.message || e));
+    }
+  });
+
+  // ── analytics UI ──────────────────────────────────────────────
+  const maxOf = (arr, key = 'count') => Math.max(1, ...arr.map((x) => x[key] || x));
+
+  const renderBars = (el, items, nameKey = 'name', countKey = 'count') => {
+    el.replaceChildren();
+    if (!items || !items.length) {
+      el.textContent = 'Нет данных';
+      el.className = 'muted';
+      return;
+    }
+    el.className = 'bars';
+    const max = maxOf(items, countKey);
+    for (const item of items) {
+      const name = item[nameKey];
+      const count = item[countKey];
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      const lab = document.createElement('div');
+      lab.className = 'bar-label';
+      lab.title = name;
+      lab.textContent = name;
+      const cnt = document.createElement('div');
+      cnt.className = 'bar-count';
+      cnt.textContent = count;
+      const track = document.createElement('div');
+      track.className = 'bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill';
+      fill.style.width = `${Math.round((100 * count) / max)}%`;
+      track.append(fill);
+      row.append(lab, cnt, track);
+      el.append(row);
+    }
+  };
+
+  const renderAnalytics = (data) => {
+    const k = data.kpis || {};
+    $('analyticsMeta').textContent =
+      `Сформировано: ${data.generatedAt ? new Date(data.generatedAt).toLocaleString('ru-RU') : '—'} · период ${data.rangeDays} дн.`;
+
+    const kpis = [
+      { n: k.visitorsToday ?? 0, t: 'Посетители сегодня' },
+      { n: k.visitors ?? 0, t: 'Посетители за период' },
+      { n: k.pageviews ?? 0, t: 'Просмотры' },
+      { n: k.pageviewsToday ?? 0, t: 'Просмотры сегодня' },
+      { n: fmtDuration(k.avgDurationMs), t: 'Ср. время на сайте' },
+      { n: k.avgPages ?? 0, t: 'Ср. страниц / сессия' },
+      { n: `${k.bounceRate ?? 0}%`, t: 'Отказы' },
+      { n: k.programClicks ?? 0, t: 'Клики по программам' },
+    ];
+    const grid = $('kpiGrid');
+    grid.replaceChildren();
+    for (const x of kpis) {
+      const d = document.createElement('div');
+      d.className = 'kpi';
+      d.innerHTML = `<div class="n"></div><div class="t"></div>`;
+      d.querySelector('.n').textContent = x.n;
+      d.querySelector('.t').textContent = x.t;
+      grid.append(d);
+    }
+
+    const ul = $('insights');
+    ul.replaceChildren();
+    for (const line of data.insights || []) {
+      const li = document.createElement('li');
+      li.textContent = line;
+      ul.append(li);
+    }
+
+    renderBars($('topPages'), data.topPages);
+    renderBars($('topPrograms'), data.topPrograms);
+    renderBars($('topInterest'), data.topInterest);
+    renderBars($('topPaths'), data.topPaths);
+    renderBars($('topReferrers'), data.topReferrers);
+    renderBars($('topFilters'), data.topFilters);
+
+    const devItems = Object.entries(data.devices || {}).map(([name, count]) => ({ name, count }));
+    renderBars($('devices'), devItems);
+
+    const scrollItems = (data.scrollDepth || []).map((x) => ({ name: x.name, count: x.avg }));
+    renderBars($('scrollDepth'), scrollItems);
+
+    // hours
+    const hours = data.hours || Array(24).fill(0);
+    const hMax = Math.max(1, ...hours);
+    const hc = $('hoursChart');
+    hc.replaceChildren();
+    hours.forEach((v) => {
+      const s = document.createElement('span');
+      s.style.height = `${Math.round((100 * v) / hMax)}%`;
+      s.title = `${v}`;
+      hc.append(s);
+    });
+    const hl = $('hourLabels');
+    hl.replaceChildren();
+    for (let i = 0; i < 24; i++) {
+      const s = document.createElement('span');
+      s.textContent = i % 3 === 0 ? String(i) : '';
+      hl.append(s);
+    }
+
+    renderBars(
+      $('daily'),
+      (data.daily || []).map((d) => ({ name: d.day.slice(5), count: d.pageviews })),
+    );
+
+    const tb = $('sessionsTable').querySelector('tbody');
+    tb.replaceChildren();
+    for (const s of data.recentSessions || []) {
+      const tr = document.createElement('tr');
+      const cells = [
+        s.sid,
+        s.device,
+        s.pages,
+        fmtDuration(s.durationMs),
+        (s.path || []).map((p) => `<span class="path-chip">${escapeHtml(p)}</span>`).join(''),
+        (s.programs || []).slice(0, 3).join(', ') || '—',
+      ];
+      cells.forEach((html, i) => {
+        const td = document.createElement('td');
+        if (i === 4) td.innerHTML = html;
+        else td.textContent = html;
+        tr.append(td);
+      });
+      tb.append(tr);
+    }
+  };
+
+  const escapeHtml = (s) =>
+    String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const loadAnalytics = async () => {
+    $('analyticsMeta').textContent = 'Загрузка…';
+    try {
+      const data = await api(`/api/analytics?days=${analyticsDays}`);
+      renderAnalytics(data);
+    } catch (e) {
+      $('banner').classList.add('visible');
+      $('analyticsMeta').textContent = 'Не удалось загрузить аналитику: ' + (e.message || e);
+    }
+  };
+
+  document.querySelectorAll('.range-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.range-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      analyticsDays = Number(btn.dataset.days);
+      loadAnalytics();
+    });
+  });
+
+  $('analyticsRefresh').addEventListener('click', loadAnalytics);
+
+  $('seedDemoBtn').addEventListener('click', async () => {
+    try {
+      await ensureCsrf();
+      const data = await api('/api/analytics/seed', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+      renderAnalytics(data);
+      $('analyticsMeta').textContent =
+        `Демо-данные добавлены (${data.seed?.seeded || '?'} событий). ` + $('analyticsMeta').textContent;
+    } catch (e) {
+      $('analyticsMeta').textContent = 'Ошибка демо: ' + (e.message || e);
+    }
+  });
+
+  // health
+  $('healthBtn').addEventListener('click', async () => {
+    $('healthBtn').disabled = true;
+    try {
+      const data = await api('/api/health');
+      const ul = document.createElement('ul');
+      ul.className = 'insights';
+      ul.style.listStyle = 'none';
+      ul.style.paddingLeft = '0';
+      for (const c of data.checks || []) {
+        const li = document.createElement('li');
+        li.textContent = `${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? ' — ' + c.detail : ''}`;
+        li.style.color = c.ok ? 'var(--ok)' : 'var(--err)';
+        ul.append(li);
+      }
+      $('healthBox').replaceChildren(ul);
+      $('healthBox').classList.add('visible');
+      setStatus(data.ok ? 'Здоровье: OK' : 'Есть проблемы', data.ok ? 'ok' : 'err');
+    } catch (e) {
+      showLog(String(e.message || e));
+    } finally {
+      $('healthBtn').disabled = false;
+    }
+  });
+
+  loadStatus();
+})();
+</script>
+</body>
+</html>
