@@ -39,6 +39,8 @@ const REQS_PER_MIN = 120;
 const COLLECT_REQS_PER_MIN = 600; // analytics beacons
 const MAX_URL_LEN = 2048;
 const MAX_BODY = 64 * 1024;
+/** Catalog PUT can be larger (full program list). */
+const MAX_PROGRAMS_BODY = 512 * 1024;
 const SCRYPT_PARAMS = Object.freeze({ N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
 const KEYLEN = 64;
 
@@ -362,31 +364,58 @@ function captureConsole(fn) {
 
 let updateInFlight = null;
 
-async function handleUpdate(res) {
-  if (updateInFlight) {
-    sendJson(res, 409, {
-      error: 'Обновление уже выполняется',
-      log: 'Дождитесь завершения текущего запроса.',
-    });
-    return;
-  }
-
-  const prev = await readStatus();
-
-  updateInFlight = (async () => {
-    // Clear require cache so edits to update-catalog.js / hse-catalog.js
-    // are picked up without restarting the server.
-    for (const key of Object.keys(require.cache)) {
-      if (key.includes(`${path.sep}update-catalog.js`) || key.includes(`${path.sep}hse-catalog.js`)) {
-        delete require.cache[key];
-      }
+function clearCatalogRequireCache() {
+  for (const key of Object.keys(require.cache)) {
+    if (
+      key.includes(`${path.sep}update-catalog.js`) ||
+      key.includes(`${path.sep}hse-catalog.js`) ||
+      key.includes(`${path.sep}catalog-store.js`)
+    ) {
+      delete require.cache[key];
     }
-    const { main } = require('./update-catalog');
-    return captureConsole(() => main());
-  })();
+  }
+}
 
+function assertCsrfAndOrigin(req) {
+  if (!checkCsrf(req)) {
+    return { ok: false, code: 403, error: 'Неверный CSRF-токен. Обновите страницу админки.' };
+  }
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  const expected = `http://${HOST}:${PORT}`;
+  if (origin && origin !== expected) {
+    return { ok: false, code: 403, error: 'Недопустимый Origin' };
+  }
+  if (referer && !referer.startsWith(expected + '/')) {
+    return { ok: false, code: 403, error: 'Недопустимый Referer' };
+  }
+  return { ok: true };
+}
+
+async function runCatalogJob(jobFn) {
+  if (updateInFlight) {
+    const err = new Error('Обновление уже выполняется');
+    err.code = 'UPDATE_IN_FLIGHT';
+    throw err;
+  }
+  updateInFlight = (async () => {
+    clearCatalogRequireCache();
+    return captureConsole(() => jobFn());
+  })();
   try {
-    const { result, log } = await updateInFlight;
+    return await updateInFlight;
+  } finally {
+    updateInFlight = null;
+  }
+}
+
+async function handleUpdate(res, { fromStore = false } = {}) {
+  const prev = await readStatus();
+  try {
+    const { result, log } = await runCatalogJob(() => {
+      const { main } = require('./update-catalog');
+      return main({ fromStore });
+    });
     const prevCount = prev.count ?? null;
     const status = {
       updated: result.updated,
@@ -403,6 +432,14 @@ async function handleUpdate(res) {
     await writeStatus(status);
     sendJson(res, 200, { ...status, csrfToken });
   } catch (err) {
+    if (err.code === 'UPDATE_IN_FLIGHT') {
+      sendJson(res, 409, {
+        error: 'Обновление уже выполняется',
+        log: 'Дождитесь завершения текущего запроса.',
+        csrfToken,
+      });
+      return;
+    }
     const status = {
       ...prev,
       error: err.message,
@@ -410,9 +447,228 @@ async function handleUpdate(res) {
     };
     await writeStatus(status);
     sendJson(res, 500, { ...status, csrfToken });
-  } finally {
-    updateInFlight = null;
   }
+}
+
+function programToEditorRow(p) {
+  const price = p.discountPrice ?? p.educationPricing ?? null;
+  let startDate = '';
+  if (p.startDate) {
+    const d = new Date(p.startDate);
+    if (!Number.isNaN(d.getTime())) startDate = d.toISOString().slice(0, 10);
+  }
+  return {
+    id: p.id,
+    title: p.title || '',
+    url: p.url || '',
+    type: p.type?.shortTitle || p.type?.title || '',
+    format: p.studyFormat?.title || '',
+    duration: p.duration || '',
+    price,
+    startDate,
+    locked: Boolean(p.locked),
+    source: p.source || 'hse',
+  };
+}
+
+async function handleGetPrograms(res) {
+  const { loadStore, toSummaries } = require('./lib/catalog-store');
+  let store = await loadStore();
+  // Fallback: seed store from last status if empty
+  if (!store.programs.length) {
+    const status = await readStatus();
+    if (Array.isArray(status.programs) && status.programs.length) {
+      // status only has summaries — not enough for full re-render; leave empty
+    }
+  }
+  sendJson(res, 200, {
+    updated: store.updated,
+    source: store.source,
+    count: store.programs.length,
+    programs: store.programs.map(programToEditorRow),
+    summaries: toSummaries(store.programs),
+    csrfToken,
+  });
+}
+
+async function handlePutPrograms(req, res) {
+  try {
+    const raw = await readBody(req, MAX_PROGRAMS_BODY);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw || '{}');
+    } catch {
+      sendJson(res, 400, { error: 'invalid json', csrfToken });
+      return;
+    }
+    const list = Array.isArray(parsed) ? parsed : parsed.programs;
+    if (!Array.isArray(list)) {
+      sendJson(res, 400, { error: 'Ожидается { programs: [...] }', csrfToken });
+      return;
+    }
+    const prev = await readStatus();
+    const { result, log } = await runCatalogJob(() => {
+      const { applyPrograms } = require('./update-catalog');
+      const { normalizeProgram } = require('./lib/catalog-store');
+      const programs = list.map((row) =>
+        normalizeProgram({
+          id: row.id,
+          title: row.title,
+          url: row.url,
+          type: row.type,
+          studyFormat: row.format || row.studyFormat,
+          duration: row.duration,
+          startDate: row.startDate,
+          price: row.price,
+          discountPrice: row.price ?? row.discountPrice,
+          locked: row.locked,
+          source: row.source || (row.locked || String(row.id || '').startsWith('local-') ? 'manual' : 'hse'),
+        }),
+      );
+      return applyPrograms(programs, { source: 'manual' });
+    });
+    const status = {
+      updated: result.updated,
+      count: result.count,
+      prevCount: prev.count ?? null,
+      delta: prev.count == null ? null : result.count - prev.count,
+      source: 'manual',
+      onlyActual: true,
+      durationMs: result.durationMs ?? null,
+      programs: result.programs || [],
+      error: null,
+      log: log || 'Сохранено вручную',
+    };
+    await writeStatus(status);
+    sendJson(res, 200, {
+      ...status,
+      programsEditor: (result.items || []).map(programToEditorRow),
+      csrfToken,
+    });
+  } catch (err) {
+    if (err.code === 'UPDATE_IN_FLIGHT') {
+      sendJson(res, 409, { error: err.message, csrfToken });
+      return;
+    }
+    if (err.code === 'BODY_TOO_LARGE') {
+      sendText(res, 413, 'Payload too large');
+      return;
+    }
+    console.error('put programs:', err.message);
+    sendJson(res, 400, { error: err.message, csrfToken });
+  }
+}
+
+async function handleScheduleGet(res) {
+  const { loadSchedule, msUntilNext } = require('./lib/catalog-store');
+  const schedule = await loadSchedule();
+  sendJson(res, 200, {
+    ...schedule,
+    nextInMs: schedule.enabled ? msUntilNext(schedule.hour, schedule.minute) : null,
+    csrfToken,
+  });
+}
+
+async function handleSchedulePut(req, res) {
+  try {
+    const raw = await readBody(req);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw || '{}');
+    } catch {
+      sendJson(res, 400, { error: 'invalid json', csrfToken });
+      return;
+    }
+    const { saveSchedule, msUntilNext } = require('./lib/catalog-store');
+    const schedule = await saveSchedule({
+      enabled: parsed.enabled,
+      hour: parsed.hour,
+      minute: parsed.minute,
+    });
+    // reschedule timer
+    rescheduleDailyJob();
+    sendJson(res, 200, {
+      ...schedule,
+      nextInMs: schedule.enabled ? msUntilNext(schedule.hour, schedule.minute) : null,
+      csrfToken,
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message, csrfToken });
+  }
+}
+
+// ─── Daily auto-update ────────────────────────────────────────────────────────
+
+let dailyTimer = null;
+
+async function runScheduledCatalogUpdate() {
+  const { loadSchedule, saveSchedule } = require('./lib/catalog-store');
+  const schedule = await loadSchedule();
+  if (!schedule.enabled) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (schedule.lastRun && String(schedule.lastRun).slice(0, 10) === today) {
+    return; // already ran today
+  }
+
+  console.log('[schedule] daily catalog update starting…');
+  try {
+    const { result, log } = await runCatalogJob(() => {
+      const { main } = require('./update-catalog');
+      return main({ fromStore: false });
+    });
+    const prev = await readStatus();
+    const status = {
+      updated: result.updated,
+      count: result.count,
+      prevCount: prev.count ?? null,
+      delta: prev.count == null ? null : result.count - prev.count,
+      source: result.source || null,
+      onlyActual: true,
+      durationMs: result.durationMs ?? null,
+      programs: result.programs || [],
+      error: null,
+      log: `[auto] ${log || ''}`.trim(),
+    };
+    await writeStatus(status);
+    await saveSchedule({
+      lastRun: new Date().toISOString(),
+      lastError: null,
+      lastResult: { count: result.count, updated: result.updated },
+    });
+    console.log(`[schedule] ok: ${result.count} programs`);
+  } catch (err) {
+    if (err.code === 'UPDATE_IN_FLIGHT') {
+      console.warn('[schedule] skipped — update already in flight');
+      return;
+    }
+    console.error('[schedule] failed:', err.message);
+    await saveSchedule({
+      lastRun: new Date().toISOString(),
+      lastError: err.message,
+    }).catch(() => {});
+  }
+}
+
+function rescheduleDailyJob() {
+  if (dailyTimer) {
+    clearTimeout(dailyTimer);
+    dailyTimer = null;
+  }
+  // Fire a check every minute; actual run gated by hour/minute + once-per-day.
+  dailyTimer = setInterval(async () => {
+    try {
+      const { loadSchedule } = require('./lib/catalog-store');
+      const schedule = await loadSchedule();
+      if (!schedule.enabled) return;
+      const now = new Date();
+      if (now.getHours() !== schedule.hour || now.getMinutes() !== schedule.minute) return;
+      await runScheduledCatalogUpdate();
+    } catch (err) {
+      console.error('[schedule] tick error:', err.message);
+    }
+  }, 60 * 1000);
+  if (typeof dailyTimer.unref === 'function') dailyTimer.unref();
 }
 
 async function runHealthCheck() {
@@ -428,6 +684,7 @@ async function runHealthCheck() {
     'js/site-analytics.js',
     'js/smooth-ui.js',
     'lib/hse-catalog.js',
+    'lib/catalog-store.js',
     'lib/analytics-store.js',
     'update-catalog.js',
   ];
@@ -485,8 +742,6 @@ const PUBLIC_HTML = new Set([
   'index.html',
   'privacy.html',
   'Каталог программ.html',
-  'ДПО Лендинг (standalone).html',
-  'Клуб выпускников (standalone).html',
 ]);
 
 const ASSET_DIRS = new Set(['fonts', 'js', 'images']);
@@ -530,10 +785,10 @@ async function createServer(credentials) {
       }
 
       // Only allow methods we implement.
-      if (!['GET', 'HEAD', 'POST'].includes(method)) {
+      if (!['GET', 'HEAD', 'POST', 'PUT'].includes(method)) {
         send(res, 405, 'Method Not Allowed', {
           'Content-Type': 'text/plain; charset=utf-8',
-          Allow: 'GET, HEAD, POST',
+          Allow: 'GET, HEAD, POST, PUT',
         });
         return;
       }
@@ -546,7 +801,7 @@ async function createServer(credentials) {
         return;
       }
 
-      // Public analytics collect — no auth (must work for real visitors).
+      // Public analytics collect — no auth (same-origin only; no CORS).
       if (method === 'POST' && pathname === '/api/collect') {
         if (isThrottled(ip, collectCounts, COLLECT_REQS_PER_MIN)) {
           send(res, 429, 'Too many beacons', {
@@ -555,8 +810,19 @@ async function createServer(credentials) {
           });
           return;
         }
-        // CORS for same-site tools; locked to localhost-ish origins optional
-        res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+        // Reject cross-origin browser POSTs (no ACAO headers either).
+        const collectOrigin = req.headers.origin;
+        if (collectOrigin) {
+          const expectedOrigins = new Set([
+            `http://${HOST}:${PORT}`,
+            `http://127.0.0.1:${PORT}`,
+            `http://localhost:${PORT}`,
+          ]);
+          if (!expectedOrigins.has(collectOrigin)) {
+            sendJson(res, 403, { error: 'origin not allowed' });
+            return;
+          }
+        }
         await handleCollect(req, res);
         return;
       }
@@ -591,8 +857,33 @@ async function createServer(credentials) {
       // ── API ──────────────────────────────────────────────────────────────
       if (method === 'GET' && pathname === '/api/status') {
         const status = await readStatus();
+        let schedule = null;
+        try {
+          const { loadSchedule, msUntilNext } = require('./lib/catalog-store');
+          schedule = await loadSchedule();
+          schedule = {
+            ...schedule,
+            nextInMs: schedule.enabled ? msUntilNext(schedule.hour, schedule.minute) : null,
+          };
+        } catch {
+          /* ignore */
+        }
+        // Prefer store count/programs when available
+        try {
+          const { loadStore, toSummaries } = require('./lib/catalog-store');
+          const store = await loadStore();
+          if (store.programs.length) {
+            status.count = store.programs.length;
+            status.programs = toSummaries(store.programs);
+            if (store.updated && !status.updated) status.updated = store.updated;
+            if (store.source) status.source = store.source;
+          }
+        } catch {
+          /* ignore */
+        }
         sendJson(res, 200, {
           ...status,
+          schedule,
           csrfToken,
           server: {
             uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000),
@@ -617,15 +908,61 @@ async function createServer(credentials) {
       }
 
       if (method === 'GET' && pathname === '/api/programs.json') {
+        // Prefer live store; fall back to last status snapshot.
+        try {
+          const { loadStore, toSummaries } = require('./lib/catalog-store');
+          const store = await loadStore();
+          if (store.programs.length) {
+            sendJson(res, 200, {
+              updated: store.updated || null,
+              count: store.programs.length,
+              onlyActual: true,
+              source: store.source || null,
+              programs: toSummaries(store.programs),
+            });
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
         const status = await readStatus();
-        const payload = {
+        sendJson(res, 200, {
           updated: status.updated || null,
           count: status.count ?? 0,
           onlyActual: status.onlyActual !== false,
           source: status.source || null,
           programs: status.programs || [],
-        };
-        sendJson(res, 200, payload);
+        });
+        return;
+      }
+
+      if (method === 'GET' && pathname === '/api/programs') {
+        await handleGetPrograms(res);
+        return;
+      }
+
+      if (method === 'PUT' && pathname === '/api/programs') {
+        const gate = assertCsrfAndOrigin(req);
+        if (!gate.ok) {
+          sendJson(res, gate.code, { error: gate.error, csrfToken });
+          return;
+        }
+        await handlePutPrograms(req, res);
+        return;
+      }
+
+      if (method === 'GET' && pathname === '/api/schedule') {
+        await handleScheduleGet(res);
+        return;
+      }
+
+      if ((method === 'PUT' || method === 'POST') && pathname === '/api/schedule') {
+        const gate = assertCsrfAndOrigin(req);
+        if (!gate.ok) {
+          sendJson(res, gate.code, { error: gate.error, csrfToken });
+          return;
+        }
+        await handleSchedulePut(req, res);
         return;
       }
 
@@ -652,27 +989,26 @@ async function createServer(credentials) {
       }
 
       if (method === 'POST' && pathname === '/api/update') {
-        if (!checkCsrf(req)) {
-          sendJson(res, 403, { error: 'Неверный CSRF-токен. Обновите страницу админки.' });
+        const gate = assertCsrfAndOrigin(req);
+        if (!gate.ok) {
+          sendJson(res, gate.code, { error: gate.error, csrfToken });
           return;
         }
-        // Optional Origin/Referer check (browsers send these for same-origin POSTs).
-        const origin = req.headers.origin;
-        const referer = req.headers.referer;
-        const expected = `http://${HOST}:${PORT}`;
-        if (origin && origin !== expected) {
-          sendJson(res, 403, { error: 'Недопустимый Origin' });
-          return;
-        }
-        if (referer && !referer.startsWith(expected + '/')) {
-          sendJson(res, 403, { error: 'Недопустимый Referer' });
-          return;
-        }
-        await handleUpdate(res);
+        await handleUpdate(res, { fromStore: false });
         return;
       }
 
-      if (method === 'POST') {
+      if (method === 'POST' && pathname === '/api/rebuild') {
+        const gate = assertCsrfAndOrigin(req);
+        if (!gate.ok) {
+          sendJson(res, gate.code, { error: gate.error, csrfToken });
+          return;
+        }
+        await handleUpdate(res, { fromStore: true });
+        return;
+      }
+
+      if (method === 'POST' || method === 'PUT') {
         sendText(res, 404, 'Not found');
         return;
       }
@@ -730,14 +1066,27 @@ async function createServer(credentials) {
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception (server kept alive):', err.stack || err.message);
+  console.error('Uncaught exception — shutting down:', err.stack || err.message);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection (server kept alive):', err?.stack || err);
+  console.error('Unhandled rejection — shutting down:', err?.stack || err);
+  process.exit(1);
 });
 
 (async () => {
+  // 90-day retention for first-party analytics JSONL
+  try {
+    const { purgeOld } = require('./lib/analytics-store');
+    await purgeOld();
+    setInterval(() => {
+      purgeOld().catch((e) => console.warn('analytics purge:', e.message));
+    }, 24 * 60 * 60 * 1000).unref();
+  } catch (err) {
+    console.warn('analytics purge on boot skipped:', err.message);
+  }
+
   const credentials = await loadOrCreateCredentials();
   const server = await createServer(credentials);
 
@@ -760,6 +1109,20 @@ process.on('unhandledRejection', (err) => {
     } else {
       console.log('Пароль: см. ранее сохранённый. Сброс — удалите .admin-credentials.json и перезапустите.');
     }
+    // Daily auto-update of catalog page
+    rescheduleDailyJob();
+    require('./lib/catalog-store')
+      .loadSchedule()
+      .then((s) => {
+        if (s.enabled) {
+          const hh = String(s.hour).padStart(2, '0');
+          const mm = String(s.minute).padStart(2, '0');
+          console.log(`Автообновление каталога: каждый день в ${hh}:${mm} (локальное время)`);
+        } else {
+          console.log('Автообновление каталога: выключено (включите во вкладке «Каталог» админки)');
+        }
+      })
+      .catch(() => {});
   });
 })().catch((err) => {
   console.error('Fatal boot error:', err);

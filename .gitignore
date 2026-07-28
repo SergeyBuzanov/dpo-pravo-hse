@@ -1,6 +1,9 @@
 # Локальные секреты и runtime-состояние админки — НЕ коммитить
 .admin-credentials.json
 .admin-status.json
+.catalog-data.json
+.catalog-schedule.json
+.catalog-update.lock
 .load-test-report.json
 .analytics/
 

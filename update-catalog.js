@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
- * Refreshes «Каталог программ.html» from the live hse.ru DPO catalog
- * (Law faculty, orgUnit 22753). Marker-based replace — no templates engine.
+ * Refreshes «Каталог программ.html» from hse.ru and/or the local editable store.
  *
- * Usage:  node update-catalog.js
+ * Usage:
+ *   node update-catalog.js              # fetch hse.ru → store → HTML
+ *   node update-catalog.js --from-store # rewrite HTML from .catalog-data.json only
  */
 
 'use strict';
 
 const fs = require('node:fs/promises');
+const fssync = require('node:fs');
 const path = require('node:path');
 const {
   fetchProgramItems,
@@ -17,9 +19,17 @@ const {
   CATALOG_URL,
   summarizeProgram,
 } = require('./lib/hse-catalog');
+const {
+  loadStore,
+  saveStore,
+  mergeWithRemote,
+  toSummaries,
+} = require('./lib/catalog-store');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
-const LANDING_FILE = path.join(__dirname, 'ДПО Лендинг (standalone).html');
+/** Cross-process lock so CLI and admin-server cannot update concurrently. */
+const LOCK_FILE = path.join(__dirname, '.catalog-update.lock');
+const LOCK_STALE_MS = 10 * 60 * 1000;
 
 const MARKERS = Object.freeze({
   meta: Object.freeze(['<!-- CATALOG:META -->', '<!-- /CATALOG:META -->']),
@@ -28,12 +38,6 @@ const MARKERS = Object.freeze({
   list: Object.freeze(['<!-- CATALOG:LIST -->', '<!-- /CATALOG:LIST -->']),
   jsonld: Object.freeze(['<!-- CATALOG:JSONLD -->', '<!-- /CATALOG:JSONLD -->']),
 });
-
-const UPCOMING_MARKERS = Object.freeze([
-  '<!-- UPCOMING:STARTS -->',
-  '<!-- /UPCOMING:STARTS -->',
-]);
-const UPCOMING_LIMIT = 6;
 
 /** Schema.org courseMode values Google recognizes, keyed by our format bucket. */
 const COURSE_MODE = Object.freeze({
@@ -82,52 +86,10 @@ function renderCard(item) {
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
       <div class="foot">
-        <span class="price">${formatPrice(item)}</span>
+        <span class="price">${escapeHtml(formatPrice(item))}</span>
         <span class="go">Подробнее →</span>
       </div>
     </a>`;
-}
-
-/** Nearest upcoming programs (with startDate), for landing teaser. */
-function pickUpcoming(items, limit = UPCOMING_LIMIT) {
-  const now = Date.now();
-  return items
-    .filter((it) => it.startDate && Number(it.startDate) >= now - 24 * 3600 * 1000)
-    .sort((a, b) => Number(a.startDate) - Number(b.startDate))
-    .slice(0, limit);
-}
-
-function renderUpcomingCard(item) {
-  const typeShort = escapeHtml(item.type?.shortTitle || item.type?.title || '');
-  const format = item.studyFormat?.title || '';
-  const date = formatDate(item) || 'Дата уточняется';
-  const metaBits = [typeShort, format, item.duration].filter(Boolean).map(escapeHtml).join(' · ');
-
-  return `    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="upcoming-card">
-      <span class="when">${escapeHtml(date)}</span>
-      <h3>${escapeHtml(item.title)}</h3>
-      <div class="meta">${metaBits}</div>
-      <div class="foot">
-        <span class="price">${formatPrice(item)}</span>
-        <span class="go">Подробнее →</span>
-      </div>
-    </a>`;
-}
-
-function buildUpcomingHtml(items) {
-  const upcoming = pickUpcoming(items);
-  if (!upcoming.length) {
-    return `    <a href="Каталог программ.html" class="upcoming-card">
-      <span class="when">Каталог</span>
-      <h3>Актуальные программы факультета права</h3>
-      <div class="meta">Откройте полный каталог — фильтры по типу, формату и поиск</div>
-      <div class="foot">
-        <span class="price">${items.length} программ</span>
-        <span class="go">Каталог →</span>
-      </div>
-    </a>`;
-  }
-  return upcoming.map(renderUpcomingCard).join('\n');
 }
 
 function renderChip(label, value, count, active) {
@@ -200,7 +162,6 @@ function buildJsonLd(items) {
     itemListElement,
   };
 
-  // Escape "</" so a hostile title can't break out of the script tag.
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
   return `<script type="application/ld+json">${json}</script>`;
 }
@@ -220,7 +181,6 @@ function replaceBetween(html, [startMarker, endMarker], replacement) {
   );
 }
 
-/** Atomic write: temp file in same dir + rename (survives crash mid-write). */
 async function writeAtomic(filePath, content) {
   const dir = path.dirname(filePath);
   const tmp = path.join(dir, `.${path.basename(filePath)}.${process.pid}.tmp`);
@@ -233,60 +193,184 @@ async function writeAtomic(filePath, content) {
   }
 }
 
-async function main() {
-  const t0 = Date.now();
-  console.log(`Актуализация: только актуальные программы с ${CATALOG_URL} …`);
-  const items = await fetchProgramItems();
+async function acquireUpdateLock() {
+  const payload = JSON.stringify({ pid: process.pid, at: Date.now() });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = fssync.openSync(LOCK_FILE, 'wx');
+      try {
+        fssync.writeFileSync(fd, payload, 'utf8');
+      } finally {
+        fssync.closeSync(fd);
+      }
+      return;
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+      let stale = false;
+      try {
+        const st = fssync.statSync(LOCK_FILE);
+        stale = Date.now() - st.mtimeMs > LOCK_STALE_MS;
+        if (!stale) {
+          const raw = JSON.parse(fssync.readFileSync(LOCK_FILE, 'utf8'));
+          stale = !raw?.at || Date.now() - Number(raw.at) > LOCK_STALE_MS;
+        }
+      } catch {
+        stale = true;
+      }
+      if (stale && attempt === 0) {
+        console.warn('Снимаю устаревший .catalog-update.lock');
+        await fs.unlink(LOCK_FILE).catch(() => {});
+        continue;
+      }
+      throw new Error(
+        'Обновление каталога уже выполняется (есть .catalog-update.lock). Дождитесь завершения или удалите lock-файл, если процесс упал.',
+      );
+    }
+  }
+}
 
-  const now = new Intl.DateTimeFormat('ru-RU', {
+async function releaseUpdateLock() {
+  await fs.unlink(LOCK_FILE).catch(() => {});
+}
+
+function formatUpdatedLabel(date = new Date()) {
+  return new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date());
+  }).format(date);
+}
 
+/**
+ * Write catalog HTML from an array of program items (renderer shape).
+ */
+async function writeCatalogHtml(items, { updatedLabel } = {}) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('Отказ: пустой список программ — HTML не перезаписываем');
+  }
+  const now = updatedLabel || formatUpdatedLabel();
   let html = await fs.readFile(CATALOG_FILE, 'utf8');
-  html = replaceBetween(html, MARKERS.meta, `<span class="meta">Обновлено: <b>${now}</b> · ${items.length} актуальных программ</span>`);
+  html = replaceBetween(
+    html,
+    MARKERS.meta,
+    `<span class="meta">Обновлено: <b>${now}</b> · ${items.length} актуальных программ</span>`,
+  );
   html = replaceBetween(html, MARKERS.filtersType, buildTypeChips(items));
   html = replaceBetween(html, MARKERS.filtersFormat, buildFormatChips(items));
   html = replaceBetween(html, MARKERS.list, items.map(renderCard).join('\n'));
   html = replaceBetween(html, MARKERS.jsonld, buildJsonLd(items));
   await writeAtomic(CATALOG_FILE, html);
+  return now;
+}
 
-  // Landing: «Ближайшие старты»
-  let upcomingCount = 0;
+/**
+ * Persist programs to store and rewrite public HTML.
+ * Used by manual admin edits.
+ */
+async function applyPrograms(programs, { source = 'manual' } = {}) {
+  await acquireUpdateLock();
   try {
-    let landing = await fs.readFile(LANDING_FILE, 'utf8');
-    const upcomingHtml = buildUpcomingHtml(items);
-    upcomingCount = pickUpcoming(items).length;
-    landing = replaceBetween(landing, UPCOMING_MARKERS, upcomingHtml);
-    await writeAtomic(LANDING_FILE, landing);
-    console.log(`Лендинг: ${upcomingCount} ближайших стартов в «${path.basename(LANDING_FILE)}».`);
-  } catch (err) {
-    console.warn(`Лендинг не обновлён (ближайшие старты): ${err.message}`);
+    const t0 = Date.now();
+    const nowLabel = formatUpdatedLabel();
+    const store = await saveStore({
+      programs,
+      source,
+      updated: new Date().toISOString(),
+    });
+    await writeCatalogHtml(store.programs, { updatedLabel: nowLabel });
+    const durationMs = Date.now() - t0;
+    console.log(
+      `Сохранено ${store.programs.length} программ (source=${source}) → HTML (${durationMs} мс).`,
+    );
+    return {
+      count: store.programs.length,
+      updated: nowLabel,
+      source,
+      onlyActual: true,
+      durationMs,
+      programs: toSummaries(store.programs),
+      items: store.programs,
+    };
+  } finally {
+    await releaseUpdateLock();
+  }
+}
+
+/**
+ * Fetch hse.ru, merge with locked/manual local items, save store, rewrite HTML.
+ */
+async function main({ fromStore = false } = {}) {
+  await acquireUpdateLock();
+  try {
+    return await runUpdate({ fromStore });
+  } finally {
+    await releaseUpdateLock();
+  }
+}
+
+async function runUpdate({ fromStore = false } = {}) {
+  const t0 = Date.now();
+  let items;
+  let source;
+
+  if (fromStore) {
+    console.log('Пересборка HTML из локального хранилища (.catalog-data.json)…');
+    const store = await loadStore();
+    if (!store.programs.length) {
+      throw new Error('Локальное хранилище пусто — сначала актуализируйте с hse.ru');
+    }
+    items = store.programs;
+    source = store.source || 'store';
+  } else {
+    console.log(`Актуализация: актуальные программы с ${CATALOG_URL} …`);
+    const remote = await fetchProgramItems();
+    const local = await loadStore();
+    items = mergeWithRemote(local.programs, remote);
+    source = CATALOG_URL;
+    console.log(
+      `  merge: remote=${remote.length}, local=${local.programs.length}, result=${items.length}` +
+        ` (locked/manual preserved)`,
+    );
   }
 
-  const durationMs = Date.now() - t0;
-  const programs = items.map(summarizeProgram);
+  const nowLabel = formatUpdatedLabel();
+  await saveStore({
+    programs: items,
+    source,
+    updated: new Date().toISOString(),
+  });
+  await writeCatalogHtml(items, { updatedLabel: nowLabel });
 
-  console.log(`Готово: записано ${items.length} актуальных программ в «${path.basename(CATALOG_FILE)}» (${now}, ${durationMs} мс).`);
+  const durationMs = Date.now() - t0;
+  console.log(
+    `Готово: ${items.length} программ в «${path.basename(CATALOG_FILE)}» (${nowLabel}, ${durationMs} мс).`,
+  );
   return {
     count: items.length,
-    updated: now,
-    source: CATALOG_URL,
+    updated: nowLabel,
+    source,
     onlyActual: true,
     durationMs,
-    programs,
-    upcomingCount,
+    programs: toSummaries(items),
+    items,
   };
 }
 
 if (require.main === module) {
-  main().catch((err) => {
+  const fromStore = process.argv.includes('--from-store');
+  main({ fromStore }).catch((err) => {
     console.error('update-catalog.js failed:', err.message);
     process.exitCode = 1;
   });
 }
 
-module.exports = { main, escapeHtml, formatBucket };
+module.exports = {
+  main,
+  applyPrograms,
+  writeCatalogHtml,
+  escapeHtml,
+  formatBucket,
+  summarizeProgram,
+};

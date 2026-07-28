@@ -30,3 +30,6 @@ if ! python -c "from playwright.sync_api import sync_playwright as s; b=s().star
 fi
 
 python tests/smoke_test.py
+echo ""
+echo "→ security_test.py (admin + static-server allowlist)"
+python tests/security_test.py

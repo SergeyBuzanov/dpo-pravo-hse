@@ -225,6 +225,110 @@
     margin: 1px 2px;
     font-size: 11.5px;
   }
+  .editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0 14px;
+    align-items: center;
+  }
+  .editor-table-wrap { overflow: auto; max-height: 480px; border: 1px solid var(--line); border-radius: 12px; }
+  table.editor {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.editor th, table.editor td {
+    border-bottom: 1px solid var(--line);
+    padding: 8px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.editor th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-alt);
+    font-size: 12px;
+    color: var(--ink-mute);
+    z-index: 1;
+  }
+  table.editor input[type="text"],
+  table.editor input[type="number"],
+  table.editor input[type="date"],
+  table.editor input[type="url"] {
+    width: 100%;
+    min-width: 80px;
+    font: inherit;
+    font-size: 12.5px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+  table.editor input.title-input { min-width: 180px; }
+  table.editor input.url-input { min-width: 140px; }
+  table.editor .icon-btn {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(176, 0, 32, 0.25);
+    background: #fff;
+    color: var(--err);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  table.editor .icon-btn:hover { background: #fff5f5; }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-alt);
+    color: var(--ink-mute);
+  }
+  .tag.manual { background: #E8F0FE; color: var(--accent-dark); }
+  .tag.locked { background: #FFF4E5; color: #9A5B00; }
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+    align-items: end;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 4px;
+  }
+  .field input, .field select {
+    width: 100%;
+    font: inherit;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .field.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  .field.checkbox label { margin: 0; font-size: 14px; color: var(--ink); }
+  .dirty-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E6A23C;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
@@ -256,26 +360,71 @@
         <div class="row"><span class="label">Сервер</span><span class="value pending" id="serverInfo">—</span></div>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
-          <p class="action-title">Актуализировать программы обучения</p>
+          <p class="action-title">Синхронизация с hse.ru</p>
           <p class="action-desc">
-            Только <b>актуальные</b> программы с
+            Тянет <b>актуальные</b> программы с
             <a href="https://www.hse.ru/edu/dpo/?orgUnit=22753" target="_blank" rel="noopener noreferrer">hse.ru/edu/dpo/?orgUnit=22753</a>
-            → «Каталог программ.html».
+            и пересобирает «Каталог программ.html». Локальные и «заблокированные» строки не затираются.
           </p>
-          <button id="refreshBtn" class="primary" type="button">Актуализировать программы обучения</button>
+          <button id="refreshBtn" class="primary" type="button">Актуализировать с hse.ru</button>
         </div>
 
-        <div style="margin-top:18px">
-          <div class="btn-row">
-            <a id="exportBtn" class="btn secondary" href="/api/programs.json">Скачать JSON</a>
-            <button id="toggleProgramsBtn" class="secondary" type="button">Показать список</button>
+        <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line)">
+          <p class="action-title">Автообновление каждый день</p>
+          <p class="action-desc" id="scheduleHint">
+            Пока админ-сервер запущен, каталог обновляется по расписанию (локальное время машины).
+          </p>
+          <div class="schedule-grid">
+            <div class="field checkbox">
+              <input type="checkbox" id="schedEnabled" checked>
+              <label for="schedEnabled">Включено</label>
+            </div>
+            <div class="field">
+              <label for="schedHour">Час (0–23)</label>
+              <input type="number" id="schedHour" min="0" max="23" value="3">
+            </div>
+            <div class="field">
+              <label for="schedMinute">Минута (0–59)</label>
+              <input type="number" id="schedMinute" min="0" max="59" value="0">
+            </div>
+            <div class="field">
+              <button type="button" class="secondary" id="schedSaveBtn" style="width:100%">Сохранить расписание</button>
+            </div>
           </div>
-          <div class="programs" id="programsBox">
-            <table>
-              <thead><tr><th>Тип</th><th>Программа</th><th>Формат</th></tr></thead>
-              <tbody id="programsBody"></tbody>
+          <p class="muted" id="schedMeta" style="margin-top:10px">—</p>
+        </div>
+
+        <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line)">
+          <p class="action-title"><span id="dirtyMark" class="hidden dirty-dot"></span>Редактор программ</p>
+          <p class="action-desc">
+            Правите строки вручную, добавляйте свои программы, блокируйте от перезаписи с hse.ru.
+            «Сохранить в каталог» пишет HTML-страницу. URL — только <code>https://*.hse.ru</code>.
+          </p>
+          <div class="editor-toolbar">
+            <button type="button" id="addProgramBtn" class="secondary">+ Добавить</button>
+            <button type="button" id="saveProgramsBtn" class="primary" style="width:auto;padding:11px 18px">Сохранить в каталог</button>
+            <button type="button" id="reloadEditorBtn" class="secondary">Перезагрузить</button>
+            <a id="exportBtn" class="btn secondary" href="/api/programs.json">Скачать JSON</a>
+          </div>
+          <div class="editor-table-wrap">
+            <table class="editor">
+              <thead>
+                <tr>
+                  <th style="width:90px">Тип</th>
+                  <th>Название</th>
+                  <th style="width:100px">Формат</th>
+                  <th style="width:90px">Цена ₽</th>
+                  <th style="width:120px">Старт</th>
+                  <th style="width:90px">Длит.</th>
+                  <th>URL</th>
+                  <th style="width:70px">Lock</th>
+                  <th style="width:70px"></th>
+                </tr>
+              </thead>
+              <tbody id="editorBody"></tbody>
             </table>
           </div>
+          <p class="muted" style="margin-top:8px">Lock = не перезаписывать при синке с hse.ru. Ручные программы lock получают автоматически.</p>
         </div>
         <pre class="log" id="log" aria-live="polite"></pre>
       </div>
@@ -395,11 +544,12 @@
   'use strict';
 
   const API_BASE = location.protocol === 'file:' ? 'http://127.0.0.1:5178' : '';
-  const BTN_LABEL = 'Актуализировать программы обучения';
+  const BTN_LABEL = 'Актуализировать с hse.ru';
   const $ = (id) => document.getElementById(id);
 
   let csrfToken = '';
-  let lastPrograms = [];
+  let editorRows = []; // mutable list for the editor
+  let editorDirty = false;
   let analyticsDays = 7;
 
   // tabs
@@ -460,30 +610,150 @@
     return csrfToken;
   };
 
-  // ── catalog status ────────────────────────────────────────────
-  const renderPrograms = (programs = []) => {
-    lastPrograms = programs;
-    const body = $('programsBody');
+  // ── catalog status + editor ───────────────────────────────────
+  const setDirty = (v) => {
+    editorDirty = Boolean(v);
+    $('dirtyMark').classList.toggle('hidden', !editorDirty);
+  };
+
+  const emptyRow = () => ({
+    id: '',
+    title: '',
+    url: '',
+    type: 'ПК',
+    format: 'Онлайн',
+    duration: '',
+    price: null,
+    startDate: '',
+    locked: true,
+    source: 'manual',
+  });
+
+  const renderEditor = () => {
+    const body = $('editorBody');
     body.replaceChildren();
-    for (const p of programs) {
+    editorRows.forEach((row, idx) => {
       const tr = document.createElement('tr');
-      const td1 = document.createElement('td');
-      const b = document.createElement('span');
-      b.className = 'badge';
-      b.textContent = p.type || '—';
-      td1.append(b);
-      const td2 = document.createElement('td');
-      const a = document.createElement('a');
-      a.href = p.url || '#';
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.textContent = p.title || '—';
-      td2.append(a);
-      const td3 = document.createElement('td');
-      td3.textContent = p.format || '—';
-      tr.append(td1, td2, td3);
+
+      const mkInput = (key, opts = {}) => {
+        const inp = document.createElement('input');
+        inp.type = opts.type || 'text';
+        if (opts.className) inp.className = opts.className;
+        if (opts.placeholder) inp.placeholder = opts.placeholder;
+        const val = row[key];
+        inp.value = val == null ? '' : String(val);
+        inp.addEventListener('input', () => {
+          let v = inp.value;
+          if (key === 'price') {
+            row.price = v === '' ? null : Number(String(v).replace(/\s/g, '').replace(',', '.'));
+            if (!Number.isFinite(row.price)) row.price = null;
+          } else {
+            row[key] = v;
+          }
+          setDirty(true);
+        });
+        return inp;
+      };
+
+      const tdType = document.createElement('td');
+      tdType.append(mkInput('type', { placeholder: 'ПК / ПП' }));
+
+      const tdTitle = document.createElement('td');
+      tdTitle.append(mkInput('title', { className: 'title-input', placeholder: 'Название программы' }));
+      if (row.source === 'manual' || row.locked) {
+        const tags = document.createElement('div');
+        tags.style.marginTop = '4px';
+        if (row.source === 'manual') {
+          const t = document.createElement('span');
+          t.className = 'tag manual';
+          t.textContent = 'ручная';
+          tags.append(t);
+        }
+        if (row.locked) {
+          const t = document.createElement('span');
+          t.className = 'tag locked';
+          t.textContent = 'lock';
+          t.style.marginLeft = '4px';
+          tags.append(t);
+        }
+        tdTitle.append(tags);
+      }
+
+      const tdFormat = document.createElement('td');
+      tdFormat.append(mkInput('format', { placeholder: 'Онлайн' }));
+
+      const tdPrice = document.createElement('td');
+      tdPrice.append(mkInput('price', { type: 'number', placeholder: '0' }));
+
+      const tdStart = document.createElement('td');
+      tdStart.append(mkInput('startDate', { type: 'date' }));
+
+      const tdDur = document.createElement('td');
+      tdDur.append(mkInput('duration', { placeholder: '36 ч' }));
+
+      const tdUrl = document.createElement('td');
+      tdUrl.append(mkInput('url', { className: 'url-input', type: 'url', placeholder: 'https://www.hse.ru/edu/dpo/…' }));
+
+      const tdLock = document.createElement('td');
+      const lock = document.createElement('input');
+      lock.type = 'checkbox';
+      lock.checked = Boolean(row.locked);
+      lock.title = 'Не перезаписывать с hse.ru';
+      lock.addEventListener('change', () => {
+        row.locked = lock.checked;
+        if (row.locked) row.source = row.source || 'manual';
+        setDirty(true);
+        renderEditor();
+      });
+      tdLock.append(lock);
+
+      const tdAct = document.createElement('td');
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'icon-btn';
+      del.textContent = 'Удал.';
+      del.addEventListener('click', () => {
+        if (!confirm('Удалить программу из списка?')) return;
+        editorRows.splice(idx, 1);
+        setDirty(true);
+        renderEditor();
+      });
+      tdAct.append(del);
+
+      tr.append(tdType, tdTitle, tdFormat, tdPrice, tdStart, tdDur, tdUrl, tdLock, tdAct);
+      body.append(tr);
+    });
+    if (!editorRows.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 9;
+      td.className = 'muted';
+      td.textContent = 'Список пуст. Нажмите «Актуализировать с hse.ru» или «+ Добавить».';
+      tr.append(td);
       body.append(tr);
     }
+  };
+
+  const renderSchedule = (s = {}) => {
+    $('schedEnabled').checked = s.enabled !== false;
+    $('schedHour').value = s.hour != null ? s.hour : 3;
+    $('schedMinute').value = s.minute != null ? s.minute : 0;
+    const parts = [];
+    if (s.enabled === false) parts.push('Автообновление выключено');
+    else {
+      const hh = String(s.hour ?? 3).padStart(2, '0');
+      const mm = String(s.minute ?? 0).padStart(2, '0');
+      parts.push(`Каждый день в ${hh}:${mm}`);
+      if (s.nextInMs != null) {
+        const h = Math.floor(s.nextInMs / 3600000);
+        const m = Math.floor((s.nextInMs % 3600000) / 60000);
+        parts.push(`след. запуск ≈ через ${h} ч ${m} мин`);
+      }
+    }
+    if (s.lastRun) parts.push(`последний: ${new Date(s.lastRun).toLocaleString('ru-RU')}`);
+    if (s.lastError) parts.push(`ошибка: ${s.lastError}`);
+    else if (s.lastResult && s.lastResult.count != null) parts.push(`было ${s.lastResult.count} программ`);
+    $('schedMeta').textContent = parts.join(' · ') || '—';
   };
 
   const renderStatus = (data = {}) => {
@@ -492,14 +762,19 @@
     $('programCount').textContent = data.count != null ? data.count : '—';
     $('delta').textContent = fmtDelta(data.delta);
     $('delta').className = `value ${data.delta > 0 ? 'ok' : data.delta < 0 ? 'err' : 'pending'}`;
-    $('duration').textContent = data.durationMs != null ? (data.durationMs < 1000 ? data.durationMs + ' мс' : (data.durationMs / 1000).toFixed(1) + ' с') : '—';
+    $('duration').textContent =
+      data.durationMs != null
+        ? data.durationMs < 1000
+          ? data.durationMs + ' мс'
+          : (data.durationMs / 1000).toFixed(1) + ' с'
+        : '—';
     if (data.server) {
       $('serverInfo').textContent = `${data.server.node} · uptime ${fmtDuration(data.server.uptimeSec * 1000)}`;
     }
     if (data.error) setStatus('Ошибка', 'err');
     else if (data.updated) setStatus('Актуально', 'ok');
     else setStatus('Ещё не обновлялось', 'pending');
-    if (Array.isArray(data.programs)) renderPrograms(data.programs);
+    if (data.schedule) renderSchedule(data.schedule);
   };
 
   const showLog = (text) => {
@@ -507,9 +782,31 @@
     $('log').classList.toggle('visible', Boolean(text));
   };
 
+  const loadEditor = async () => {
+    const data = await api('/api/programs');
+    editorRows = Array.isArray(data.programs)
+      ? data.programs.map((p) => ({
+          id: p.id || '',
+          title: p.title || '',
+          url: p.url || '',
+          type: p.type || '',
+          format: p.format || '',
+          duration: p.duration || '',
+          price: p.price,
+          startDate: p.startDate || '',
+          locked: Boolean(p.locked),
+          source: p.source || 'hse',
+        }))
+      : [];
+    setDirty(false);
+    renderEditor();
+    $('programCount').textContent = String(editorRows.length);
+  };
+
   const loadStatus = async () => {
     try {
       renderStatus(await api('/api/status'));
+      await loadEditor();
     } catch {
       $('banner').classList.add('visible');
       setStatus('Сервер недоступен', 'err');
@@ -517,9 +814,12 @@
   };
 
   $('refreshBtn').addEventListener('click', async () => {
+    if (editorDirty && !confirm('Есть несохранённые правки. Синк с hse.ru может их затереть (кроме lock). Продолжить?')) {
+      return;
+    }
     const btn = $('refreshBtn');
     btn.disabled = true;
-    btn.textContent = 'Загружаем актуальные с hse.ru…';
+    btn.textContent = 'Загружаем с hse.ru…';
     showLog('');
     try {
       await ensureCsrf();
@@ -529,6 +829,7 @@
       });
       showLog(data.log || '');
       renderStatus(data);
+      await loadEditor();
     } catch (e) {
       showLog((e.data && (e.data.log || e.data.error)) || e.message);
       setStatus('Ошибка', 'err');
@@ -539,13 +840,95 @@
     }
   });
 
-  $('toggleProgramsBtn').addEventListener('click', () => {
-    if (!lastPrograms.length) {
-      showLog('Сначала актуализируйте программы.');
-      return;
+  $('addProgramBtn').addEventListener('click', () => {
+    editorRows.unshift(emptyRow());
+    setDirty(true);
+    renderEditor();
+  });
+
+  $('reloadEditorBtn').addEventListener('click', async () => {
+    if (editorDirty && !confirm('Сбросить несохранённые правки?')) return;
+    try {
+      await loadEditor();
+      showLog('Редактор перезагружен из хранилища.');
+    } catch (e) {
+      showLog(e.message || String(e));
     }
-    const open = $('programsBox').classList.toggle('visible');
-    $('toggleProgramsBtn').textContent = open ? 'Скрыть список' : 'Показать список';
+  });
+
+  $('saveProgramsBtn').addEventListener('click', async () => {
+    const btn = $('saveProgramsBtn');
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем…';
+    showLog('');
+    try {
+      // basic client validation
+      for (const r of editorRows) {
+        if (!String(r.title || '').trim()) {
+          throw new Error('У каждой программы должно быть название');
+        }
+      }
+      await ensureCsrf();
+      const data = await api('/api/programs', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ programs: editorRows }),
+      });
+      showLog(data.log || 'Сохранено');
+      renderStatus(data);
+      if (Array.isArray(data.programsEditor)) {
+        editorRows = data.programsEditor.map((p) => ({
+          id: p.id || '',
+          title: p.title || '',
+          url: p.url || '',
+          type: p.type || '',
+          format: p.format || '',
+          duration: p.duration || '',
+          price: p.price,
+          startDate: p.startDate || '',
+          locked: Boolean(p.locked),
+          source: p.source || 'hse',
+        }));
+        setDirty(false);
+        renderEditor();
+      } else {
+        await loadEditor();
+      }
+      setStatus('Сохранено вручную', 'ok');
+    } catch (e) {
+      showLog((e.data && (e.data.log || e.data.error)) || e.message);
+      setStatus('Ошибка сохранения', 'err');
+      csrfToken = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Сохранить в каталог';
+    }
+  });
+
+  $('schedSaveBtn').addEventListener('click', async () => {
+    try {
+      await ensureCsrf();
+      const data = await api('/api/schedule', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+          enabled: $('schedEnabled').checked,
+          hour: Number($('schedHour').value),
+          minute: Number($('schedMinute').value),
+        }),
+      });
+      renderSchedule(data);
+      showLog('Расписание автообновления сохранено.');
+    } catch (e) {
+      showLog((e.data && e.data.error) || e.message);
+      csrfToken = '';
+    }
   });
 
   $('exportBtn').addEventListener('click', async (ev) => {

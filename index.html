@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Bundled Page</title>
+  <title>Центр ДПО · Факультет права НИУ ВШЭ</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; worker-src 'self' blob:; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1658DA; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -150,6 +152,26 @@ document.addEventListener('DOMContentLoaded', async function() {
     // preserve ordering (React before ReactDOM before Babel before text/babel).
     const doc = new DOMParser().parseFromString(template, 'text/html');
     document.documentElement.replaceWith(doc.documentElement);
+    // Post-swap security / a11y shell (outer head is replaced away with the document).
+    try {
+      if (!document.documentElement.getAttribute('lang')) {
+        document.documentElement.setAttribute('lang', 'ru');
+      }
+      var head = document.head || document.getElementsByTagName('head')[0];
+      if (head && !head.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+        var csp = document.createElement('meta');
+        csp.setAttribute('http-equiv', 'Content-Security-Policy');
+        csp.setAttribute('content', "default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; worker-src 'self' blob:; base-uri 'self'; form-action 'none'");
+        head.insertBefore(csp, head.firstChild);
+      }
+      if (head && !head.querySelector('meta[name="referrer"]')) {
+        var ref = document.createElement('meta');
+        ref.setAttribute('name', 'referrer');
+        ref.setAttribute('content', 'strict-origin-when-cross-origin');
+        head.appendChild(ref);
+      }
+    } catch (e) { console.warn('CSP inject failed', e); }
+
     const dead = Array.from(document.scripts);
     for (const old of dead) {
       const s = document.createElement('script');

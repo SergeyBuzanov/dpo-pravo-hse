@@ -7,11 +7,10 @@
 
 | Файл | Что это |
 |---|---|
-| `index.html` | Главный лендинг (Design-версия, React-бандл из Claude Design) |
-| `ДПО Лендинг (standalone).html` | Альтернативный статический лендинг (сильнее по SEO — мета зашита в HTML) |
-| `Каталог программ.html` | Витрина программ ДПО: карточки со ссылками на страницы программ на hse.ru, фильтры по типу и формату |
-| `Клуб выпускников (standalone).html` | Отдельный лендинг клуба выпускников |
-| `admin.html` + `admin-server.js` | Локальная админка для обновления каталога в один клик |
+| `index.html` | Главный лендинг (Design-версия) |
+| `Каталог программ.html` | Витрина программ ДПО: карточки со ссылками на hse.ru, фильтры по типу и формату |
+| `privacy.html` | Политика обработки персональных данных (152-ФЗ) |
+| `admin.html` + `admin-server.js` | Локальная админка: обновление каталога и аналитика |
 
 ## Обновление каталога программ
 
@@ -35,16 +34,23 @@ node admin-server.js
 `Course` (JSON-LD). Node 18+, npm-зависимостей нет.
 
 **Админка дополнительно:**
-- диагностика файлов/маркеров/hse.ru, список программ, экспорт JSON;
+- **ручной редактор программ** (добавить / править / удалить / lock от перезаписи hse.ru);
+- **ежедневное автообновление** каталога, пока запущен `admin-server.js` (время настраивается);
+- диагностика файлов/маркеров/hse.ru, экспорт JSON;
 - **менеджерская аналитика**: посетители, время на сайте, страницы, маршруты,
   интерес к программам, источники, устройства, отказы, часы активности
   (вкладка «Аналитика»; сбор после согласия на cookies через `js/site-analytics.js`,
   хранение в `.analytics/`).
 
+Локальное хранилище программ: `.catalog-data.json` (в git не попадает). Расписание:
+`.catalog-schedule.json`.
+
 **Публичный превью-сервер и нагрузочный тест** (симуляция >2000 пользователей):
 ```bash
-npm run serve        # http://127.0.0.1:5180 — статика без auth
+npm run serve        # http://127.0.0.1:5180 — статика без auth (allowlist; без dotfiles)
 npm run load-test    # 2500 VU, отчёт в .load-test-report.json
+npm run check-deploy # перед продом: падает, если остался example.com
+npm run test:security
 ```
 
 ## Шрифты
@@ -52,7 +58,7 @@ npm run load-test    # 2500 VU, отчёт в .load-test-report.json
 Все страницы используют фирменные шрифты НИУ ВШЭ — **HSE Sans** и **HSE Slab**
 (файлы взяты с hse.ru), размещённые локально в `fonts/`. Внешних запросов к
 Google Fonts или иным CDN нет — данные посетителей не покидают сайт (152-ФЗ).
-Фолбэки: IBM Plex Sans / Source Serif 4 / Inter / PT Serif (тоже локальные).
+Фолбэки: IBM Plex Sans / Source Serif 4 (тоже локальные).
 
 ## Безопасность
 
@@ -61,7 +67,8 @@ Google Fonts или иным CDN нет — данные посетителей 
 | Слой | Меры |
 |---|---|
 | **Админ-сервер** (только локально) | Bind `127.0.0.1`; HTTP Basic Auth; пароль **scrypt-хеш** (не plaintext); CSRF на `POST /api/update`; проверка Origin/Referer; lockout 5 ошибок → 15 мин; throttle 120 req/min; URI ≤ 2048; allowlist файлов + path traversal block; single-flight на обновление каталога; атомарная запись HTML; заголовки `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `COOP`/`CORP`, CSP, `Cache-Control: no-store` |
-| **Публичные страницы** | CSP + Referrer-Policy (meta); email собирается JS из `data-u`/`data-d` (в HTML нет `@`); нет форм сбора ПДн; шрифты локальные |
+| **Публичные страницы** | CSP + Referrer-Policy (meta) на всех лендингах, каталоге, privacy и `index.html` (shell + post-swap inject); email из `data-u`/`data-d`; нет форм ПДн; шрифты локальные |
+| **Превью static-server** | Allowlist HTML/assets; deny dotfiles и исходники; bind только loopback (иначе `ALLOW_NON_LOOPBACK=1`); `/api/collect` без CORS |
 | **Данные с hse.ru** | URL только `https://*.hse.ru`; HTML-escape всех полей; JSON-LD с экранированием `</` |
 
 `.admin-credentials.json` и `.admin-status.json` в git **не** попадают.
@@ -119,8 +126,8 @@ Google Fonts или иным CDN нет — данные посетителей 
 домене **замените `https://example.com`** в `canonical`/`og:url` страниц, а также в
 `robots.txt` и `sitemap.xml` на реальный адрес.
 
-> Примечание: `index.html` (Design-версия) рендерится через JavaScript, поэтому по
-> SEO слабее статического `ДПО Лендинг (standalone).html`, где мета зашита прямо в HTML.
+> Примечание: `index.html` рендерится через JavaScript (бандл). Для SEO важны
+> корректные meta в post-render документе и карта сайта.
 
 ## Замечания по деплою
 

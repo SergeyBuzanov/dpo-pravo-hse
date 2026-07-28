@@ -3,8 +3,7 @@
 Смоук-тест сайта Центра ДПО (Playwright, headless Chromium).
 
 Поднимает статический сервер над корнем проекта и проверяет ключевые
-пользовательские сценарии и релизные требования на публичных страницах:
-главная (React-бандл Claude Design), каталог программ, политика ПДн.
+пользовательские сценарии на публичных страницах: главная, каталог, privacy.
 
 Запуск:  tests/run.sh        (см. соседний скрипт — активирует venv)
 или:     python tests/smoke_test.py
@@ -102,6 +101,11 @@ def test_index(context):
     check(lbl, "заголовок вкладки",
           page.title() == "Образование для профессионалов права · Центр ДПО НИУ ВШЭ",
           f"got: {page.title()!r}")
+    # CSP is injected into the post-swap document head (and present on the outer shell).
+    has_csp = page.evaluate(
+        """() => !!document.querySelector('meta[http-equiv="Content-Security-Policy"]')"""
+    )
+    check(lbl, "CSP meta после рендера", has_csp)
     check(lbl, "favicon подключён",
           page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") == "favicon.svg")
     check(lbl, "theme-color = #1658DA",

@@ -72,15 +72,13 @@ async function startLocalServer() {
 
 function buildTargets(baseUrl) {
   const catalog = encodeURIComponent('Каталог программ.html');
-  const landing = encodeURIComponent('ДПО Лендинг (standalone).html');
   return [
-    { path: '/', weight: 35 },
-    { path: `/${catalog}`, weight: 30 },
-    { path: `/${landing}`, weight: 10 },
-    { path: '/privacy.html', weight: 8 },
+    { path: '/', weight: 40 },
+    { path: `/${catalog}`, weight: 35 },
+    { path: '/privacy.html', weight: 10 },
     { path: '/fonts/fonts-hse.css', weight: 7 },
     { path: '/js/cookie-consent.js', weight: 5 },
-    { path: '/fonts/HSESans-Regular.woff2', weight: 5 },
+    { path: '/fonts/HSESans-Regular.woff2', weight: 3 },
   ].map((t) => ({ ...t, url: new URL(t.path, baseUrl) }));
 }
 
