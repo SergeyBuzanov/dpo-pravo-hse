@@ -173,12 +173,17 @@ def test_catalog(context):
     chips = page.eval_on_selector_all(".filters .chip", "els => els.length")
     check(lbl, "чипы-фильтры присутствуют", chips >= 6, f"got {chips}")
 
-    # фильтр реально сужает выдачу
+    # Фильтр реально сужает выдачу. Считаем ФАКТИЧЕСКУЮ видимость
+    # (offsetParent), а не инлайновый style.display: вёрстка каталога может
+    # скрывать карточки классом (.is-hidden) — тест не должен зависеть от того,
+    # каким именно способом это сделано.
     page.click('#filters .chip:nth-child(2)')  # первый тип после «Все»
+    page.wait_for_timeout(400)  # переждать анимацию скрытия
     visible = page.eval_on_selector_all(
-        "#grid .card", "els => els.filter(c => c.style.display !== 'none').length")
+        "#grid .card", "els => els.filter(c => c.offsetParent !== null).length")
     check(lbl, "фильтр по типу сужает выдачу", 0 < visible < total, f"visible={visible}/{total}")
     page.click('#filters .chip:first-child')  # назад на «Все»
+    page.wait_for_timeout(400)
 
     check(lbl, "favicon подключён",
           page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") == "favicon.svg")
