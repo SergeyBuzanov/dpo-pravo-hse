@@ -257,27 +257,42 @@ document.addEventListener('DOMContentLoaded', async function() {
     try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
   }
 
-  var tries = 0;
-  var timer = setInterval(function () {
+  // Обработчик — ДЕЛЕГИРОВАННЫЙ, на document: кнопка живёт внутри шапки,
+  // которую рантайм и smooth-ui пересобирают, и слушатель, повешенный прямо
+  // на узел, при этом теряется (кнопка на месте, а клик не работает).
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('#viToggle') : null;
+    if (!t) return;
+    e.preventDefault();
+    setVi(!document.documentElement.classList.contains('vi-mode'));
+  });
+
+  // ensure() не останавливается после первой вставки: если шапку перерисовали
+  // и кнопку снесли — она возвращается на место.
+  function ensure() {
+    if (!document.getElementById('vi-mode-style')) {
+      var style = document.createElement('style');
+      style.id = 'vi-mode-style';
+      style.textContent = CSS;
+      (document.head || document.documentElement).appendChild(style);
+    }
     var nav = document.querySelector('header nav');
-    if (!nav) { if (++tries > 75) clearInterval(timer); return; }
-    clearInterval(timer);
+    if (nav && !document.getElementById('viToggle')) {
+      var btn = document.createElement('button');
+      btn.id = 'viToggle';
+      btn.type = 'button';
+      btn.textContent = 'Версия для слабовидящих';
+      btn.title = 'Версия для слабовидящих';
+      btn.setAttribute('aria-pressed', document.documentElement.classList.contains('vi-mode') ? 'true' : 'false');
+      nav.insertBefore(btn, nav.lastElementChild);
+    }
+  }
 
-    var style = document.createElement('style');
-    style.textContent = CSS;
-    document.head.appendChild(style);
-
-    var btn = document.createElement('button');
-    btn.id = 'viToggle';
-    btn.type = 'button';
-    btn.textContent = 'Версия для слабовидящих';
-    btn.title = 'Версия для слабовидящих';
-    btn.setAttribute('aria-pressed', 'false');
-    btn.addEventListener('click', function () {
-      setVi(!document.documentElement.classList.contains('vi-mode'));
-    });
-    nav.insertBefore(btn, nav.lastElementChild);
-    try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+  var n = 0;
+  var timer = setInterval(function () {
+    ensure();
+    try { if (n === 0 && localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+    if (++n > 300) clearInterval(timer); // ~60 с: перекрывает все ре-рендеры загрузки
   }, 200);
 })();
 </script>

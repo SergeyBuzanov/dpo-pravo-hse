@@ -1,0 +1,31 @@
+# Локальный запуск: статический сайт (nginx) + админка каталога (Node).
+#   docker compose up -d
+#   Сайт:   http://localhost:8080/
+#   Админка: http://localhost:5178/admin.html  (логин/пароль — в логах: docker compose logs admin)
+
+services:
+  site:
+    image: nginx:1.27-alpine
+    container_name: dpo-site
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - .:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  admin:
+    build: .
+    container_name: dpo-admin
+    # Только на localhost хоста — админка не должна быть видна из сети
+    ports:
+      - "127.0.0.1:5178:5178"
+    environment:
+      # Автообновление каталога с hse.ru прямо в админ-сервисе (он всегда запущен):
+      # каталог держится актуальным сам, а состояние видно в админке. 0 = выключить.
+      AUTO_UPDATE_HOURS: "24"
+    volumes:
+      # rw: обновление переписывает «catalog.html» в рабочей копии,
+      # плюс сюда пишутся .admin-credentials.json и .admin-status.json
+      - .:/app
+    restart: unless-stopped

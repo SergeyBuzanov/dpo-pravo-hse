@@ -1,0 +1,7 @@
+.git
+.venv-tests
+tests/__pycache__
+node_modules
+*.log
+.admin-credentials.json
+.admin-status.json

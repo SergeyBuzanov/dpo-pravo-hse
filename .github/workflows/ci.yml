@@ -1,0 +1,99 @@
+name: CI
+
+# Прогон смоук-теста на каждый push и PR + сборка образа админки.
+# Деплой намеренно выключен: пока нет сервера и домена — включается одним
+# снятием комментария, когда появятся секреты (см. блок deploy ниже).
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Прав на запись ни одному job не нужно: тесты только читают репозиторий.
+# Без этого блока действует умолчание репозитория, а оно нередко даёт токену
+# contents: write — то есть любая скомпрометированная сторонняя action смогла
+# бы запушить коммит.
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Юнит-тесты (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Установить Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      # Маска *.test.js обязательна: голый путь к каталогу раннер Node
+      # разворачивает не на всех платформах.
+      - name: Прогон юнит-тестов
+        run: node --test tests/unit/*.test.js
+
+  smoke:
+    name: Смоук-тест (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Установить uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Окружение и Playwright
+        run: |
+          uv venv .venv-tests
+          source .venv-tests/bin/activate
+          uv pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Прогон тестов
+        run: |
+          source .venv-tests/bin/activate
+          python tests/smoke_test.py
+
+  build:
+    name: Сборка образа
+    runs-on: ubuntu-latest
+    needs: smoke
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Собрать образ админки
+        run: docker build -t dpo-admin:${{ github.sha }} .
+
+      - name: Проверить конфиг compose
+        run: docker compose config --quiet
+
+      # Конфиг nginx не проверялся нигде: он не входит в образ админки, а
+      # монтируется в контейнер веб-сервера при запуске — ошибка в нём
+      # обнаружилась бы только на живом сервере.
+      - name: Проверить конфиг nginx
+        run: |
+          docker run --rm \
+            -v "$PWD/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:alpine nginx -t
+
+  # ── Деплой (выключен до появления сервера) ───────────────────────────
+  # Когда будет VPS и домен, добавить секреты DEPLOY_HOST / DEPLOY_USER /
+  # DEPLOY_KEY в настройках репозитория и снять комментарий.
+  #
+  # deploy:
+  #   name: Деплой на сервер
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+  #     - name: Выкатить по SSH
+  #       run: |
+  #         echo "${{ secrets.DEPLOY_KEY }}" > key && chmod 600 key
+  #         rsync -az --delete -e "ssh -i key -o StrictHostKeyChecking=accept-new" \
+  #           --exclude '.git' --exclude '.venv-tests' --exclude 'node_modules' \
+  #           ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/dpo/
+  #         ssh -i key -o StrictHostKeyChecking=accept-new \
+  #           ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+  #           'cd /srv/dpo && docker compose up -d --build'

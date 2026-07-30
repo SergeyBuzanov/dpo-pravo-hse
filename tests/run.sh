@@ -29,6 +29,12 @@ if ! python -c "from playwright.sync_api import sync_playwright as s; b=s().star
   python -m playwright install chromium
 fi
 
+# Юнит-тесты (Node, без зависимостей). Маска *.test.js обязательна:
+# голый путь к каталогу раннер Node не принимает.
+echo "→ юнит-тесты"
+node --test "tests/unit/"*.test.js
+
+echo "→ смоук-тест (Playwright)"
 python tests/smoke_test.py
 echo ""
 echo "→ security_test.py (admin + static-server allowlist)"

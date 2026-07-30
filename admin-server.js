@@ -27,7 +27,11 @@ const { promisify } = require('node:util');
 const scryptAsync = promisify(crypto.scrypt);
 
 const PORT = Number(process.env.PORT) || 5178;
-const HOST = '127.0.0.1';
+// По умолчанию слушаем только петлевой интерфейс — админка не должна быть
+// видна из сети. В контейнере нужен 0.0.0.0 (иначе снаружи не достучаться),
+// поэтому адрес переопределяется переменной HOST, а наружу порт публикуется
+// только на 127.0.0.1 хоста — см. docker-compose.yml.
+const HOST = process.env.HOST || '127.0.0.1';
 const ROOT = __dirname;
 const STATUS_FILE = path.join(ROOT, '.admin-status.json');
 const CREDENTIALS_FILE = path.join(ROOT, '.admin-credentials.json');
@@ -394,11 +398,21 @@ function assertCsrfAndOrigin(req) {
   }
   const origin = req.headers.origin;
   const referer = req.headers.referer;
-  const expected = `http://${HOST}:${PORT}`;
-  if (origin && origin !== expected) {
+  // Список допустимых источников, а не один адрес: браузер присылает тот хост,
+  // который набрал пользователь (localhost / 127.0.0.1), и он не обязан
+  // совпадать с адресом привязки. В контейнере HOST=0.0.0.0 — такого Origin
+  // браузер не пришлёт никогда, поэтому сверяться с ним напрямую нельзя.
+  const allowed = new Set([
+    `http://127.0.0.1:${PORT}`,
+    `http://localhost:${PORT}`,
+    `http://[::1]:${PORT}`,
+  ]);
+  if (HOST !== '0.0.0.0' && HOST !== '::') allowed.add(`http://${HOST}:${PORT}`);
+
+  if (origin && !allowed.has(origin)) {
     return { ok: false, code: 403, error: 'Недопустимый Origin' };
   }
-  if (referer && !referer.startsWith(expected + '/')) {
+  if (referer && ![...allowed].some((a) => referer.startsWith(a + '/'))) {
     return { ok: false, code: 403, error: 'Недопустимый Referer' };
   }
   return { ok: true };
