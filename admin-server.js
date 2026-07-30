@@ -155,12 +155,24 @@ function isLockedOut(ip) {
 function recordAuthFail(ip) {
   const rec = authFails.get(ip) || { count: 0, lockedUntil: 0 };
   rec.count += 1;
+  const attempt = rec.count;
   if (rec.count >= MAX_FAILS) {
     rec.lockedUntil = Date.now() + LOCKOUT_MS;
     rec.count = 0;
+    console.warn(`[auth] ${new Date().toISOString()} ${ip}: ${MAX_FAILS} неверных паролей — блокировка на ${LOCKOUT_MS / 60000} мин`);
+  } else {
+    console.warn(`[auth] ${new Date().toISOString()} ${ip}: неверный пароль (попытка ${attempt}/${MAX_FAILS})`);
   }
   authFails.set(ip, rec);
 }
+
+/**
+ * Тарпит: ответ на НЕВЕРНЫЕ учётные данные задерживается, поэтому перебор
+ * словаря замедляется на порядок ещё до срабатывания блокировки. Верный
+ * пароль и первый запрос браузера без Authorization не задерживаются.
+ */
+const FAIL_DELAY_MS = 700;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const collectCounts = new Map(); // analytics beacons — separate budget
 
@@ -845,7 +857,10 @@ async function createServer(credentials) {
 
       const authed = await checkAuth(req, credentials);
       if (!authed) {
-        if (req.headers.authorization) recordAuthFail(ip);
+        if (req.headers.authorization) {
+          recordAuthFail(ip);
+          await sleep(FAIL_DELAY_MS); // тарпит — только для неверных кред
+        }
         send(res, 401, 'Требуется авторизация', {
           'Content-Type': 'text/plain; charset=utf-8',
           'WWW-Authenticate': 'Basic realm="DPO Admin", charset="UTF-8"',
