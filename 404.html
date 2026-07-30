@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Страница не найдена · Центр ДПО НИУ ВШЭ</title>
+<meta name="robots" content="noindex, follow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#0F2D69">
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<style>
+  /* Палитра НИУ ВШЭ: основной #0F2D69 (PANTONE 287C), акцент #FAB900 */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: clamp(24px, 6vw, 64px); text-align: center;
+    font-family: 'HSE Sans', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    color: #fff; background: linear-gradient(160deg, #234B9B 0%, #0F2D69 45%, #0A1F49 100%);
+  }
+  .box { max-width: 640px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+  .code {
+    font-family: 'HSE Slab', Georgia, serif; font-weight: 900; line-height: 1;
+    font-size: clamp(72px, 18vw, 160px); color: #FAB900;
+  }
+  h1 { font-family: 'HSE Slab', Georgia, serif; font-weight: 600; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; }
+  p { font-size: 17px; line-height: 1.6; color: rgba(255,255,255,.82); }
+  .links { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  a {
+    font-size: 15px; font-weight: 600; text-decoration: none;
+    padding: 14px 26px; border-radius: 999px; white-space: nowrap;
+  }
+  .primary { color: #0F2D69; background: #fff; }
+  .primary:hover { background: #FAB900; color: #1A1A1A; }
+  .ghost { color: #fff; border: 1px solid rgba(255,255,255,.55); }
+  .ghost:hover { background: rgba(255,255,255,.12); }
+  a:focus-visible { outline: 3px solid #FAB900; outline-offset: 3px; }
+</style>
+</head>
+<body>
+  <main class="box">
+    <!-- Вывороточная версия логотипа: на синем фоне цветная не читается,
+         а перекрашивать логотип брендбук запрещает. -->
+    <img src="images/logo-hse-white.svg" alt="НИУ «Высшая школа экономики»" width="315" height="40" style="height:40px;width:auto;margin-bottom:8px">
+    <div class="code" aria-hidden="true">404</div>
+    <h1>Такой страницы нет</h1>
+    <p>Возможно, адрес изменился или в ссылке опечатка. Загляните в каталог программ — он обновляется из официального каталога НИУ ВШЭ.</p>
+    <div class="links">
+      <a class="primary" href="/">На главную</a>
+      <a class="ghost" href="/Каталог программ.html">Каталог программ</a>
+    </div>
+  </main>
+</body>
+</html>

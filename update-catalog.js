@@ -16,6 +16,7 @@ const {
   fetchProgramItems,
   formatPrice,
   formatDate,
+  isoDate,
   CATALOG_URL,
   summarizeProgram,
 } = require('./lib/hse-catalog');
@@ -138,8 +139,10 @@ function buildJsonLd(items) {
     const instance = { '@type': 'CourseInstance' };
     if (mode) instance.courseMode = mode;
     if (item.startDate) {
-      const d = new Date(item.startDate);
-      if (!Number.isNaN(d.getTime())) instance.startDate = d.toISOString().slice(0, 10);
+      // По локальным компонентам: toISOString() сдвигал бы «20 июля 00:00 МСК»
+      // на 19 июля, и в микроразметку уходила дата на сутки раньше.
+      const iso = isoDate(item.startDate);
+      if (iso) instance.startDate = iso;
     }
     if (instance.courseMode || instance.startDate) {
       course.hasCourseInstance = instance;
@@ -368,6 +371,7 @@ if (require.main === module) {
 
 module.exports = {
   main,
+  writeAtomic,
   applyPrograms,
   writeCatalogHtml,
   escapeHtml,
