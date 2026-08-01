@@ -287,10 +287,14 @@ process.exit(ok ? 0 : 1);
         "CSP meta missing 'self' or connect-src",
     )
     index = (ROOT / "index.html").read_text(encoding="utf-8")
+    # Границу «внешней оболочки» берём по началу бандла, а не по числу символов:
+    # с фиксированным окном тест ломался каждый раз, когда в head добавляли
+    # мета-тег, — падал не код, а сама проверка.
+    shell = index.split('<script type="__bundler/manifest">', 1)[0]
     check(
         "unit",
         "index.html has CSP meta",
-        "Content-Security-Policy" in index[:2000],
+        "Content-Security-Policy" in shell,
         "no CSP in outer shell",
     )
     check(

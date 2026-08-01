@@ -19,6 +19,11 @@
 <meta property="og:title" content="Каталог программ ДПО · Факультет права НИУ ВШЭ">
 <meta property="og:description" content="Программы повышения квалификации и переподготовки для юристов — с ценами, форматом и датами старта.">
 <meta property="og:url" content="https://example.com/%D0%9A%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%20%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC.html">
+<meta property="og:image" content="https://example.com/images/hero-justice.jpg">
+<meta property="og:image:width" content="1380">
+<meta property="og:image:height" content="789">
+<meta property="og:image:alt" content="Статуя Фемиды с весами — Центр ДПО факультета права НИУ ВШЭ">
+<meta name="twitter:image" content="https://example.com/images/hero-justice.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Каталог программ ДПО · Факультет права НИУ ВШЭ">
 <meta name="twitter:description" content="Программы повышения квалификации и переподготовки для юристов НИУ ВШЭ.">
@@ -39,7 +44,9 @@
     --orange: #FF8000;
     --ink: #0F0F14;
     --ink-soft: #3C4257;
-    --ink-mute: #6B7A99;
+    /* Затемнён с #6B7A99: тот давал 4,31:1 на белом и 4,08:1 на подложке —
+       ниже нормы WCAG AA (4,5:1) для мелкого текста. Тон сохранён. */
+    --ink-mute: #657390;
     --line: #D3D7E0;
     --bg: #F7F9FA;
     --bg-tint: #F0F5FF;
@@ -222,6 +229,13 @@
     box-shadow: none;
   }
   .card.is-hidden{ display: none !important; }
+  /* Заголовок секции для скринридеров: без него уровни шли h1 → h3
+     (карточки), то есть в структуре страницы зиял пропуск. Визуально
+     ничего не меняется. */
+  .visually-hidden{
+    position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0;
+  }
   /* Плавное появление: стартовое состояние, затем снимаем класс → transition к норме */
   .card.is-entering{
     opacity: 0;
@@ -335,6 +349,7 @@
 </div>
 
 <main>
+  <h2 class="visually-hidden">Список программ</h2>
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->
     <a href="https://www.hse.ru/edu/dpo/958734693" target="_blank" rel="noopener noreferrer" class="card" data-type="ПК" data-format="online" data-search="актуальные вопросы гражданского права пк онлайн асинхронный 3 августа 2026 г.">
