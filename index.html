@@ -37,10 +37,44 @@
     #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
     #__bundler_placeholder { color: #999; font-size: 14px; }
   </style>
+  <!-- Фолбэк без JavaScript. Лендинг собирается React-рантаймом, поэтому без
+       скриптов страница пустая: синяя заставка #__bundler_thumbnail растянута
+       на весь экран (z-index 9999) и закрывает всё насовсем. Её обязательно
+       прячем, иначе посетитель видит синий прямоугольник и уходит.
+       В фолбэке даём то, ради чего сюда приходят: чем занимается центр, куда
+       звонить, где смотреть программы. Почту не пишем — на сайте адреса
+       собираются скриптом, чтобы их не выгребали спам-боты. -->
   <noscript>
-    <style>#__bundler_loading { display: none; }</style>
-    <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
-      This page requires JavaScript to display.
+    <style>
+      #__bundler_loading, #__bundler_thumbnail { display: none !important; }
+      body { display: block; background: #FBF9F5; }
+      .ns-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 72px;
+        font: 16px/1.65 'HSE Sans', -apple-system, BlinkMacSystemFont, sans-serif; color: #211E1B; }
+      .ns-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase; color: #1658DA; margin: 0 0 12px; }
+      .ns-wrap h1 { font-size: 30px; line-height: 1.2; margin: 0 0 16px; }
+      .ns-wrap p { color: #48423A; margin: 0 0 16px; }
+      .ns-wrap ul { padding-left: 20px; margin: 0 0 20px; }
+      .ns-wrap li { margin-bottom: 6px; }
+      .ns-wrap a { color: #1658DA; }
+      .ns-note { font-size: 14px; color: #5B554C; border-top: 1px solid rgba(33,30,27,.12);
+        padding-top: 16px; margin-top: 28px; }
+    </style>
+    <div class="ns-wrap">
+      <p class="ns-eyebrow">Центр ДПО · Факультет права НИУ ВШЭ</p>
+      <h1>Образование для профессионалов права</h1>
+      <p>Повышение квалификации и профессиональная переподготовка для юристов,
+        in-house counsel и руководителей правовых департаментов — с преподавателями-практиками.</p>
+      <ul>
+        <li><a href="Каталог программ.html">Каталог программ</a> — актуальные направления, форматы и даты старта</li>
+        <li><a href="https://pravo.hse.ru/dpo/announcement">Анонсы ближайших наборов и запись на обучение</a></li>
+        <li><a href="https://www.hse.ru/edu/dpo/?orgUnit=22753">Все программы ДПО на сайте НИУ ВШЭ</a></li>
+      </ul>
+      <p>Телефон: +7 (495) 772-95-90, доб. 22112<br>
+        Адрес: Москва, Большой Трёхсвятительский переулок, д. 3</p>
+      <p class="ns-note">Полная версия сайта работает с включённым JavaScript.
+        Также доступны <a href="privacy.html">Политика обработки персональных данных</a>
+        и <a href="https://www.hse.ru/sveden/" rel="noopener">Сведения об образовательной организации</a>.</p>
     </div>
   </noscript>
 </head>

@@ -214,6 +214,30 @@ def test_privacy(context):
     page.close()
 
 
+def test_index_nojs(context):
+    """Главная без JavaScript.
+
+    Лендинг собирает React-рантайм, поэтому при выключенных скриптах страница
+    пустая, а синяя заставка #__bundler_thumbnail растянута на весь экран и
+    закрывает всё. Проверяем, что вместо неё показан контентный фолбэк: без
+    него посетитель без JS видит синий прямоугольник и уходит.
+    """
+    lbl = "Главная без JS"
+    print(f"\n{lbl}")
+    page = context.new_page()
+    page.goto(INDEX, wait_until="load")
+    text = page.inner_text("body")
+
+    check(lbl, "синяя заставка скрыта",
+          page.evaluate("""() => { const t = document.getElementById('__bundler_thumbnail');
+              return !t || getComputedStyle(t).display === 'none'; }"""))
+    check(lbl, "виден заголовок центра", "Образование для профессионалов права" in text)
+    check(lbl, "виден телефон", "772-95-90" in text)
+    check(lbl, "есть ссылка на каталог",
+          page.query_selector('noscript a[href*="аталог"], a[href*="аталог"]') is not None)
+    page.close()
+
+
 def main():
     print("Смоук-тест сайта Центра ДПО — Playwright / headless Chromium")
     server = start_server()
@@ -227,6 +251,12 @@ def main():
                     test(ctx)
                 finally:
                     ctx.close()
+            # Отдельный контекст со снятым JavaScript — иначе не проверить фолбэк
+            ctx = browser.new_context(java_script_enabled=False)
+            try:
+                test_index_nojs(ctx)
+            finally:
+                ctx.close()
             browser.close()
     finally:
         server.terminate()
