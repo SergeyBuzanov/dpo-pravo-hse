@@ -37,6 +37,24 @@ const STATUS_FILE = path.join(ROOT, '.admin-status.json');
 const CREDENTIALS_FILE = path.join(ROOT, '.admin-credentials.json');
 const STARTED_AT = Date.now();
 
+/**
+ * Адреса, с которых принимается маяк аналитики (POST /api/collect).
+ * Собственные локальные адреса — всегда; адрес сайта на проде добавляется
+ * через SITE_ORIGIN (можно несколько через запятую), потому что там страницу
+ * отдаёт nginx с другого адреса, а маяк проксируется в этот сервис.
+ */
+const COLLECT_ORIGINS = new Set(
+  [
+    `http://${HOST}:${PORT}`,
+    `http://127.0.0.1:${PORT}`,
+    `http://localhost:${PORT}`,
+    ...String(process.env.SITE_ORIGIN || '')
+      .split(',')
+      .map((s) => s.trim().replace(/\/+$/, ''))
+      .filter(Boolean),
+  ].filter(Boolean),
+);
+
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 const REQS_PER_MIN = 120;
@@ -837,17 +855,14 @@ async function createServer(credentials) {
           return;
         }
         // Reject cross-origin browser POSTs (no ACAO headers either).
+        // На проде сайт отдаётся nginx с другого адреса, а маяк проксируется
+        // сюда — Origin приходит сайтовый. Разрешённые адреса сайта задаются
+        // переменной SITE_ORIGIN (см. docker-compose.yml); без неё поведение
+        // прежнее — принимаются только собственные локальные адреса.
         const collectOrigin = req.headers.origin;
-        if (collectOrigin) {
-          const expectedOrigins = new Set([
-            `http://${HOST}:${PORT}`,
-            `http://127.0.0.1:${PORT}`,
-            `http://localhost:${PORT}`,
-          ]);
-          if (!expectedOrigins.has(collectOrigin)) {
-            sendJson(res, 403, { error: 'origin not allowed' });
-            return;
-          }
+        if (collectOrigin && !COLLECT_ORIGINS.has(collectOrigin)) {
+          sendJson(res, 403, { error: 'origin not allowed' });
+          return;
         }
         await handleCollect(req, res);
         return;
