@@ -21,6 +21,8 @@ services:
       # tests/security_test.py — «белый список nginx».
       - .:/usr/share/nginx/html:ro
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   admin:
     build: .
@@ -29,14 +31,19 @@ services:
     ports:
       - "127.0.0.1:5178:5178"
     environment:
-      # Автообновление каталога с hse.ru прямо в админ-сервисе (он всегда запущен):
-      # каталог держится актуальным сам, а состояние видно в админке. 0 = выключить.
-      AUTO_UPDATE_HOURS: "24"
+      # Расписание автообновления каталога задаётся в админке и хранится в
+      # .catalog-schedule.json — переменных окружения для него нет.
+      #
       # Адрес(а), по которым открыт сайт: с них принимается маяк /api/collect,
       # проксируемый сюда из nginx. Через запятую. На проде — реальный домен.
       SITE_ORIGIN: "http://localhost:8080"
+      # Доверять X-Real-IP от nginx: иначе троттлинг /api/collect видит адрес
+      # контейнера nginx и считает всех посетителей одним клиентом.
+      TRUST_PROXY: "1"
     volumes:
       # rw: обновление переписывает «catalog.html» в рабочей копии,
       # плюс сюда пишутся .admin-credentials.json и .admin-status.json
       - .:/app
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true

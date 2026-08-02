@@ -3,5 +3,15 @@
 tests/__pycache__
 node_modules
 *.log
+.DS_Store
+.claude
+# Runtime-состояние и секреты админки: Dockerfile делает COPY . ., и без этих
+# строк локальная сборка запекала бы в слой образа креды, аналитику посетителей
+# и каталог (в CI они отсутствуют, а на машине разработчика/сервере — есть).
 .admin-credentials.json
 .admin-status.json
+.analytics
+.catalog-data.json
+.catalog-schedule.json
+.catalog-update.lock
+.load-test-report.json
