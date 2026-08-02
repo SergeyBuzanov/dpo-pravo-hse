@@ -23,6 +23,9 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
+// Расписание владелец задаёт в московском времени — контейнер живёт в UTC,
+// поэтому «локальные» часы сервера здесь не годятся (см. lib/moscow-time.js).
+const { moscowDayKey, moscowMinutesOfDay } = require('./lib/moscow-time');
 
 const scryptAsync = promisify(crypto.scrypt);
 
@@ -650,8 +653,11 @@ async function runScheduledCatalogUpdate() {
   const schedule = await loadSchedule();
   if (!schedule.enabled) return;
 
-  const today = new Date().toISOString().slice(0, 10);
-  if (schedule.lastRun && String(schedule.lastRun).slice(0, 10) === today) {
+  // «Сегодня» — московские сутки, а не UTC-сутки. С UTC-ключом задание,
+  // назначенное на ночные часы по Москве, попадало во вчерашний UTC-день и
+  // могло отработать дважды за одни московские сутки.
+  const today = moscowDayKey();
+  if (schedule.lastRun && moscowDayKey(new Date(schedule.lastRun)) === today) {
     return; // already ran today
   }
 
@@ -699,14 +705,25 @@ function rescheduleDailyJob() {
     clearTimeout(dailyTimer);
     dailyTimer = null;
   }
-  // Fire a check every minute; actual run gated by hour/minute + once-per-day.
+  // Проверка раз в минуту; сам запуск ограничен «не чаще раза в московские сутки».
+  //
+  // Условие — «время наступило», а не «минута совпала». Точное совпадение
+  // означало бы, что задание пропущено на весь день, если тик разошёлся с
+  // расписанием: контейнер перезапустили в 03:30, машина была занята в нужную
+  // минуту, setInterval сдвинулся. Пропуск молчаливый, а на сайте после него
+  // сутки висят вчерашние данные.
+  //
+  // Побочный эффект осознанный: при первом запуске (lastRun ещё нет) обновление
+  // стартует сразу, если московское время уже прошло назначенное. Свежий
+  // каталог на старте — это то, что нужно.
   dailyTimer = setInterval(async () => {
     try {
       const { loadSchedule } = require('./lib/catalog-store');
       const schedule = await loadSchedule();
       if (!schedule.enabled) return;
-      const now = new Date();
-      if (now.getHours() !== schedule.hour || now.getMinutes() !== schedule.minute) return;
+      const nowMinutes = moscowMinutesOfDay();
+      const dueMinutes = Number(schedule.hour) * 60 + Number(schedule.minute);
+      if (nowMinutes == null || Number.isNaN(dueMinutes) || nowMinutes < dueMinutes) return;
       await runScheduledCatalogUpdate();
     } catch (err) {
       console.error('[schedule] tick error:', err.message);
