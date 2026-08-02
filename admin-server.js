@@ -26,6 +26,14 @@ const { promisify } = require('node:util');
 // Расписание владелец задаёт в московском времени — контейнер живёт в UTC,
 // поэтому «локальные» часы сервера здесь не годятся (см. lib/moscow-time.js).
 const { moscowDayKey, moscowMinutesOfDay } = require('./lib/moscow-time');
+const {
+  MIME,
+  PUBLIC_HTML,
+  ASSET_DIRS,
+  ASSET_EXT,
+  resolveSafe: resolveSafeShared,
+  readBody,
+} = require('./lib/static-http');
 
 const scryptAsync = promisify(crypto.scrypt);
 
@@ -68,7 +76,6 @@ const LOCKOUT_MS = 15 * 60 * 1000;
 const REQS_PER_MIN = 120;
 const COLLECT_REQS_PER_MIN = 600; // analytics beacons
 const MAX_URL_LEN = 2048;
-const MAX_BODY = 64 * 1024;
 /** Catalog PUT can be larger (full program list). */
 const MAX_PROGRAMS_BODY = 512 * 1024;
 const SCRYPT_PARAMS = Object.freeze({ N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
@@ -217,42 +224,6 @@ function isThrottled(ip, map = reqCounts, limit = REQS_PER_MIN) {
   return rec.count > limit;
 }
 
-function readBody(req, limit = MAX_BODY) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
-    let settled = false;
-
-    const fail = (err) => {
-      if (settled) return;
-      settled = true;
-      // Раньше здесь стоял req.destroy(): сокет рвался мгновенно, и ответ 413
-      // клиент уже не получал — вместо понятной ошибки «слишком большой объём»
-      // в админке была просто оборванная сеть. Теперь чтение просто
-      // прекращается, а ответ отправляет обработчик (см. sendTooLarge).
-      req.pause();
-      req.removeAllListeners('data');
-      reject(err);
-    };
-
-    req.on('data', (chunk) => {
-      if (settled) return;
-      size += chunk.length;
-      if (size > limit) {
-        fail(Object.assign(new Error('body too large'), { code: 'BODY_TOO_LARGE' }));
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => {
-      if (settled) return;
-      settled = true;
-      resolve(Buffer.concat(chunks).toString('utf8'));
-    });
-    req.on('error', fail);
-  });
-}
-
 /** Сколько «хвоста» запроса согласны дочитать и выбросить, чтобы отдать 413. */
 const LINGER_BYTES = 4 * 1024 * 1024;
 const LINGER_MS = 2000;
@@ -373,20 +344,6 @@ function checkCsrf(req) {
 }
 
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
-
-const MIME = Object.freeze({
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.woff2': 'font/woff2',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8',
-});
 
 const SECURITY_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
@@ -881,25 +838,10 @@ async function runHealthCheck() {
 
 // ─── Static file serving (path-safe allowlist) ────────────────────────────────
 
-const PUBLIC_HTML = new Set([
-  'admin.html',
-  'index.html',
-  'privacy.html',
-  'Каталог программ.html',
-]);
-
-const ASSET_DIRS = new Set(['fonts', 'js', 'images']);
-const ASSET_EXT = new Set(['.css', '.woff2', '.js', '.jpg', '.jpeg', '.png', '.svg']);
-
-function resolveSafe(urlPath) {
-  // Strip leading slashes; normalize; reject traversal / absolute escapes.
-  const rel = path.normalize(urlPath.replace(/^[/\\]+/, '')).replace(/^(\.\.([/\\]|$))+/, '');
-  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
-  const abs = path.resolve(ROOT, rel);
-  const rootResolved = path.resolve(ROOT) + path.sep;
-  if (abs !== path.resolve(ROOT) && !abs.startsWith(rootResolved)) return null;
-  return { rel: rel.split(path.sep).join('/'), abs };
-}
+// Списки и разбор пути — общие с превью-сервером (lib/static-http). Отличие
+// админки: служебные файлы корня (robots.txt, sitemap.xml) она не отдаёт,
+// а favicon обрабатывает отдельной веткой ниже.
+const resolveSafe = (pathname) => resolveSafeShared(pathname, ROOT);
 
 async function serveFile(res, absPath, extraHeaders = {}) {
   try {
