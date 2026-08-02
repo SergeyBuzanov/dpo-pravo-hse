@@ -140,8 +140,9 @@ function buildJsonLd(items) {
     const instance = { '@type': 'CourseInstance' };
     if (mode) instance.courseMode = mode;
     if (item.startDate) {
-      // По локальным компонентам: toISOString() сдвигал бы «20 июля 00:00 МСК»
-      // на 19 июля, и в микроразметку уходила дата на сутки раньше.
+      // Дата по московскому календарю (см. lib/moscow-time.js): и toISOString(),
+      // и локальные компоненты сервера отдавали бы «20 июля 00:00 МСК» как
+      // 19 июля, и в микроразметку уходила дата на сутки раньше.
       const iso = isoDate(item.startDate);
       if (iso) instance.startDate = iso;
     }

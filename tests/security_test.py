@@ -11,8 +11,13 @@ Basic Auth gate, CSRF on mutating POSTs, path allowlist.
 from __future__ import annotations
 
 import base64
+import json
 import os
+import re
+import shutil
 import subprocess
+import tempfile
+import threading
 import sys
 import time
 import urllib.error
@@ -84,6 +89,111 @@ def start_node(script: str, env_extra: dict, ready_url: str) -> subprocess.Popen
         proc.terminate()
         raise
     return proc
+
+
+def test_admin_authed() -> None:
+    """Проверки, для которых нужен вход в админку.
+
+    Запускается в ОТДЕЛЬНОЙ копии проекта во временном каталоге, и это
+    принципиально: админ-сервер при первом старте сам создаёт пароль, а
+    сохранение программ переписывает «Каталог программ.html» на диске. В
+    рабочем каталоге тест либо не смог бы войти (пароль знает только владелец),
+    либо испортил бы настоящий каталог.
+    """
+    print("\nadmin-server.js (с авторизацией, во временной копии)")
+    port = 6203
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        for name in ("admin-server.js", "update-catalog.js", "admin.html",
+                     "Каталог программ.html", "package.json"):
+            src = ROOT / name
+            if src.exists():
+                shutil.copy2(src, sandbox / name)
+        shutil.copytree(ROOT / "lib", sandbox / "lib")
+
+        env = os.environ.copy()
+        env.update({"PORT": str(port), "PYTHONIOENCODING": "utf-8"})
+        proc = subprocess.Popen(
+            ["node", "admin-server.js"], cwd=str(sandbox), env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+        try:
+            # Пароль печатается один раз при первом запуске — забираем из вывода
+            password = None
+            deadline = time.time() + 15
+            while time.time() < deadline and password is None:
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                m = re.search(r"Пароль[^:]*:\s*(\S+)", line)
+                if m:
+                    password = m.group(1)
+            if not password:
+                proc.terminate()
+                raise RuntimeError("не удалось получить пароль из вывода админ-сервера")
+
+            # Дальше вывод сервера нужно КУДА-ТО девать. Если этого не делать,
+            # буфер канала (64 КБ) заполняется, Node блокируется на записи в
+            # stdout и перестаёт отвечать — тест падал с «connection reset»
+            # ровно тогда, когда сервер писал чуть больше логов.
+            threading.Thread(target=lambda: proc.stdout.read(), daemon=True).start()
+
+            base = f"http://127.0.0.1:{port}"
+            wait_http(f"{base}/api/status")
+            auth = "Basic " + base64.b64encode(f"admin:{password}".encode()).decode()
+            code, _, body = http_req(f"{base}/api/status", headers={"Authorization": auth})
+            check("authed", "вход по сгенерированному паролю", code == 200, f"status={code}")
+            csrf = json.loads(body).get("csrfToken", "")
+            hdr = {"Authorization": auth, "X-CSRF-Token": csrf,
+                   "Origin": base, "Content-Type": "application/json"}
+
+            # Слишком большое тело: клиент должен получить 413, а не обрыв связи.
+            # Раньше readBody рвал сокет раньше ответа, и в админке вместо
+            # понятной ошибки была «сеть недоступна».
+            #
+            # Тело умеренно превышает лимит (≈1,2 МБ против 512 КБ) — так же,
+            # как это выглядит при реальной ошибке оператора. Многомегабайтную
+            # загрузку сервер обрывает намеренно: дочитывать её ради вежливого
+            # ответа означало бы принимать ровно тот объём, от которого лимит и
+            # защищает (см. LINGER_BYTES/LINGER_MS в admin-server.js).
+            big = json.dumps({"programs": [{"id": f"x{i}", "title": "я" * 200}
+                                           for i in range(1000)]}).encode()
+            code, _, _ = http_req(f"{base}/api/programs", method="PUT", data=big, headers=hdr)
+            check("authed", "тело сверх лимита → 413, а не обрыв", code == 413, f"status={code}")
+            code, _, _ = http_req(f"{base}/api/status", headers={"Authorization": auth})
+            check("authed", "сервер жив после отказа по размеру", code == 200, f"status={code}")
+
+            # Расписание: мусор отвергается, а не зажимается молча в диапазон
+            for bad in ({"enabled": True, "hour": 99, "minute": 0},
+                        {"enabled": True, "hour": 3, "minute": -5},
+                        {"enabled": True, "hour": "три", "minute": 0},
+                        {"enabled": True, "hour": 3.5, "minute": 0}):
+                code, _, _ = http_req(f"{base}/api/schedule", method="PUT",
+                                      data=json.dumps(bad).encode(), headers=hdr)
+                check("authed", f"расписание отвергает {bad['hour']}:{bad['minute']}",
+                      code == 400, f"status={code}")
+            code, _, _ = http_req(f"{base}/api/schedule", method="PUT",
+                                  data=json.dumps({"enabled": True, "hour": 4, "minute": 30}).encode(),
+                                  headers=hdr)
+            check("authed", "корректное расписание сохраняется", code == 200, f"status={code}")
+
+            # Разметка от постороннего источника не должна становиться кодом
+            payload = {"programs": [{
+                "id": "local-xss",
+                "title": '<script>alert(1)</script>" onmouseover="alert(2)',
+                "url": "javascript:alert(3)",
+                "type": "ПК", "format": "Онлайн", "price": 1000, "locked": True,
+            }]}
+            code, _, _ = http_req(f"{base}/api/programs", method="PUT",
+                                  data=json.dumps(payload).encode(), headers=hdr)
+            check("authed", "программа с разметкой в названии сохраняется", code == 200, f"status={code}")
+            html = (sandbox / "Каталог программ.html").read_text(encoding="utf-8")
+            check("authed", "тег из названия экранирован",
+                  "<script>alert(1)</script>" not in html and "&lt;script&gt;alert(1)" in html)
+            check("authed", "javascript: в ссылку не попал", "javascript:" not in html)
+        finally:
+            proc.terminate()
+            proc.wait(timeout=5)
 
 
 def test_static_server() -> None:
@@ -346,6 +456,7 @@ def main() -> None:
         test_nginx_allowlist()
         test_static_server()
         test_admin_server()
+        test_admin_authed()
     except Exception as e:
         print(f"\nFATAL: {e}")
         sys.exit(2)

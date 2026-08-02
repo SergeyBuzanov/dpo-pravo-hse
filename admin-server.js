@@ -216,18 +216,72 @@ function readBody(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
+    let settled = false;
+
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      // Раньше здесь стоял req.destroy(): сокет рвался мгновенно, и ответ 413
+      // клиент уже не получал — вместо понятной ошибки «слишком большой объём»
+      // в админке была просто оборванная сеть. Теперь чтение просто
+      // прекращается, а ответ отправляет обработчик (см. sendTooLarge).
+      req.pause();
+      req.removeAllListeners('data');
+      reject(err);
+    };
+
     req.on('data', (chunk) => {
+      if (settled) return;
       size += chunk.length;
       if (size > limit) {
-        reject(Object.assign(new Error('body too large'), { code: 'BODY_TOO_LARGE' }));
-        req.destroy();
+        fail(Object.assign(new Error('body too large'), { code: 'BODY_TOO_LARGE' }));
         return;
       }
       chunks.push(chunk);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
+    req.on('end', () => {
+      if (settled) return;
+      settled = true;
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+    req.on('error', fail);
   });
+}
+
+/** Сколько «хвоста» запроса согласны дочитать и выбросить, чтобы отдать 413. */
+const LINGER_BYTES = 4 * 1024 * 1024;
+const LINGER_MS = 2000;
+
+/**
+ * Ответ на превышение лимита тела запроса.
+ *
+ * Тонкость в том, что клиент в этот момент ещё ДОСЫЛАЕТ тело. Если просто
+ * оборвать соединение, его запись упадёт с «broken pipe» раньше, чем он
+ * прочитает ответ, — и вместо понятного 413 в админке будет «сеть недоступна».
+ * Поэтому ответ отправляется сразу, а остаток запроса ещё недолго дочитывается
+ * и выбрасывается (так же поступает nginx — lingering_close). Дочитывание
+ * ограничено и по объёму, и по времени: иначе смысл лимита терялся бы.
+ */
+function sendTooLarge(req, res) {
+  let discarded = 0;
+  let timer = null;
+  const stop = (hard) => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    req.removeAllListeners('data');
+    if (hard) req.destroy();
+  };
+  req.on('data', (chunk) => {
+    discarded += chunk.length;
+    if (discarded > LINGER_BYTES) stop(true);
+  });
+  req.on('end', () => stop(false));
+  req.on('error', () => stop(false));
+  timer = setTimeout(() => stop(true), LINGER_MS);
+  req.resume();
+  sendText(res, 413, 'Payload too large');
 }
 
 async function handleCollect(req, res) {
@@ -248,7 +302,7 @@ async function handleCollect(req, res) {
     return result;
   } catch (err) {
     if (err.code === 'BODY_TOO_LARGE') {
-      sendText(res, 413, 'Payload too large');
+      sendTooLarge(req, res);
       return;
     }
     console.error('collect error:', err.message);
@@ -598,7 +652,7 @@ async function handlePutPrograms(req, res) {
       return;
     }
     if (err.code === 'BODY_TOO_LARGE') {
-      sendText(res, 413, 'Payload too large');
+      sendTooLarge(req, res);
       return;
     }
     console.error('put programs:', err.message);
@@ -626,6 +680,22 @@ async function handleSchedulePut(req, res) {
       sendJson(res, 400, { error: 'invalid json', csrfToken });
       return;
     }
+    // Час и минуту проверяем здесь, а не полагаемся на нормализацию в
+    // catalog-store: она молча зажимает значение в допустимый диапазон, и
+    // опечатка «99» превращалась в 23:00 — владелец сохранял расписание,
+    // видел «сохранено» и узнавал о другом времени только по факту.
+    for (const [field, value, max] of [['hour', parsed.hour, 23], ['minute', parsed.minute, 59]]) {
+      if (value === undefined) continue;
+      const num = Number(value);
+      if (!Number.isInteger(num) || num < 0 || num > max) {
+        sendJson(res, 400, {
+          error: `Поле «${field}» должно быть целым числом от 0 до ${max}, получено: ${JSON.stringify(value)}`,
+          csrfToken,
+        });
+        return;
+      }
+    }
+
     const { saveSchedule, msUntilNext } = require('./lib/catalog-store');
     const schedule = await saveSchedule({
       enabled: parsed.enabled,
@@ -1178,7 +1248,7 @@ process.on('unhandledRejection', (err) => {
         if (s.enabled) {
           const hh = String(s.hour).padStart(2, '0');
           const mm = String(s.minute).padStart(2, '0');
-          console.log(`Автообновление каталога: каждый день в ${hh}:${mm} (локальное время)`);
+          console.log(`Автообновление каталога: каждый день в ${hh}:${mm} по Москве`);
         } else {
           console.log('Автообновление каталога: выключено (включите во вкладке «Каталог» админки)');
         }
