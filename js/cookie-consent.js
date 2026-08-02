@@ -106,9 +106,15 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
 
     const banner = document.createElement('div');
     banner.id = 'cookieBanner';
-    banner.setAttribute('role', 'dialog');
+    // role="region", а не "dialog". Диалог подразумевает, что в него переводят
+    // фокус и оттуда его не выпускают; здесь ни того ни другого нет — баннер
+    // не перекрывает страницу и не требует немедленного ответа. Незакрытый
+    // «диалог», в который не увели фокус, часть скринридеров не объявляет
+    // вовсе, и незрячий посетитель просто не узнаёт о выборе. Ориентир
+    // (region с названием) виден в списке областей страницы и достижим
+    // обычной навигацией.
+    banner.setAttribute('role', 'region');
     banner.setAttribute('aria-label', 'Согласие на использование cookies');
-    banner.setAttribute('aria-modal', 'false');
 
     const text = document.createElement('p');
     text.append(

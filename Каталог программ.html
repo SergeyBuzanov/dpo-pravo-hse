@@ -11,14 +11,14 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="theme-color" content="#1658DA">
 <meta name="keywords" content="ДПО, повышение квалификации юристов, профессиональная переподготовка, право, НИУ ВШЭ, факультет права, курсы для юристов">
-<link rel="canonical" href="https://example.com/%D0%9A%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%20%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC.html">
+<link rel="canonical" href="https://example.com/catalog">
 <!-- Open Graph (репосты в соцсетях/мессенджерах) -->
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:site_name" content="Центр ДПО · Факультет права НИУ ВШЭ">
 <meta property="og:title" content="Каталог программ ДПО · Факультет права НИУ ВШЭ">
 <meta property="og:description" content="Программы повышения квалификации и переподготовки для юристов — с ценами, форматом и датами старта.">
-<meta property="og:url" content="https://example.com/%D0%9A%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%20%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC.html">
+<meta property="og:url" content="https://example.com/catalog">
 <meta property="og:image" content="https://example.com/images/hero-justice.jpg">
 <meta property="og:image:width" content="1380">
 <meta property="og:image:height" content="789">
@@ -298,9 +298,14 @@
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
     font-size: 13px; color: var(--ink-mute);
   }
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:#1658DA;
+    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
+  .skip-link:focus{left:0}
 </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Перейти к содержанию</a>
 
 <header>
   <a href="index.html" class="logo">
@@ -348,7 +353,7 @@
   <span class="result-count" id="resultCount" aria-live="polite"></span>
 </div>
 
-<main>
+<main id="main">
   <h2 class="visually-hidden">Список программ</h2>
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->

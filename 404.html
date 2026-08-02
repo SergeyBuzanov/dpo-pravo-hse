@@ -36,15 +36,20 @@
   .ghost { color: #fff; border: 1px solid rgba(255,255,255,.55); }
   .ghost:hover { background: rgba(255,255,255,.12); }
   a:focus-visible { outline: 3px solid #FAB900; outline-offset: 3px; }
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:#1658DA;
+    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
+  .skip-link:focus{left:0}
 </style>
 </head>
 <body>
+<a href="#top" class="skip-link">Перейти к содержанию</a>
   <main class="box">
     <!-- Вывороточная версия логотипа: на синем фоне цветная не читается,
          а перекрашивать логотип брендбук запрещает. -->
     <img src="images/logo-hse-white.svg" alt="НИУ «Высшая школа экономики»" width="315" height="40" style="height:40px;width:auto;margin-bottom:8px">
     <div class="code" aria-hidden="true">404</div>
-    <h1>Такой страницы нет</h1>
+    <h1 id="top">Такой страницы нет</h1>
     <p>Возможно, адрес изменился или в ссылке опечатка. Загляните в каталог программ — он обновляется из официального каталога НИУ ВШЭ.</p>
     <div class="links">
       <a class="primary" href="/">На главную</a>
