@@ -26,6 +26,9 @@ const {
   saveStore,
   mergeWithRemote,
   toSummaries,
+  // Реэкспортируется ниже: на writeAtomic из этого модуля завязан
+  // tests/unit/atomic-write.test.js.
+  writeAtomic,
 } = require('./lib/catalog-store');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
@@ -184,18 +187,6 @@ function replaceBetween(html, [startMarker, endMarker], replacement) {
     '\n  ' +
     html.slice(endIdx)
   );
-}
-
-async function writeAtomic(filePath, content) {
-  const dir = path.dirname(filePath);
-  const tmp = path.join(dir, `.${path.basename(filePath)}.${process.pid}.tmp`);
-  try {
-    await fs.writeFile(tmp, content, 'utf8');
-    await fs.rename(tmp, filePath);
-  } catch (err) {
-    await fs.unlink(tmp).catch(() => {});
-    throw err;
-  }
 }
 
 async function acquireUpdateLock() {

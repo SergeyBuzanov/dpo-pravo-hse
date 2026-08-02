@@ -3,7 +3,8 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-// В main функция асинхронная (fs/promises + rename) и называется writeAtomic.
+// Реализация живёт в lib/catalog-store и реэкспортируется из update-catalog —
+// тест закрепляет именно публичную точку, которой пользуется рендер каталога.
 const { writeAtomic } = require('../../update-catalog');
 
 test('запись перезаписывает существующий файл', async () => {
@@ -23,29 +24,29 @@ test('после записи временных файлов не остаёт�
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('исходный файл цел, если запись во временный не удалась', () => {
+test('исходный файл цел, если запись во временный не удалась', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dpo-'));
   const file = path.join(dir, 'catalog.html');
   fs.writeFileSync(file, 'важные данные', 'utf8');
-  // Целевой путь лежит в несуществующем подкаталоге "нет" — writeFileSync
-  // во временный файл упадёт с ENOENT.
-  assert.throws(() => writeFileAtomic(path.join(dir, 'нет', 'catalog.html'), 'x'));
+  // Целевой путь лежит в несуществующем подкаталоге «нет» — запись во
+  // временный файл упадёт с ENOENT.
+  await assert.rejects(writeAtomic(path.join(dir, 'нет', 'catalog.html'), 'x'));
   assert.strictEqual(fs.readFileSync(file, 'utf8'), 'важные данные');
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('временный файл убирается, если renameSync не удался', () => {
+test('временный файл убирается, если rename не удался', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dpo-'));
   const file = path.join(dir, 'catalog.html');
-  // Целевой путь — существующий каталог: writeFileSync во временный файл
-  // рядом пройдёт нормально, а вот renameSync поверх каталога упадёт
-  // (на Windows — с EPERM). Так падает именно renameSync, а не запись
-  // во временный файл.
+  // Целевой путь — существующий НЕПУСТОЙ каталог: запись во временный файл
+  // рядом пройдёт нормально, а вот rename поверх него упадёт (ENOTEMPTY;
+  // на Windows — EPERM). Так падает именно rename, а не запись.
   fs.mkdirSync(file);
-  const tmp = `${file}.tmp-${process.pid}`;
+  fs.writeFileSync(path.join(file, 'занято'), 'x', 'utf8');
 
-  assert.throws(() => writeFileAtomic(file, 'x'));
-  assert.strictEqual(fs.existsSync(tmp), false);
+  await assert.rejects(writeAtomic(file, 'x'));
+  const leftovers = fs.readdirSync(dir).filter((name) => name.endsWith('.tmp'));
+  assert.deepStrictEqual(leftovers, []);
 
   fs.rmSync(dir, { recursive: true, force: true });
 });

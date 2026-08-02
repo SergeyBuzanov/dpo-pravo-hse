@@ -25,6 +25,12 @@
   <meta property="og:image:alt" content="Статуя Фемиды с весами — Центр ДПО факультета права НИУ ВШЭ">
   <meta name="twitter:image" content="https://example.com/images/hero-justice.jpg">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Страница собирается JS-бандлом, поэтому браузер узнал бы о шрифтах
+       только после загрузки и исполнения ~1 МБ разметки — долгий FOUT.
+       Предзагружаем два начертания первого экрана; crossorigin обязателен:
+       без него предзагруженный шрифт скачивается вторым запросом. -->
+  <link rel="preload" href="fonts/HSESans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/HSESans-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
   <meta name="theme-color" content="#1658DA">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"EducationalOrganization","name":"Центр ДПО факультета права НИУ ВШЭ","url":"https://example.com/","parentOrganization":{"@type":"CollegeOrUniversity","name":"НИУ ВШЭ","url":"https://www.hse.ru/"},"address":{"@type":"PostalAddress","addressLocality":"Москва","streetAddress":"Большой Трёхсвятительский переулок, д. 3"},"telephone":"+7 (495) 772-95-90"}</script>
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; worker-src 'self' blob:; base-uri 'self'; form-action 'none'">

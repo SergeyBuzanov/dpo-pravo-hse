@@ -47,7 +47,10 @@ jobs:
         run: |
           uv venv .venv-tests
           source .venv-tests/bin/activate
-          uv pip install playwright
+          # Версия запиннена: actions здесь фиксируются по SHA, а незапиненный
+          # Playwright тянул бы свежий Chromium и мог уронить CI без изменений
+          # в коде. Обновлять осознанно, вместе с локальным .venv-tests.
+          uv pip install 'playwright==1.62.0'
           python -m playwright install --with-deps chromium
 
       # Node нужен следующему шагу: security-тесты поднимают admin-server.js
@@ -75,7 +78,7 @@ jobs:
   build:
     name: Сборка образа
     runs-on: ubuntu-latest
-    needs: smoke
+    needs: [unit, smoke]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -147,8 +150,15 @@ jobs:
   #     - name: Выкатить по SSH
   #       run: |
   #         echo "${{ secrets.DEPLOY_KEY }}" > key && chmod 600 key
+  #         # ВАЖНО: exclude'ы ниже защищают runtime-состояние на сервере от
+  #         # rsync --delete. Их нет в дереве исходников, поэтому без exclude
+  #         # каждый деплой стирал бы пароль админки (.admin-credentials.json),
+  #         # накопленную аналитику (.analytics/) и локальный каталог программ.
   #         rsync -az --delete -e "ssh -i key -o StrictHostKeyChecking=accept-new" \
   #           --exclude '.git' --exclude '.venv-tests' --exclude 'node_modules' \
+  #           --exclude '.admin-credentials.json' --exclude '.admin-status.json' \
+  #           --exclude '.analytics' --exclude '.catalog-data.json' \
+  #           --exclude '.catalog-schedule.json' --exclude '.catalog-update.lock' \
   #           ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/dpo/
   #         ssh -i key -o StrictHostKeyChecking=accept-new \
   #           ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \

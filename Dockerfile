@@ -21,4 +21,10 @@ EXPOSE 5178
 # админки, молча ничего не сломается). На сервере: chown -R 1000:1000 /srv/dpo
 USER node
 
+# Жив ли процесс: /api/csrf без авторизации отвечает 401 — это нормально,
+# важен сам ответ (зависший, но слушающий Node иначе не распознать;
+# restart: unless-stopped не помогает, пока процесс формально жив).
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||5178)+'/api/csrf',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+
 CMD ["node", "admin-server.js"]

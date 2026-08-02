@@ -35,6 +35,11 @@ const PORT = Number(process.env.PORT) || 5178;
 // поэтому адрес переопределяется переменной HOST, а наружу порт публикуется
 // только на 127.0.0.1 хоста — см. docker-compose.yml.
 const HOST = process.env.HOST || '127.0.0.1';
+// За nginx-прокси remoteAddress — это адрес контейнера nginx, и все посетители
+// делили бы один бакет троттлинга: один флудер исчерпывает лимит /api/collect
+// для всех. Заголовку X-Real-IP верим только по явному флагу (docker-compose):
+// без прокси клиент мог бы подставить его сам и обойти per-IP лимиты.
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const ROOT = __dirname;
 const STATUS_FILE = path.join(ROOT, '.admin-status.json');
 const CREDENTIALS_FILE = path.join(ROOT, '.admin-credentials.json');
@@ -323,6 +328,13 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000).unref();
 
+// Basic auth означает, что браузер шлёт креды с КАЖДЫМ запросом, а каждая
+// проверка — это полный scrypt (N=16384, десятки миллисекунд в threadpool).
+// Кэшируем sha256 пары «логин:пароль», уже прошедшей scrypt: повторные запросы
+// сверяются одним timingSafeEqual. Кредов ровно одна пара и меняются они только
+// перезапуском сервера, так что одного слота достаточно.
+let verifiedAuthDigest = null;
+
 async function checkAuth(req, credentials) {
   const header = req.headers.authorization || '';
   const [scheme, encoded] = header.split(' ');
@@ -340,8 +352,15 @@ async function checkAuth(req, credentials) {
   const user = decoded.slice(0, sep);
   const pass = decoded.slice(sep + 1);
 
+  const digest = crypto.createHash('sha256').update(decoded, 'utf8').digest();
+  if (verifiedAuthDigest && crypto.timingSafeEqual(digest, verifiedAuthDigest)) {
+    return true;
+  }
+
   if (!safeEqualStr(user, credentials.username)) return false;
-  return verifyPassword(pass, credentials.passwordSalt, credentials.passwordHash);
+  const ok = await verifyPassword(pass, credentials.passwordSalt, credentials.passwordHash);
+  if (ok) verifiedAuthDigest = digest;
+  return ok;
 }
 
 // ─── CSRF (per-process token; double-submit via header) ───────────────────────
@@ -555,8 +574,9 @@ function programToEditorRow(p) {
   const price = p.discountPrice ?? p.educationPricing ?? null;
   let startDate = '';
   if (p.startDate) {
-    const d = new Date(p.startDate);
-    if (!Number.isNaN(d.getTime())) startDate = d.toISOString().slice(0, 10);
+    // hse.ru отдаёт старт меткой московской полуночи. toISOString() дал бы
+    // UTC-дату — на сутки раньше, и «Сохранить в каталог» сдвигал бы все даты.
+    startDate = moscowDayKey(p.startDate) || '';
   }
   return {
     id: p.id,
@@ -574,14 +594,7 @@ function programToEditorRow(p) {
 
 async function handleGetPrograms(res) {
   const { loadStore, toSummaries } = require('./lib/catalog-store');
-  let store = await loadStore();
-  // Fallback: seed store from last status if empty
-  if (!store.programs.length) {
-    const status = await readStatus();
-    if (Array.isArray(status.programs) && status.programs.length) {
-      // status only has summaries — not enough for full re-render; leave empty
-    }
-  }
+  const store = await loadStore();
   sendJson(res, 200, {
     updated: store.updated,
     source: store.source,
@@ -906,7 +919,10 @@ async function serveFile(res, absPath, extraHeaders = {}) {
 async function createServer(credentials) {
   const server = http.createServer(async (req, res) => {
     try {
-      const ip = req.socket.remoteAddress || 'unknown';
+      const ip =
+        (TRUST_PROXY && String(req.headers['x-real-ip'] || '').trim()) ||
+        req.socket.remoteAddress ||
+        'unknown';
       const method = req.method || 'GET';
       const rawUrl = req.url || '/';
 
@@ -1107,8 +1123,10 @@ async function createServer(credentials) {
       }
 
       if (method === 'POST' && pathname === '/api/analytics/seed') {
-        if (!checkCsrf(req)) {
-          sendJson(res, 403, { error: 'Неверный CSRF-токен' });
+        // Тот же гейт, что и у остальных изменяющих маршрутов: CSRF + Origin.
+        const gate = assertCsrfAndOrigin(req);
+        if (!gate.ok) {
+          sendJson(res, gate.code, { error: gate.error, csrfToken });
           return;
         }
         const { seedDemo } = require('./lib/analytics-store');
