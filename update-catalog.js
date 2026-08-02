@@ -18,6 +18,7 @@ const {
   formatDate,
   isoDate,
   CATALOG_URL,
+  MOSCOW_TZ,
   summarizeProgram,
 } = require('./lib/hse-catalog');
 const {
@@ -236,8 +237,12 @@ async function releaseUpdateLock() {
   await fs.unlink(LOCK_FILE).catch(() => {});
 }
 
+// «Обновлено ...» на странице — по Москве. Контейнер живёт в UTC, и без явного
+// пояса подпись врала на три часа: обновление в 06:00 по Москве подписывалось
+// как «в 03:00». Посетитель читает московское время, а не время дата-центра.
 function formatUpdatedLabel(date = new Date()) {
   return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: MOSCOW_TZ,
     day: 'numeric',
     month: 'long',
     year: 'numeric',

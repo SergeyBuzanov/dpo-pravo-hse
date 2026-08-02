@@ -305,10 +305,45 @@ process.exit(ok ? 0 : 1);
     )
 
 
+def test_nginx_allowlist() -> None:
+    """Белый список публичных адресов в docker/nginx.conf.
+
+    В контейнер nginx монтируется весь каталог проекта — вместе с кодом
+    админки, .git и .admin-credentials.json (логин и хеш пароля). Единственное,
+    что не даёт отдать их по HTTP, — регулярка-белый-список в конфиге. Проверка
+    статическая (без Docker): она ловит именно тот случай, когда правило
+    потеряли при правке конфига, а заметили бы уже после утечки.
+    """
+    print("\ndocker/nginx.conf (белый список)")
+    conf = (ROOT / "docker" / "nginx.conf").read_text(encoding="utf-8")
+
+    # Само правило: отрицательный просмотр вперёд + return 404
+    has_rule = "location ~ " in conf and "(?!" in conf and "return 404" in conf
+    check("nginx", "белый список публичных адресов на месте", has_rule,
+          "в конфиге нет location с отрицательным просмотром вперёд")
+
+    # Всё публичное перечислено — иначе правило молча выключит рабочие адреса
+    allow_line = next((ln for ln in conf.splitlines() if "location ~ " in ln and "(?!" in ln), "")
+    for token in ("index\\.html", "404\\.html", "favicon\\.svg",
+                  "robots\\.txt", "sitemap\\.xml", "fonts/", "images/", "js/"):
+        check("nginx", f"в белом списке есть {token.replace(chr(92), '')}",
+              token in allow_line, "публичный путь выпал из списка")
+
+    # Приватное в белый список попасть не должно
+    for secret in (".admin-credentials", ".git", "admin-server", "lib/", "tests/"):
+        check("nginx", f"приватное не попало в белый список: {secret}",
+              secret not in allow_line, "приватный путь оказался публичным")
+
+    # Админка и архив закрыты отдельными правилами
+    check("nginx", "admin.html закрыт", "location = /admin.html { return 404; }" in conf)
+    check("nginx", "архив закрыт", "location ^~ /archive/ { return 404; }" in conf)
+
+
 def main() -> None:
     print("Security tests — static-server + admin-server + CSP")
     try:
         test_unit_host_and_csp()
+        test_nginx_allowlist()
         test_static_server()
         test_admin_server()
     except Exception as e:
