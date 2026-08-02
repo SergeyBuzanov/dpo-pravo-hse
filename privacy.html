@@ -49,9 +49,14 @@
   html.vi-mode body{ zoom:1.25; background:#fff !important; }
   html.vi-mode *{ background:transparent !important; color:#000 !important; box-shadow:none !important; }
   html.vi-mode a{ text-decoration:underline !important; }
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:#1658DA;
+    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
+  .skip-link:focus{left:0}
 </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Перейти к содержанию</a>
 
 <header>
   <a href="index.html" class="logo">Право · Центр ДПО</a>
@@ -61,7 +66,7 @@
   </span>
 </header>
 
-<main>
+<main id="main">
   <h1>Политика обработки персональных данных</h1>
   <p class="updated">Редакция от 12 июля 2026 г.</p>
 

@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Карта сайта для поисковых систем.
      ЗАМЕНИТЕ https://example.com на реальный домен после публикации.
-     Пути совпадают с реальными именами HTML-файлов. -->
+
+     Адреса КАНОНИЧЕСКИЕ, а не имена файлов: nginx уводит «/Каталог
+     программ.html» и «/privacy.html» на «/catalog» и «/privacy»
+     редиректом 301. Пока в карте стояли имена файлов, поисковику
+     давались взаимоисключающие указания — карта вела на адрес,
+     который тут же перенаправлял, а страница объявляла каноническим
+     третий вариант. Красивые адреса при этом не ранжировались. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://example.com/</loc>
@@ -9,12 +15,12 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://example.com/%D0%9A%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%20%D0%BF%D1%80%D0%BE%D0%B3%D1%80%D0%B0%D0%BC%D0%BC.html</loc>
+    <loc>https://example.com/catalog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/privacy.html</loc>
+    <loc>https://example.com/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
