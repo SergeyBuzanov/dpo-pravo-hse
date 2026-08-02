@@ -22,12 +22,23 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { promisify } = require('node:util');
 // Расписание владелец задаёт в московском времени — контейнер живёт в UTC,
 // поэтому «локальные» часы сервера здесь не годятся (см. lib/moscow-time.js).
 const { moscowDayKey, moscowMinutesOfDay } = require('./lib/moscow-time');
+const {
+  MIME,
+  PUBLIC_HTML,
+  ASSET_DIRS,
+  ASSET_EXT,
+  resolveSafe: resolveSafeShared,
+  readBody,
+} = require('./lib/static-http');
+const {
+  verifyPassword,
+  safeEqualStr,
+  loadOrCreateCredentials,
+} = require('./lib/admin-credentials');
 
-const scryptAsync = promisify(crypto.scrypt);
 
 const PORT = Number(process.env.PORT) || 5178;
 // По умолчанию слушаем только петлевой интерфейс — админка не должна быть
@@ -68,12 +79,8 @@ const LOCKOUT_MS = 15 * 60 * 1000;
 const REQS_PER_MIN = 120;
 const COLLECT_REQS_PER_MIN = 600; // analytics beacons
 const MAX_URL_LEN = 2048;
-const MAX_BODY = 64 * 1024;
 /** Catalog PUT can be larger (full program list). */
 const MAX_PROGRAMS_BODY = 512 * 1024;
-const SCRYPT_PARAMS = Object.freeze({ N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
-const KEYLEN = 64;
-
 const REQUIRED_MARKERS = [
   '<!-- CATALOG:META -->',
   '<!-- CATALOG:LIST -->',
@@ -81,96 +88,6 @@ const REQUIRED_MARKERS = [
   '<!-- CATALOG:FILTERS_TYPE -->',
   '<!-- CATALOG:FILTERS_FORMAT -->',
 ];
-
-// ─── Credentials (scrypt hash; migrate plaintext on first load) ───────────────
-
-async function hashPassword(password, salt = crypto.randomBytes(16)) {
-  const derived = await scryptAsync(String(password), salt, KEYLEN, SCRYPT_PARAMS);
-  return {
-    salt: salt.toString('base64'),
-    hash: derived.toString('base64'),
-    algo: 'scrypt',
-  };
-}
-
-async function verifyPassword(password, saltB64, hashB64) {
-  const salt = Buffer.from(saltB64, 'base64');
-  const expected = Buffer.from(hashB64, 'base64');
-  const derived = await scryptAsync(String(password), salt, expected.length, SCRYPT_PARAMS);
-  return expected.length === derived.length && crypto.timingSafeEqual(expected, derived);
-}
-
-function safeEqualStr(a, b) {
-  const ba = Buffer.from(String(a));
-  const bb = Buffer.from(String(b));
-  if (ba.length !== bb.length) {
-    // Still do a dummy compare to reduce length-oracle timing differences.
-    crypto.timingSafeEqual(ba, ba);
-    return false;
-  }
-  return crypto.timingSafeEqual(ba, bb);
-}
-
-async function loadOrCreateCredentials() {
-  let raw = null;
-  try {
-    raw = JSON.parse(await fsp.readFile(CREDENTIALS_FILE, 'utf8'));
-  } catch {
-    raw = null;
-  }
-
-  // Already hashed
-  if (raw?.username && raw?.passwordHash && raw?.passwordSalt) {
-    return {
-      username: raw.username,
-      passwordHash: raw.passwordHash,
-      passwordSalt: raw.passwordSalt,
-      isNew: false,
-      plainPassword: null,
-    };
-  }
-
-  // Legacy plaintext → migrate
-  if (raw?.username && raw?.password) {
-    const { salt, hash } = await hashPassword(raw.password);
-    const migrated = {
-      username: raw.username,
-      passwordHash: hash,
-      passwordSalt: salt,
-      algo: 'scrypt',
-      // keep a note for humans; do not store plain password
-      note: 'Password is hashed with scrypt. To reset: delete this file and restart the server.',
-    };
-    await fsp.writeFile(CREDENTIALS_FILE, JSON.stringify(migrated, null, 2), 'utf8');
-    console.log('Пароль перенесён в scrypt-хеш (.admin-credentials.json).');
-    return {
-      username: migrated.username,
-      passwordHash: hash,
-      passwordSalt: salt,
-      isNew: false,
-      plainPassword: null,
-    };
-  }
-
-  // Fresh install
-  const plain = crypto.randomBytes(12).toString('base64url');
-  const { salt, hash } = await hashPassword(plain);
-  const creds = {
-    username: 'admin',
-    passwordHash: hash,
-    passwordSalt: salt,
-    algo: 'scrypt',
-    note: 'Password is hashed with scrypt. To reset: delete this file and restart the server.',
-  };
-  await fsp.writeFile(CREDENTIALS_FILE, JSON.stringify(creds, null, 2), 'utf8');
-  return {
-    username: creds.username,
-    passwordHash: hash,
-    passwordSalt: salt,
-    isNew: true,
-    plainPassword: plain,
-  };
-}
 
 // ─── Auth / rate limit ────────────────────────────────────────────────────────
 
@@ -215,42 +132,6 @@ function isThrottled(ip, map = reqCounts, limit = REQS_PER_MIN) {
   }
   rec.count += 1;
   return rec.count > limit;
-}
-
-function readBody(req, limit = MAX_BODY) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
-    let settled = false;
-
-    const fail = (err) => {
-      if (settled) return;
-      settled = true;
-      // Раньше здесь стоял req.destroy(): сокет рвался мгновенно, и ответ 413
-      // клиент уже не получал — вместо понятной ошибки «слишком большой объём»
-      // в админке была просто оборванная сеть. Теперь чтение просто
-      // прекращается, а ответ отправляет обработчик (см. sendTooLarge).
-      req.pause();
-      req.removeAllListeners('data');
-      reject(err);
-    };
-
-    req.on('data', (chunk) => {
-      if (settled) return;
-      size += chunk.length;
-      if (size > limit) {
-        fail(Object.assign(new Error('body too large'), { code: 'BODY_TOO_LARGE' }));
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => {
-      if (settled) return;
-      settled = true;
-      resolve(Buffer.concat(chunks).toString('utf8'));
-    });
-    req.on('error', fail);
-  });
 }
 
 /** Сколько «хвоста» запроса согласны дочитать и выбросить, чтобы отдать 413. */
@@ -373,20 +254,6 @@ function checkCsrf(req) {
 }
 
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
-
-const MIME = Object.freeze({
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.woff2': 'font/woff2',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8',
-});
 
 const SECURITY_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
@@ -529,6 +396,26 @@ async function runCatalogJob(jobFn) {
   }
 }
 
+/**
+ * Единый вид статуса после успешного пересбора каталога. Раньше этот объект
+ * собирался в трёх местах почти одинаковыми литералами, и поля расходились.
+ */
+function buildStatus(prev, result, { source, onlyActual, log }) {
+  const prevCount = prev.count ?? null;
+  return {
+    updated: result.updated,
+    count: result.count,
+    prevCount,
+    delta: prevCount == null ? null : result.count - prevCount,
+    source,
+    onlyActual,
+    durationMs: result.durationMs ?? null,
+    programs: result.programs || [],
+    error: null,
+    log,
+  };
+}
+
 async function handleUpdate(res, { fromStore = false } = {}) {
   const prev = await readStatus();
   try {
@@ -536,19 +423,11 @@ async function handleUpdate(res, { fromStore = false } = {}) {
       const { main } = require('./update-catalog');
       return main({ fromStore });
     });
-    const prevCount = prev.count ?? null;
-    const status = {
-      updated: result.updated,
-      count: result.count,
-      prevCount,
-      delta: prevCount == null ? null : result.count - prevCount,
+    const status = buildStatus(prev, result, {
       source: result.source || null,
       onlyActual: result.onlyActual !== false,
-      durationMs: result.durationMs ?? null,
-      programs: result.programs || [],
-      error: null,
       log,
-    };
+    });
     await writeStatus(status);
     sendJson(res, 200, { ...status, csrfToken });
   } catch (err) {
@@ -641,18 +520,11 @@ async function handlePutPrograms(req, res) {
       );
       return applyPrograms(programs, { source: 'manual' });
     });
-    const status = {
-      updated: result.updated,
-      count: result.count,
-      prevCount: prev.count ?? null,
-      delta: prev.count == null ? null : result.count - prev.count,
+    const status = buildStatus(prev, result, {
       source: 'manual',
       onlyActual: true,
-      durationMs: result.durationMs ?? null,
-      programs: result.programs || [],
-      error: null,
       log: log || 'Сохранено вручную',
-    };
+    });
     await writeStatus(status);
     sendJson(res, 200, {
       ...status,
@@ -727,6 +599,94 @@ async function handleSchedulePut(req, res) {
   }
 }
 
+async function handleStatus(req, res) {
+  const status = await readStatus();
+  let schedule = null;
+  try {
+    const { loadSchedule, msUntilNext } = require('./lib/catalog-store');
+    schedule = await loadSchedule();
+    schedule = {
+      ...schedule,
+      nextInMs: schedule.enabled ? msUntilNext(schedule.hour, schedule.minute) : null,
+    };
+  } catch {
+    /* ignore */
+  }
+  // Prefer store count/programs when available
+  try {
+    const { loadStore, toSummaries } = require('./lib/catalog-store');
+    const store = await loadStore();
+    if (store.programs.length) {
+      status.count = store.programs.length;
+      status.programs = toSummaries(store.programs);
+      if (store.updated && !status.updated) status.updated = store.updated;
+      if (store.source) status.source = store.source;
+    }
+  } catch {
+    /* ignore */
+  }
+  sendJson(res, 200, {
+    ...status,
+    schedule,
+    csrfToken,
+    server: {
+      uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000),
+      node: process.version,
+      host: HOST,
+      port: PORT,
+      onlyActual: true,
+    },
+  });
+}
+
+async function handleHealth(req, res) {
+  const health = await runHealthCheck();
+  sendJson(res, health.ok ? 200 : 503, { ...health, csrfToken });
+}
+
+async function handleProgramsJson(req, res) {
+  // Prefer live store; fall back to last status snapshot.
+  try {
+    const { loadStore, toSummaries } = require('./lib/catalog-store');
+    const store = await loadStore();
+    if (store.programs.length) {
+      sendJson(res, 200, {
+        updated: store.updated || null,
+        count: store.programs.length,
+        onlyActual: true,
+        source: store.source || null,
+        programs: toSummaries(store.programs),
+      });
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  const status = await readStatus();
+  sendJson(res, 200, {
+    updated: status.updated || null,
+    count: status.count ?? 0,
+    onlyActual: status.onlyActual !== false,
+    source: status.source || null,
+    programs: status.programs || [],
+  });
+}
+
+async function handleAnalytics(req, res) {
+  const urlObj = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+  const days = Number(urlObj.searchParams.get('days') || 30);
+  const { getSummary } = require('./lib/analytics-store');
+  const summary = await getSummary(days);
+  sendJson(res, 200, { ...summary, csrfToken });
+}
+
+async function handleAnalyticsSeed(req, res) {
+  const { seedDemo, getSummary } = require('./lib/analytics-store');
+  const result = await seedDemo(100);
+  const summary = await getSummary(30);
+  sendJson(res, 200, { ...summary, seed: result, csrfToken });
+}
+
 // ─── Daily auto-update ────────────────────────────────────────────────────────
 
 let dailyTimer = null;
@@ -751,18 +711,11 @@ async function runScheduledCatalogUpdate() {
       return main({ fromStore: false });
     });
     const prev = await readStatus();
-    const status = {
-      updated: result.updated,
-      count: result.count,
-      prevCount: prev.count ?? null,
-      delta: prev.count == null ? null : result.count - prev.count,
+    const status = buildStatus(prev, result, {
       source: result.source || null,
       onlyActual: true,
-      durationMs: result.durationMs ?? null,
-      programs: result.programs || [],
-      error: null,
       log: `[auto] ${log || ''}`.trim(),
-    };
+    });
     await writeStatus(status);
     await saveSchedule({
       lastRun: new Date().toISOString(),
@@ -881,25 +834,10 @@ async function runHealthCheck() {
 
 // ─── Static file serving (path-safe allowlist) ────────────────────────────────
 
-const PUBLIC_HTML = new Set([
-  'admin.html',
-  'index.html',
-  'privacy.html',
-  'Каталог программ.html',
-]);
-
-const ASSET_DIRS = new Set(['fonts', 'js', 'images']);
-const ASSET_EXT = new Set(['.css', '.woff2', '.js', '.jpg', '.jpeg', '.png', '.svg']);
-
-function resolveSafe(urlPath) {
-  // Strip leading slashes; normalize; reject traversal / absolute escapes.
-  const rel = path.normalize(urlPath.replace(/^[/\\]+/, '')).replace(/^(\.\.([/\\]|$))+/, '');
-  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
-  const abs = path.resolve(ROOT, rel);
-  const rootResolved = path.resolve(ROOT) + path.sep;
-  if (abs !== path.resolve(ROOT) && !abs.startsWith(rootResolved)) return null;
-  return { rel: rel.split(path.sep).join('/'), abs };
-}
+// Списки и разбор пути — общие с превью-сервером (lib/static-http). Отличие
+// админки: служебные файлы корня (robots.txt, sitemap.xml) она не отдаёт,
+// а favicon обрабатывает отдельной веткой ниже.
+const resolveSafe = (pathname) => resolveSafeShared(pathname, ROOT);
 
 async function serveFile(res, absPath, extraHeaders = {}) {
   try {
@@ -915,6 +853,27 @@ async function serveFile(res, absPath, extraHeaders = {}) {
 }
 
 // ─── Request handler ──────────────────────────────────────────────────────────
+
+/**
+ * Все API-маршруты в одном месте. csrf: true — изменяющий маршрут, перед
+ * обработчиком обязателен гейт assertCsrfAndOrigin; какие маршруты защищены,
+ * видно по этой колонке, а не по разбросанным if по телу сервера.
+ */
+const API_ROUTES = [
+  { method: 'GET',  path: '/api/status',         handler: handleStatus },
+  { method: 'GET',  path: '/api/csrf',           handler: (req, res) => sendJson(res, 200, { csrfToken }) },
+  { method: 'GET',  path: '/api/health',         handler: handleHealth },
+  { method: 'GET',  path: '/api/programs.json',  handler: handleProgramsJson },
+  { method: 'GET',  path: '/api/programs',       handler: (req, res) => handleGetPrograms(res) },
+  { method: 'PUT',  path: '/api/programs',       csrf: true, handler: handlePutPrograms },
+  { method: 'GET',  path: '/api/schedule',       handler: (req, res) => handleScheduleGet(res) },
+  { method: 'PUT',  path: '/api/schedule',       csrf: true, handler: handleSchedulePut },
+  { method: 'POST', path: '/api/schedule',       csrf: true, handler: handleSchedulePut },
+  { method: 'GET',  path: '/api/analytics',      handler: handleAnalytics },
+  { method: 'POST', path: '/api/analytics/seed', csrf: true, handler: handleAnalyticsSeed },
+  { method: 'POST', path: '/api/update',         csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: false }) },
+  { method: 'POST', path: '/api/rebuild',        csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: true }) },
+];
 
 async function createServer(credentials) {
   const server = http.createServer(async (req, res) => {
@@ -1002,158 +961,16 @@ async function createServer(credentials) {
       authFails.delete(ip);
 
       // ── API ──────────────────────────────────────────────────────────────
-      if (method === 'GET' && pathname === '/api/status') {
-        const status = await readStatus();
-        let schedule = null;
-        try {
-          const { loadSchedule, msUntilNext } = require('./lib/catalog-store');
-          schedule = await loadSchedule();
-          schedule = {
-            ...schedule,
-            nextInMs: schedule.enabled ? msUntilNext(schedule.hour, schedule.minute) : null,
-          };
-        } catch {
-          /* ignore */
-        }
-        // Prefer store count/programs when available
-        try {
-          const { loadStore, toSummaries } = require('./lib/catalog-store');
-          const store = await loadStore();
-          if (store.programs.length) {
-            status.count = store.programs.length;
-            status.programs = toSummaries(store.programs);
-            if (store.updated && !status.updated) status.updated = store.updated;
-            if (store.source) status.source = store.source;
-          }
-        } catch {
-          /* ignore */
-        }
-        sendJson(res, 200, {
-          ...status,
-          schedule,
-          csrfToken,
-          server: {
-            uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000),
-            node: process.version,
-            host: HOST,
-            port: PORT,
-            onlyActual: true,
-          },
-        });
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/csrf') {
-        sendJson(res, 200, { csrfToken });
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/health') {
-        const health = await runHealthCheck();
-        sendJson(res, health.ok ? 200 : 503, { ...health, csrfToken });
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/programs.json') {
-        // Prefer live store; fall back to last status snapshot.
-        try {
-          const { loadStore, toSummaries } = require('./lib/catalog-store');
-          const store = await loadStore();
-          if (store.programs.length) {
-            sendJson(res, 200, {
-              updated: store.updated || null,
-              count: store.programs.length,
-              onlyActual: true,
-              source: store.source || null,
-              programs: toSummaries(store.programs),
-            });
+      const route = API_ROUTES.find((r) => r.method === method && r.path === pathname);
+      if (route) {
+        if (route.csrf) {
+          const gate = assertCsrfAndOrigin(req);
+          if (!gate.ok) {
+            sendJson(res, gate.code, { error: gate.error, csrfToken });
             return;
           }
-        } catch {
-          /* fall through */
         }
-        const status = await readStatus();
-        sendJson(res, 200, {
-          updated: status.updated || null,
-          count: status.count ?? 0,
-          onlyActual: status.onlyActual !== false,
-          source: status.source || null,
-          programs: status.programs || [],
-        });
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/programs') {
-        await handleGetPrograms(res);
-        return;
-      }
-
-      if (method === 'PUT' && pathname === '/api/programs') {
-        const gate = assertCsrfAndOrigin(req);
-        if (!gate.ok) {
-          sendJson(res, gate.code, { error: gate.error, csrfToken });
-          return;
-        }
-        await handlePutPrograms(req, res);
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/schedule') {
-        await handleScheduleGet(res);
-        return;
-      }
-
-      if ((method === 'PUT' || method === 'POST') && pathname === '/api/schedule') {
-        const gate = assertCsrfAndOrigin(req);
-        if (!gate.ok) {
-          sendJson(res, gate.code, { error: gate.error, csrfToken });
-          return;
-        }
-        await handleSchedulePut(req, res);
-        return;
-      }
-
-      if (method === 'GET' && pathname === '/api/analytics') {
-        const urlObj = new URL(rawUrl, `http://${HOST}:${PORT}`);
-        const days = Number(urlObj.searchParams.get('days') || 30);
-        const { getSummary } = require('./lib/analytics-store');
-        const summary = await getSummary(days);
-        sendJson(res, 200, { ...summary, csrfToken });
-        return;
-      }
-
-      if (method === 'POST' && pathname === '/api/analytics/seed') {
-        // Тот же гейт, что и у остальных изменяющих маршрутов: CSRF + Origin.
-        const gate = assertCsrfAndOrigin(req);
-        if (!gate.ok) {
-          sendJson(res, gate.code, { error: gate.error, csrfToken });
-          return;
-        }
-        const { seedDemo } = require('./lib/analytics-store');
-        const result = await seedDemo(100);
-        const { getSummary } = require('./lib/analytics-store');
-        const summary = await getSummary(30);
-        sendJson(res, 200, { ...summary, seed: result, csrfToken });
-        return;
-      }
-
-      if (method === 'POST' && pathname === '/api/update') {
-        const gate = assertCsrfAndOrigin(req);
-        if (!gate.ok) {
-          sendJson(res, gate.code, { error: gate.error, csrfToken });
-          return;
-        }
-        await handleUpdate(res, { fromStore: false });
-        return;
-      }
-
-      if (method === 'POST' && pathname === '/api/rebuild') {
-        const gate = assertCsrfAndOrigin(req);
-        if (!gate.ok) {
-          sendJson(res, gate.code, { error: gate.error, csrfToken });
-          return;
-        }
-        await handleUpdate(res, { fromStore: true });
+        await route.handler(req, res);
         return;
       }
 
@@ -1161,6 +978,7 @@ async function createServer(credentials) {
         sendText(res, 404, 'Not found');
         return;
       }
+
 
       // ── Static ───────────────────────────────────────────────────────────
       if (pathname === '/' || pathname === '/admin.html') {
@@ -1236,7 +1054,7 @@ process.on('unhandledRejection', (err) => {
     console.warn('analytics purge on boot skipped:', err.message);
   }
 
-  const credentials = await loadOrCreateCredentials();
+  const credentials = await loadOrCreateCredentials(CREDENTIALS_FILE);
   const server = await createServer(credentials);
 
   server.on('error', (err) => {

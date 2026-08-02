@@ -16,10 +16,15 @@
 const http = require('node:http');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
+const {
+  MIME,
+  resolveSafe: resolveSafeShared,
+  isAllowedStatic,
+  readBody,
+} = require('../lib/static-http');
 
 const PORT = Number(process.env.PORT) || 5180;
 const ROOT = path.resolve(__dirname, '..');
-const MAX_BODY = 64 * 1024;
 const MAX_URL_LEN = 2048;
 
 /** Loopback only by default — refuse LAN exposure of a preview server. */
@@ -41,21 +46,6 @@ function resolveHost() {
 
 const HOST = resolveHost();
 
-const MIME = Object.freeze({
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.woff2': 'font/woff2',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8',
-  '.ico': 'image/x-icon',
-});
-
 const SECURITY = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
@@ -64,23 +54,8 @@ const SECURITY = Object.freeze({
   'Cross-Origin-Resource-Policy': 'same-origin',
 });
 
-const PUBLIC_HTML = new Set([
-  'index.html',
-  'privacy.html',
-  'admin.html',
-  'Каталог программ.html',
-]);
-
-const ROOT_FILES = new Set([
-  'favicon.svg',
-  'favicon.ico',
-  'robots.txt',
-  'sitemap.xml',
-]);
-
-const ASSET_DIRS = new Set(['fonts', 'js', 'images']);
-const ASSET_EXT = new Set(['.css', '.woff2', '.js', '.jpg', '.jpeg', '.png', '.svg']);
-
+// Обёртки над общим слоем (lib/static-http): исторический экспорт этого
+// модуля принимал сырой URL и раскодировал его сам.
 function resolveSafe(urlPath) {
   let decoded;
   try {
@@ -88,30 +63,10 @@ function resolveSafe(urlPath) {
   } catch {
     return null;
   }
-  if (decoded === '/' || decoded === '') decoded = '/index.html';
-
-  const rel = path.normalize(decoded.replace(/^[/\\]+/, '')).replace(/^(\.\.([/\\]|$))+/, '');
-  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
-
-  // Deny any path segment starting with "." (dotfiles, .git, .admin-*, .analytics, …)
-  const segments = rel.split(/[/\\]/).filter(Boolean);
-  if (segments.some((s) => s.startsWith('.'))) return null;
-
-  const abs = path.resolve(ROOT, rel);
-  const rootWithSep = ROOT + path.sep;
-  if (abs !== ROOT && !abs.startsWith(rootWithSep)) return null;
-
-  return { rel: segments.join('/'), abs, base: path.basename(rel) };
+  return resolveSafeShared(decoded, ROOT);
 }
 
-function isAllowed(safe) {
-  if (!safe) return false;
-  if (PUBLIC_HTML.has(safe.base) && safe.rel === safe.base) return true;
-  if (ROOT_FILES.has(safe.base) && safe.rel === safe.base) return true;
-  const topDir = safe.rel.split('/')[0];
-  const ext = path.extname(safe.rel).toLowerCase();
-  return ASSET_DIRS.has(topDir) && ASSET_EXT.has(ext);
-}
+const isAllowed = isAllowedStatic;
 
 const fileCache = new Map();
 const CACHE_MAX = 64;
@@ -135,24 +90,6 @@ async function readCached(filePath) {
   }
   fileCache.set(filePath, entry);
   return entry;
-}
-
-function readBody(req, limit = MAX_BODY) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
-    req.on('data', (chunk) => {
-      size += chunk.length;
-      if (size > limit) {
-        reject(new Error('too large'));
-        req.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
-  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -191,9 +128,12 @@ const server = http.createServer(async (req, res) => {
       ingestBatch(events);
       res.writeHead(204, { ...SECURITY });
       res.end();
-    } catch {
+    } catch (err) {
       res.writeHead(500, { ...SECURITY, 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('collect failed');
+      // Превью-сервер не дочитывает переполненное тело (в отличие от админки
+      // с её lingering-логикой) — просто рвём соединение, как и раньше.
+      if (err && err.code === 'BODY_TOO_LARGE') req.destroy();
     }
     return;
   }
