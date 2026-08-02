@@ -81,7 +81,6 @@ header a[class*="btn-"]::after{
     transform .7s cubic-bezier(.22,1,.36,1),
     filter .7s cubic-bezier(.22,1,.36,1);
   transition-delay: var(--dpo-delay, 0ms);
-  will-change: opacity, transform, filter;
 }
 .dpo-reveal.dpo-in{
   opacity: 1;
@@ -266,12 +265,24 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     }
   };
 
+  // Функция вызывается из boot-цикла повторно (бандлер может подменить DOM),
+  // поэтому прежние observer и failsafe-таймер обязательно гасим — иначе за
+  // 10 секунд цикла накапливались десятки живых IntersectionObserver.
+  let revealObserver = null;
+  let revealFailsafe = null;
+
   const observeReveals = () => {
     const nodes = document.querySelectorAll('.dpo-reveal:not(.dpo-in)');
     if (reduce) {
       nodes.forEach((el) => el.classList.add('dpo-in'));
       return;
     }
+    if (revealObserver) revealObserver.disconnect();
+    if (revealFailsafe) window.clearTimeout(revealFailsafe);
+    revealObserver = null;
+    revealFailsafe = null;
+    if (!nodes.length) return;
+
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -284,14 +295,20 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       { root: null, rootMargin: '0px 0px -6% 0px', threshold: 0.08 },
     );
     nodes.forEach((el) => io.observe(el));
+    revealObserver = io;
     // Failsafe: never leave content invisible if IO misses a frame after
     // the Design bundler swaps documentElement.
-    window.setTimeout(() => {
+    revealFailsafe = window.setTimeout(() => {
       document.querySelectorAll('.dpo-reveal:not(.dpo-in)').forEach((el) => {
         el.classList.add('dpo-in');
       });
     }, 1800);
   };
+
+  // Функция вызывается из boot-цикла повторно; без снятия прежних листенеров
+  // каждый вызов добавлял бы новую пару scroll/resize — к концу цикла на
+  // каждый кадр скролла выполнялись бы десятки одинаковых обработчиков.
+  let activeNavCleanup = null;
 
   const bindActiveNav = () => {
     // Only text nav links — exclude CTA buttons like «Записаться» (same #contacts href)
@@ -316,6 +333,8 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       .filter(Boolean);
     if (!map.length) return;
 
+    if (activeNavCleanup) activeNavCleanup();
+
     const sync = () => {
       const y = window.scrollY + headerOffset() + 48;
       const nearBottom =
@@ -331,8 +350,26 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       links.forEach((a) => a.classList.remove('is-active'));
       if (current) current.a.classList.add('is-active');
     };
-    window.addEventListener('scroll', sync, { passive: true });
-    window.addEventListener('resize', sync, { passive: true });
+
+    // sync читает offsetTop/scrollHeight (форсированный layout) — на каждое
+    // событие скролла это лишнее. Схлопываем в один вызов на кадр через rAF.
+    let frame = 0;
+    const onScrollOrResize = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        sync();
+      });
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    activeNavCleanup = () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+    };
     sync();
   };
 
