@@ -50,10 +50,27 @@ jobs:
           uv pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Прогон тестов
+      # Node нужен следующему шагу: security-тесты поднимают admin-server.js
+      # и static-server.js. На раннере Node есть и так, но версию фиксируем —
+      # иначе прогон зависит от того, что сегодня стоит в образе GitHub.
+      - name: Установить Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Прогон смоук-тестов
         run: |
           source .venv-tests/bin/activate
           python tests/smoke_test.py
+
+      # Security-тесты в CI не запускались вообще — а именно они стерегут
+      # белый список nginx, из-за отсутствия которого наружу отдавались
+      # учётные данные админки. Проверка, которая не запускается, ничего не
+      # стережёт.
+      - name: Прогон security-тестов
+        run: |
+          source .venv-tests/bin/activate
+          python tests/security_test.py
 
   build:
     name: Сборка образа
@@ -75,7 +92,46 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
-            nginx:alpine nginx -t
+            nginx:1.27-alpine nginx -t
+
+      # Живая проверка выдачи. Статическая проверка в security_test.py ловит
+      # пропажу правила, но не сломанную регулярку — а именно она однажды
+      # открыла наружу .admin-credentials.json с логином и хешем пароля.
+      # Поэтому поднимаем настоящий nginx с настоящим монтированием проекта и
+      # дёргаем адреса: публичные должны отвечать, приватные — давать 404.
+      - name: Проверить, что nginx не отдаёт лишнего
+        run: |
+          set -euo pipefail
+          docker run -d --name nginx-check -p 8099:80 \
+            -v "$PWD/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$PWD:/usr/share/nginx/html:ro" \
+            nginx:1.27-alpine
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8099/ && break || sleep 1
+          done
+
+          fail=0
+          check() {  # $1 — путь, $2 — ожидаемый код
+            # «|| echo 000» обязателен: при set -e упавший curl (сеть, а не
+            # ответ сервера) молча оборвал бы весь шаг вместо понятного провала
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8099$1" || echo 000)
+            if [ "$code" != "$2" ]; then
+              echo "  ✗ $1 → $code (ожидалось $2)"; fail=1
+            else
+              echo "  ✓ $1 → $code"
+            fi
+          }
+          echo "Публичное:"
+          for p in / /favicon.svg /robots.txt /sitemap.xml /js/cookie-consent.js; do check "$p" 200; done
+          check /catalog 200
+          check /privacy 200
+          echo "Приватное:"
+          for p in /.admin-credentials.json /.git/config /admin-server.js /package.json \
+                   /Dockerfile /docker-compose.yml /lib/hse-catalog.js /tests/smoke_test.py \
+                   /admin.html /README.md /js/../admin-server.js; do check "$p" 404; done
+
+          docker rm -f nginx-check >/dev/null
+          exit $fail
 
   # ── Деплой (выключен до появления сервера) ───────────────────────────
   # Когда будет VPS и домен, добавить секреты DEPLOY_HOST / DEPLOY_USER /
