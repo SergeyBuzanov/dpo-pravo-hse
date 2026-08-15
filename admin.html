@@ -11,16 +11,40 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <style>
+  /* Админка — поверхность Operate: оператор здесь работает, а не смотрит.
+     Плотность, привычные органы управления и последовательный словарь
+     важнее выразительности. Палитра та же тёплая, что и на витрине;
+     ниже к ней добавлен словарь состояний, которого витрине не нужно. */
   :root {
     --accent: #1658DA;
     --accent-dark: #123F9E;
+    --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
     --bg: #FBF9F5;
     --bg-alt: #F2ECE1;
     --ink: #211E1B;
     --ink-mute: #6B6459;
+    --line: rgba(33, 30, 27, 0.08);
+
+    /* Состояния. Стандартизованы, чтобы одинаковый статус выглядел
+       одинаково на всех вкладках. */
     --ok: #1F6F54;
     --err: #B00020;
-    --line: rgba(33, 30, 27, 0.08);
+    --err-bg: #FDECEC;
+    --err-line: #F3B9B9;
+    --err-ink: #7A1414;
+    --info-bg: #E8F0FE;
+    --warn-bg: #FFF4E5;
+    --warn-ink: #9A5B00;
+    --attention: #E6A23C;     /* несохранённая правка */
+
+    /* Скругления: было восемь разных ступеней на одну поверхность.
+       Осталось четыре плюс пилюля и круг. */
+    --r-lg: 16px;             /* панели */
+    --r-md: 12px;             /* контейнеры данных: таблицы, логи, баннеры */
+    --r-sm: 8px;              /* поля ввода и мелкие плашки */
+    --r-xs: 2px;              /* столбики графика */
+
+    --t: 160ms ease;          /* переходы состояний: Operate держит 150–250 мс */
   }
   * { box-sizing: border-box; }
   body {
@@ -32,14 +56,25 @@
     padding: 36px 16px 64px;
   }
   .wrap { width: 100%; max-width: 1080px; margin: 0 auto; }
+  /* Ссылка пропуска: в админке её не было вовсе, а до основного содержимого
+     здесь три вкладки и панель заголовка. */
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; z-index: 10001;
+    background: #fff; color: var(--accent);
+    font: 600 15px/1.4 'HSE Sans', 'IBM Plex Sans', sans-serif;
+    padding: 12px 20px; border-radius: 0 0 10px 0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, .22); text-decoration: underline;
+  }
+  .skip-link:focus { left: 0; }
+
   h1 {
     font-family: 'HSE Slab', 'Source Serif 4', serif;
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 700;
     margin: 0 0 4px;
     color: var(--accent);
   }
-  .sub { font-size: 13px; color: var(--ink-mute); margin: 0 0 20px; }
+  .sub { font-size: 13.5px; color: var(--ink-mute); margin: 0 0 20px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
   .tab {
     font: inherit;
@@ -51,20 +86,36 @@
     background: #fff;
     color: var(--ink-mute);
     cursor: pointer;
+    transition: background var(--t), color var(--t), border-color var(--t), transform 140ms ease;
   }
+  .tab:hover:not(.active) { border-color: var(--accent); color: var(--ink); }
+  .tab:active { transform: scale(0.97); }
   .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .panel {
     background: #fff;
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: var(--r-lg);
     padding: 28px;
     box-shadow: 0 1px 3px rgba(33, 30, 27, 0.06);
     margin-bottom: 20px;
   }
+  /* Стек был обрезан до 'HSE Slab', serif — при отсутствии фирменного
+     шрифта заголовок падал в системный serif мимо Source Serif 4. */
   .panel h2 {
-    font-family: 'HSE Slab', serif;
-    font-size: 18px;
+    font-family: 'HSE Slab', 'Source Serif 4', serif;
+    font-size: 19px;
     margin: 0 0 12px;
+  }
+
+  /* Видимый фокус. Раньше во всей админке не было ни одного правила :focus —
+     оператор, работающий с клавиатуры, не видел, где находится. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
   }
   .hidden { display: none !important; }
   .row {
@@ -76,11 +127,23 @@
     border-top: 1px solid var(--line);
   }
   .row:first-of-type { border-top: none; }
-  .label { font-size: 13px; color: var(--ink-mute); }
+  .label { font-size: 13.5px; color: var(--ink-mute); }
   .value { font-size: 15px; font-weight: 600; text-align: right; }
+  /* Статус нельзя передавать одним цветом: дальтонизм и режим для
+     слабовидящих (там весь текст принудительно чёрный) съедают его
+     целиком. Добавлен знак перед значением. */
   .value.ok { color: var(--ok); }
   .value.err { color: var(--err); }
   .value.pending { color: var(--ink-mute); }
+  .value.ok::before,
+  .value.err::before,
+  .value.pending::before {
+    margin-right: 6px;
+    font-weight: 700;
+  }
+  .value.ok::before { content: "✓"; }
+  .value.err::before { content: "✕"; }
+  .value.pending::before { content: "…"; }
   .action-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
   .action-desc { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 14px; line-height: 1.55; }
   .action-desc a { color: var(--accent); word-break: break-all; }
@@ -106,7 +169,19 @@
     color: var(--accent);
     border: 1px solid rgba(22, 88, 218, 0.35);
   }
-  button:hover:not(:disabled) { filter: brightness(0.95); }
+  /* Раньше hover был один на всех: filter: brightness(0.95). На синей
+     кнопке он давал затемнение, а белую вторичную просто пачкал серым,
+     то есть на половине кнопок работал в неверную сторону. Теперь у
+     каждого варианта свой hover. */
+  button, .btn {
+    transition: background var(--t), color var(--t), border-color var(--t), transform 140ms ease;
+  }
+  button:hover:not(:disabled), .btn:hover { background: var(--accent-dark); }
+  button.secondary:hover:not(:disabled), a.btn.secondary:hover {
+    background: var(--info-bg);
+    border-color: var(--accent);
+  }
+  button:active:not(:disabled), .btn:active { transform: scale(0.97); }
   button:disabled { opacity: 0.6; cursor: default; }
   .kpi-grid {
     display: grid;
@@ -116,7 +191,7 @@
   }
   .kpi {
     background: var(--bg-alt);
-    border-radius: 14px;
+    border-radius: var(--r-md);
     padding: 14px 16px;
   }
   .kpi .n {
@@ -125,7 +200,7 @@
     color: var(--accent-dark);
     line-height: 1.2;
   }
-  .kpi .t { font-size: 12px; color: var(--ink-mute); margin-top: 4px; }
+  .kpi .t { font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
   .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -135,8 +210,8 @@
   .bars { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; align-items: center; font-size: 12.5px; }
   .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
-  .bar-track { grid-column: 1 / -1; height: 8px; background: #eee; border-radius: 99px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #4B8BFF); border-radius: 99px; min-width: 2px; }
+  .bar-track { grid-column: 1 / -1; height: 8px; background: var(--bg-alt); border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-soft)); border-radius: 999px; min-width: 2px; }
   .bar-count { text-align: right; color: var(--ink-mute); font-weight: 600; }
   .hours {
     display: grid;
@@ -148,15 +223,17 @@
   }
   .hours span {
     background: var(--accent);
-    border-radius: 3px 3px 0 0;
+    border-radius: var(--r-xs) var(--r-xs) 0 0;
     min-height: 2px;
     opacity: 0.85;
   }
+  /* Подписи были 9px — нечитаемо. Место под них есть: скрипт печатает
+     только каждый третий час, остальные ячейки пустые. */
   .hour-labels {
     display: grid;
     grid-template-columns: repeat(24, 1fr);
     gap: 3px;
-    font-size: 9px;
+    font-size: 12.5px;
     color: var(--ink-mute);
     margin-top: 4px;
   }
@@ -167,11 +244,11 @@
   table.data th { color: var(--ink-mute); font-weight: 600; }
   .badge {
     display: inline-block;
-    font-size: 11px;
+    font-size: 12.5px;
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 999px;
-    background: #E8F0FE;
+    background: var(--info-bg);
     color: var(--accent-dark);
   }
   .log, .box {
@@ -180,7 +257,7 @@
     font-family: ui-monospace, monospace;
     color: var(--ink-mute);
     background: var(--bg-alt);
-    border-radius: 10px;
+    border-radius: var(--r-md);
     padding: 14px;
     white-space: pre-wrap;
     max-height: 220px;
@@ -188,7 +265,7 @@
     display: none;
   }
   .log.visible, .box.visible { display: block; }
-  .programs { margin-top: 14px; display: none; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+  .programs { margin-top: 14px; display: none; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
   .programs.visible { display: block; }
   .programs table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .programs th, .programs td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
@@ -198,33 +275,43 @@
     display: none;
     margin-bottom: 16px;
     padding: 14px 16px;
-    background: #FDECEC;
-    border: 1px solid #F3B9B9;
-    border-radius: 12px;
+    background: var(--err-bg);
+    border: 1px solid var(--err-line);
+    border-radius: var(--r-md);
     font-size: 13.5px;
     line-height: 1.6;
-    color: #7A1414;
+    color: var(--err-ink);
   }
   .banner.visible { display: block; }
   .banner code, .hint code {
-    background: rgba(0, 0, 0, 0.06);
+    background: rgba(33, 30, 27, 0.08);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     font-family: ui-monospace, monospace;
   }
-  .hint { margin-top: 12px; font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
+  .hint { margin-top: 12px; font-size: 12.5px; color: var(--ink-mute); line-height: 1.5; }
   .links { margin-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
   .links a { font-size: 13.5px; color: var(--accent); text-decoration: none; }
   .range { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
-  .range label { font-size: 13px; color: var(--ink-mute); margin-right: 4px; }
+  .range label { font-size: 13.5px; color: var(--ink-mute); margin-right: 4px; }
+  /* Выбранный период не имел ни одного правила: класс .active вешался в JS,
+     а в CSS его не существовало, и 7/30/90 дней выглядели одинаково —
+     оператор не видел, какой период открыт. Выбор показан заливкой,
+     как у вкладок, плюс aria-pressed для скринридера. */
+  .range-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .range-btn.active:hover:not(:disabled) { background: var(--accent-dark); }
   .muted { color: var(--ink-mute); font-size: 12.5px; }
   .path-chip {
     display: inline-block;
     background: var(--bg-alt);
-    border-radius: 6px;
+    border-radius: var(--r-sm);
     padding: 1px 6px;
     margin: 1px 2px;
-    font-size: 11.5px;
+    font-size: 12.5px;
   }
   .editor-toolbar {
     display: flex;
@@ -233,11 +320,11 @@
     margin: 12px 0 14px;
     align-items: center;
   }
-  .editor-table-wrap { overflow: auto; max-height: 480px; border: 1px solid var(--line); border-radius: 12px; }
+  .editor-table-wrap { overflow: auto; max-height: 480px; border: 1px solid var(--line); border-radius: var(--r-md); }
   table.editor {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 13.5px;
   }
   table.editor th, table.editor td {
     border-bottom: 1px solid var(--line);
@@ -249,10 +336,14 @@
     position: sticky;
     top: 0;
     background: var(--bg-alt);
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--ink-mute);
     z-index: 1;
   }
+  /* Поля редактора и поля расписания — один и тот же орган управления,
+     но раньше у них были разные отступы (6/8 против 8/10) и разные
+     скругления (8 против 10). Словарь сведён к одному; в плотной таблице
+     остаётся только более компактный вертикальный отступ. */
   table.editor input[type="text"],
   table.editor input[type="number"],
   table.editor input[type="date"],
@@ -261,17 +352,19 @@
     min-width: 80px;
     font: inherit;
     font-size: 12.5px;
-    padding: 6px 8px;
+    padding: 6px 10px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: var(--r-sm);
     background: #fff;
     color: var(--ink);
+    transition: border-color var(--t);
   }
+  table.editor input:hover { border-color: rgba(33, 30, 27, 0.25); }
   table.editor input.title-input { min-width: 180px; }
   table.editor input.url-input { min-width: 140px; }
   table.editor .icon-btn {
     font: inherit;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
     padding: 6px 10px;
     border-radius: 999px;
@@ -281,18 +374,18 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  table.editor .icon-btn:hover { background: #fff5f5; }
+  table.editor .icon-btn:hover { background: var(--err-bg); border-color: var(--err); }
   .tag {
     display: inline-block;
-    font-size: 11px;
+    font-size: 12.5px;
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 999px;
     background: var(--bg-alt);
     color: var(--ink-mute);
   }
-  .tag.manual { background: #E8F0FE; color: var(--accent-dark); }
-  .tag.locked { background: #FFF4E5; color: #9A5B00; }
+  .tag.manual { background: var(--info-bg); color: var(--accent-dark); }
+  .tag.locked { background: var(--warn-bg); color: var(--warn-ink); }
   .schedule-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -302,7 +395,7 @@
   }
   .field label {
     display: block;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--ink-mute);
     margin-bottom: 4px;
   }
@@ -311,9 +404,12 @@
     font: inherit;
     padding: 8px 10px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--r-sm);
     background: #fff;
+    color: var(--ink);
+    transition: border-color var(--t);
   }
+  .field input:hover, .field select:hover { border-color: rgba(33, 30, 27, 0.25); }
   .field.checkbox {
     display: flex;
     align-items: center;
@@ -333,32 +429,40 @@
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <a href="#tabpanels" class="skip-link">Перейти к содержанию</a>
+  <main class="wrap">
     <h1>Центр ДПО · факультет права</h1>
     <p class="sub">Админка: каталог, диагностика и менеджерская аналитика посещений</p>
 
     <div class="banner" id="banner" role="alert">
       Запустите <code>node admin-server.js</code> и откройте
       <code>http://127.0.0.1:5178/admin.html</code>. Для сбора статистики посетителей
-      также используйте <code>npm run serve</code> (порт 5180) — посетители должны
+      также используйте <code>npm run serve</code> (порт 5180) – посетители должны
       <b>принять cookies</b>.
     </div>
 
-    <div class="tabs" role="tablist">
-      <button type="button" class="tab active" data-tab="catalog">Каталог</button>
-      <button type="button" class="tab" data-tab="analytics">Аналитика</button>
-      <button type="button" class="tab" data-tab="health">Диагностика</button>
+    <!-- role="tablist" стоял и раньше, но у кнопок не было ни role="tab",
+         ни aria-selected, ни связи с панелями: скринридер объявлял группу
+         вкладок и три обычные кнопки без состояния. -->
+    <div class="tabs" role="tablist" aria-label="Разделы админки">
+      <button type="button" class="tab active" data-tab="catalog"
+              id="tabbtn-catalog" role="tab" aria-selected="true" aria-controls="tab-catalog">Каталог</button>
+      <button type="button" class="tab" data-tab="analytics"
+              id="tabbtn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics">Аналитика</button>
+      <button type="button" class="tab" data-tab="health"
+              id="tabbtn-health" role="tab" aria-selected="false" aria-controls="tab-health">Диагностика</button>
     </div>
 
+    <div id="tabpanels">
     <!-- ═══ CATALOG ═══ -->
-    <div id="tab-catalog">
+    <div id="tab-catalog" role="tabpanel" aria-labelledby="tabbtn-catalog" tabindex="0">
       <div class="panel">
-        <div class="row"><span class="label">Последнее обновление</span><span class="value" id="lastUpdated">—</span></div>
-        <div class="row"><span class="label">Актуальных программ</span><span class="value" id="programCount">—</span></div>
-        <div class="row"><span class="label">Изменение</span><span class="value pending" id="delta">—</span></div>
-        <div class="row"><span class="label">Длительность</span><span class="value pending" id="duration">—</span></div>
+        <div class="row"><span class="label">Последнее обновление</span><span class="value" id="lastUpdated">–</span></div>
+        <div class="row"><span class="label">Актуальных программ</span><span class="value" id="programCount">–</span></div>
+        <div class="row"><span class="label">Изменение</span><span class="value pending" id="delta">–</span></div>
+        <div class="row"><span class="label">Длительность</span><span class="value pending" id="duration">–</span></div>
         <div class="row"><span class="label">Статус</span><span class="value pending" id="status">Не проверялось</span></div>
-        <div class="row"><span class="label">Сервер</span><span class="value pending" id="serverInfo">—</span></div>
+        <div class="row"><span class="label">Сервер</span><span class="value pending" id="serverInfo">–</span></div>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
           <p class="action-title">Синхронизация с hse.ru</p>
@@ -374,7 +478,7 @@
           <p class="action-title">Автообновление каждый день</p>
           <p class="action-desc" id="scheduleHint">
             Пока админ-сервер запущен, каталог обновляется по расписанию. Время московское
-            — независимо от того, в каком часовом поясе работает сервер.
+            – независимо от того, в каком часовом поясе работает сервер.
           </p>
           <div class="schedule-grid">
             <div class="field checkbox">
@@ -393,14 +497,14 @@
               <button type="button" class="secondary" id="schedSaveBtn" style="width:100%">Сохранить расписание</button>
             </div>
           </div>
-          <p class="muted" id="schedMeta" style="margin-top:10px">—</p>
+          <p class="muted" id="schedMeta" style="margin-top:10px">–</p>
         </div>
 
         <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line)">
           <p class="action-title"><span id="dirtyMark" class="hidden dirty-dot"></span>Редактор программ</p>
           <p class="action-desc">
             Правите строки вручную, добавляйте свои программы, блокируйте от перезаписи с hse.ru.
-            «Сохранить в каталог» пишет HTML-страницу. URL — только <code>https://*.hse.ru</code>.
+            «Сохранить в каталог» пишет HTML-страницу. URL – только <code>https://*.hse.ru</code>.
           </p>
           <div class="editor-toolbar">
             <button type="button" id="addProgramBtn" class="secondary">+ Добавить</button>
@@ -433,7 +537,7 @@
     </div>
 
     <!-- ═══ ANALYTICS ═══ -->
-    <div id="tab-analytics" class="hidden">
+    <div id="tab-analytics" class="hidden" role="tabpanel" aria-labelledby="tabbtn-analytics" tabindex="0">
       <div class="panel">
         <div class="range">
           <label>Период:</label>
@@ -526,7 +630,7 @@
     </div>
 
     <!-- ═══ HEALTH ═══ -->
-    <div id="tab-health" class="hidden">
+    <div id="tab-health" class="hidden" role="tabpanel" aria-labelledby="tabbtn-health" tabindex="0">
       <div class="panel">
         <p class="action-title">Диагностика сайта</p>
         <p class="action-desc">Файлы, маркеры каталога, доступность hse.ru.</p>
@@ -539,7 +643,8 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </main>
 
 <script>
 (() => {
@@ -557,8 +662,14 @@
   // tabs
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach((t) => {
+        t.classList.remove('active');
+        // Класс красит вкладку, aria-selected сообщает состояние
+        // скринридеру; раньше второго не было вовсе.
+        t.setAttribute('aria-selected', 'false');
+      });
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       const name = tab.dataset.tab;
       $('tab-catalog').classList.toggle('hidden', name !== 'catalog');
       $('tab-analytics').classList.toggle('hidden', name !== 'analytics');
@@ -573,7 +684,7 @@
   };
 
   const fmtDuration = (ms) => {
-    if (ms == null || ms === 0) return '—';
+    if (ms == null || ms === 0) return '–';
     const s = Math.round(ms / 1000);
     if (s < 60) return `${s} с`;
     const m = Math.floor(s / 60);
@@ -583,7 +694,7 @@
   };
 
   const fmtDelta = (d) => {
-    if (d == null) return '—';
+    if (d == null) return '–';
     if (d === 0) return 'без изменений';
     return d > 0 ? `+${d}` : String(d);
   };
@@ -755,13 +866,13 @@
     if (s.lastRun) parts.push(`последний: ${new Date(s.lastRun).toLocaleString('ru-RU')}`);
     if (s.lastError) parts.push(`ошибка: ${s.lastError}`);
     else if (s.lastResult && s.lastResult.count != null) parts.push(`было ${s.lastResult.count} программ`);
-    $('schedMeta').textContent = parts.join(' · ') || '—';
+    $('schedMeta').textContent = parts.join(' · ') || '–';
   };
 
   const renderStatus = (data = {}) => {
     $('banner').classList.remove('visible');
-    $('lastUpdated').textContent = data.updated || '—';
-    $('programCount').textContent = data.count != null ? data.count : '—';
+    $('lastUpdated').textContent = data.updated || '–';
+    $('programCount').textContent = data.count != null ? data.count : '–';
     $('delta').textContent = fmtDelta(data.delta);
     $('delta').className = `value ${data.delta > 0 ? 'ok' : data.delta < 0 ? 'err' : 'pending'}`;
     $('duration').textContent =
@@ -769,7 +880,7 @@
         ? data.durationMs < 1000
           ? data.durationMs + ' мс'
           : (data.durationMs / 1000).toFixed(1) + ' с'
-        : '—';
+        : '–';
     if (data.server) {
       $('serverInfo').textContent = `${data.server.node} · uptime ${fmtDuration(data.server.uptimeSec * 1000)}`;
     }
@@ -988,7 +1099,7 @@
   const renderAnalytics = (data) => {
     const k = data.kpis || {};
     $('analyticsMeta').textContent =
-      `Сформировано: ${data.generatedAt ? new Date(data.generatedAt).toLocaleString('ru-RU') : '—'} · период ${data.rangeDays} дн.`;
+      `Сформировано: ${data.generatedAt ? new Date(data.generatedAt).toLocaleString('ru-RU') : '–'} · период ${data.rangeDays} дн.`;
 
     const kpis = [
       { n: k.visitorsToday ?? 0, t: 'Посетители сегодня' },
@@ -1037,10 +1148,11 @@
     const hMax = Math.max(1, ...hours);
     const hc = $('hoursChart');
     hc.replaceChildren();
-    hours.forEach((v) => {
+    hours.forEach((v, i) => {
       const s = document.createElement('span');
       s.style.height = `${Math.round((100 * v) / hMax)}%`;
-      s.title = `${v}`;
+      // Раньше подсказка содержала только число без указания часа.
+      s.title = `${String(i).padStart(2, '0')}:00 · ${v}`;
       hc.append(s);
     });
     const hl = $('hourLabels');
@@ -1066,7 +1178,7 @@
         s.pages,
         fmtDuration(s.durationMs),
         (s.path || []).map((p) => `<span class="path-chip">${escapeHtml(p)}</span>`).join(''),
-        (s.programs || []).slice(0, 3).join(', ') || '—',
+        (s.programs || []).slice(0, 3).join(', ') || '–',
       ];
       cells.forEach((html, i) => {
         const td = document.createElement('td');
@@ -1097,9 +1209,14 @@
   };
 
   document.querySelectorAll('.range-btn').forEach((btn) => {
+    btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.range-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.range-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       analyticsDays = Number(btn.dataset.days);
       loadAnalytics();
     });
@@ -1133,7 +1250,7 @@
       ul.style.paddingLeft = '0';
       for (const c of data.checks || []) {
         const li = document.createElement('li');
-        li.textContent = `${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? ' — ' + c.detail : ''}`;
+        li.textContent = `${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? ' – ' + c.detail : ''}`;
         li.style.color = c.ok ? 'var(--ok)' : 'var(--err)';
         ul.append(li);
       }
