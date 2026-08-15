@@ -18,6 +18,7 @@
     "build-programs": "node scripts/build-program-pages.js",
     "template:extract": "node scripts/landing-template.js extract",
     "template:inject": "node scripts/landing-template.js inject",
-    "template:verify": "node scripts/landing-template.js verify"
+    "template:verify": "node scripts/landing-template.js verify",
+    "set-domain": "node scripts/set-domain.js"
   }
 }
