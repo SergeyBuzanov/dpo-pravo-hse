@@ -30,6 +30,7 @@ const {
   // tests/unit/atomic-write.test.js.
   writeAtomic,
 } = require('./lib/catalog-store');
+const { programHref } = require('./lib/program-slug');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
 /** Cross-process lock so CLI and admin-server cannot update concurrently. */
@@ -86,7 +87,12 @@ function renderCard(item) {
     [item.title, typeShort, format, item.duration, date].filter(Boolean).join(' ').toLowerCase(),
   );
 
-  return `    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-search="${search}">
+  // Карточка ведёт на страницу программы внутри сайта, а не сразу на hse.ru:
+  // запись всё равно происходит там, но между каталогом и заявкой теперь
+  // есть своя страница. Ссылка внутренняя, поэтому без target="_blank".
+  const href = escapeHtml(programHref(item));
+
+  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-search="${search}">
       <span class="badge">${typeShort}</span>
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
@@ -262,6 +268,19 @@ async function writeCatalogHtml(items, { updatedLabel } = {}) {
   html = replaceBetween(html, MARKERS.list, items.map(renderCard).join('\n'));
   html = replaceBetween(html, MARKERS.jsonld, buildJsonLd(items));
   await writeAtomic(CATALOG_FILE, html);
+
+  // Страницы программ пересобираются здесь, а не в вызывающем коде: через
+  // эту функцию проходят все пути обновления — CLI, кнопка «Актуализировать»
+  // в админке, ручной редактор и ночное расписание. Иначе карточки каталога
+  // ссылались бы на страницы снятых программ.
+  try {
+    require('./scripts/build-program-pages').build();
+  } catch (err) {
+    // Каталог уже записан и валиден; страницы — производный артефакт,
+    // и их сбой не должен откатывать обновление витрины.
+    console.error('Не удалось пересобрать страницы программ:', err.message);
+  }
+
   return now;
 }
 

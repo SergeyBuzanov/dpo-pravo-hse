@@ -8,12 +8,13 @@
   },
   "scripts": {
     "admin": "node admin-server.js",
-    "update-catalog": "node update-catalog.js",
+    "update-catalog": "node update-catalog.js && node scripts/build-program-pages.js",
     "start": "node admin-server.js",
     "serve": "node scripts/static-server.js",
     "load-test": "node scripts/load-test.js --concurrency 2500 --duration 25 --sockets 400",
     "check-deploy": "node scripts/check-deploy.js",
     "test": "node --test tests/unit/*.test.js",
-    "test:security": "python tests/security_test.py"
+    "test:security": "python tests/security_test.py",
+    "build-programs": "node scripts/build-program-pages.js"
   }
 }
