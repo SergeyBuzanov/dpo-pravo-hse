@@ -343,6 +343,15 @@ async function writeCatalogHtml(items, { updatedLabel } = {}) {
     console.error('Не удалось пересобрать страницы программ:', err.message);
   }
 
+  // Панель «Направления» в шапке лендинга держит счётчики по сферам, общее
+  // число программ и по три названия в каждой сфере. Написанные однажды, они
+  // разошлись бы с каталогом при первом же снятии программы с hse.ru.
+  try {
+    require('./scripts/build-nav-panel').build();
+  } catch (err) {
+    console.error('Не удалось пересобрать панель «Направления»:', err.message);
+  }
+
   return now;
 }
 
