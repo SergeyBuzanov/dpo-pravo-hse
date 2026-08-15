@@ -805,16 +805,26 @@
   document.querySelectorAll('.filters[data-group]').forEach((row) => {
     row.addEventListener('click', (e) => {
       const btn = e.target.closest('.chip');
-      if (!btn || btn.classList.contains('active')) return;
+      if (!btn) return;
+
+      // Повторное нажатие на выбранный чип снимает фильтр. Раньше здесь
+      // стоял ранний выход на любом активном чипе, и снять выбор можно было
+      // только через «Все …» или «Сбросить фильтры»: нажатие по уже
+      // выбранному чипу выглядело как неработающая кнопка.
+      const isAll = btn.dataset.value === 'all';
+      const wasActive = btn.classList.contains('active');
+      if (wasActive && isAll) return; // нечего менять: группа и так без фильтра
+      const target = wasActive ? row.querySelector('.chip[data-value="all"]') : btn;
+      if (!target) return;
 
       row.querySelectorAll('.chip').forEach((b) => {
         b.classList.remove('active');
         b.setAttribute('aria-pressed', 'false');
       });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
+      target.classList.add('active');
+      target.setAttribute('aria-pressed', 'true');
 
-      active[row.dataset.group] = btn.dataset.value;
+      active[row.dataset.group] = target.dataset.value;
       applyFilters();
     });
   });
