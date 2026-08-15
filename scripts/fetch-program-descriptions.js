@@ -47,8 +47,64 @@ const decodeEntities = (s) =>
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&');
 
+/** Текст из куска разметки: снимаем теги, схлопываем пробелы. */
+const textOf = (chunk) =>
+  decodeEntities(String(chunk).replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Вырезает <section> с указанным классом целиком. */
+function sectionByClass(html, cls) {
+  const at = html.indexOf('dpo-section ' + cls);
+  if (at < 0) return null;
+  const from = html.lastIndexOf('<section', at);
+  const to = html.indexOf('</section>', at);
+  if (from < 0 || to < 0) return null;
+  return html.slice(from, to);
+}
+
+/**
+ * «Для кого»: подзаголовок плюс список аудиторий.
+ * Разбор идёт по классам разметки, а не по тексту заголовка: класс переживёт
+ * смену формулировки, а «Для кого» встречается ещё и в оглавлении страницы.
+ */
+function extractAudience(html) {
+  const sec = sectionByClass(html, 'dpo-target');
+  if (!sec) return { intro: null, items: [] };
+  const introRaw = sec.match(/class="[^"]*dpo-target__subtitle[^"]*"[^>]*>([\s\S]*?)<\/p>/);
+  const items = [...sec.matchAll(/class="[^"]*dpo-target__feature[^"]*"[^>]*>([\s\S]*?)<\/p>/g)]
+    .map((m) => textOf(m[1]))
+    .filter(Boolean);
+  return { intro: introRaw ? textOf(introRaw[1]) || null : null, items };
+}
+
+/**
+ * «Результаты»: карточки вида «Изучите» + «цифровые платформы бизнеса».
+ * Последняя карточка на странице оформлена так же, но содержит кнопки
+ * «Подать заявку» и дублирует og:description, поэтому отбрасывается.
+ */
+function extractResults(html) {
+  const sec = sectionByClass(html, 'dpo-result');
+  if (!sec) return [];
+  const out = [];
+  for (const m of sec.matchAll(/<li[^>]*class="[^"]*dpo-cards__item[^"]*"[^>]*>([\s\S]*?)<\/li>/g)) {
+    const card = m[1];
+    if (/dpo-cards__buttons|dpo-cards__item_large|_large/.test(m[0])) continue;
+    const title = card.match(/class="[^"]*dpo-cards__title[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
+    const body = card.match(/class="[^"]*dpo-cards__text[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    const text = [title ? textOf(title[1]) : '', body ? textOf(body[1]) : ''].filter(Boolean).join(' ');
+    if (text) out.push(text);
+  }
+  return out;
+}
+
 function extract(html) {
-  const out = { tagline: null, about: null };
+  const out = { tagline: null, about: null, audience: null, results: null };
+
+  const audience = extractAudience(html);
+  if (audience.items.length) out.audience = audience;
+  const results = extractResults(html);
+  if (results.length) out.results = results;
 
   const og = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i);
   if (og) out.tagline = decodeEntities(og[1]).trim() || null;
@@ -110,13 +166,15 @@ async function main() {
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
-      const { tagline, about } = extract(html);
+      const { tagline, about, audience, results } = extract(html);
 
-      if (!tagline && !about) {
+      if (!tagline && !about && !audience && !results) {
         failed.push({ title: program.title, reason: 'описание не найдено на странице' });
       } else {
         if (tagline) program.tagline = tagline;
         if (about) program.about = about;
+        if (audience) program.audience = audience;
+        if (results) program.results = results;
         ok++;
       }
       process.stdout.write(`  [${i + 1}/${targets.length}] ${ok ? '' : ''}${program.title.slice(0, 60)}\n`);

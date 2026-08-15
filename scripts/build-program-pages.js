@@ -143,6 +143,32 @@ ${lead}${body}        <p class="about-source">Описание с официал
       </section>`;
 }
 
+/** «Для кого»: подводка и список аудиторий со страницы программы. */
+function renderAudience(p) {
+  const a = p.audience;
+  if (!a || !a.items || !a.items.length) return '';
+  const intro = a.intro ? `        <p class="block-sub">${esc(a.intro)}</p>\n` : '';
+  const items = a.items.map((x) => `          <li>${esc(x)}</li>`).join('\n');
+  return `      <section class="block">
+        <h2>Для кого</h2>
+${intro}        <ul class="pills">
+${items}
+        </ul>
+      </section>`;
+}
+
+/** «Результаты»: чему научится выпускник. */
+function renderResults(p) {
+  if (!p.results || !p.results.length) return '';
+  const items = p.results.map((x) => `          <li>${esc(x)}</li>`).join('\n');
+  return `      <section class="block">
+        <h2>Результаты обучения</h2>
+        <ul class="results">
+${items}
+        </ul>
+      </section>`;
+}
+
 function renderSiblings(sphere, current) {
   const others = sphere.items.filter((x) => x.id !== current.id);
   if (!others.length) return '';
@@ -226,6 +252,8 @@ function renderPage(p, sphere) {
 <main id="main" class="layout">
   <div class="content">
 ${renderAbout(p)}
+${renderAudience(p)}
+${renderResults(p)}
 ${slot('Программа обучения', 'Модули и объём часов пока не заполнены. Добавьте поле modules у программы в .catalog-data.json.')}
 ${slot('Преподаватели', 'Состав преподавателей пока не заполнен. Добавьте поле teachers у программы в .catalog-data.json.')}
 ${renderSiblings(sphere || { title: '', items: [] }, p)}
@@ -387,6 +415,17 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .about-source{font-size:13px;color:var(--ink-mute);margin:0}
 .slot{font-size:15.5px;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgba(33,30,27,.25);border-radius:16px;padding:20px;margin:0}
+.pills{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0}
+.pills li{font-size:14.5px;line-height:1.4;color:var(--ink-soft);background:var(--bg-tint);
+  border-radius:999px;padding:10px 18px}
+.results{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.results li{position:relative;font-size:15.5px;line-height:1.6;color:var(--ink-soft);
+  padding:14px 0 14px 34px;border-top:1px solid var(--line)}
+/* Галочка нарисована фоном, а не символом: в режиме для слабовидящих
+   svg скрывается, а псевдоэлемент с текстом остаётся читаемым. */
+.results li::before{content:"";position:absolute;left:8px;top:19px;width:7px;height:12px;
+  border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);
+  transform:rotate(45deg)}
 .siblings{list-style:none;margin:0;padding:0}
 .siblings li{border-top:1px solid var(--line)}
 .siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:var(--ink-soft);
