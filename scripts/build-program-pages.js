@@ -9,12 +9,11 @@
  * витриной. Файлы программ, которых больше нет в каталоге, удаляются –
  * иначе на сайте оставались бы страницы снятых программ.
  *
- * ВАЖНО про содержание. В хранилище есть только название, тип, формат,
- * длительность, дата старта, цена и ссылка на hse.ru. Описания, учебного
- * плана и преподавателей там нет, поэтому эти блоки выводятся как явные
- * слоты для заполнения, а не выдумываются. Заполнять их нужно в
- * .catalog-data.json (поля about / modules / teachers у программы) –
- * генератор их подхватит, если они появятся.
+ * ВАЖНО про содержание. Описания программ (tagline и about) подтягиваются
+ * со страниц hse.ru скриптом scripts/fetch-program-descriptions.js и лежат
+ * в том же хранилище. Учебного плана и преподавателей там по-прежнему нет,
+ * поэтому эти два блока выводятся явными слотами, а не выдумываются:
+ * заполнять их нужно полями modules / teachers у программы.
  */
 
 'use strict';
@@ -122,6 +121,28 @@ function slot(title, hint) {
       </section>`;
 }
 
+/**
+ * Блок «О программе». Описания подтягиваются с hse.ru скриптом
+ * scripts/fetch-program-descriptions.js: tagline из og:description,
+ * about из микроразметки Course. Если у программы нет ни того, ни другого,
+ * остаётся честный слот, а не выдуманный текст.
+ */
+function renderAbout(p) {
+  if (!p.about && !p.tagline) {
+    return slot(
+      'О программе',
+      'Описание пока не заполнено. Запустите node scripts/fetch-program-descriptions.js, ' +
+        'чтобы подтянуть его со страницы программы на hse.ru.',
+    );
+  }
+  const lead = p.tagline ? `        <p class="about-lead">${esc(p.tagline)}</p>\n` : '';
+  const body = p.about ? `        <p class="about-body">${esc(p.about)}</p>\n` : '';
+  return `      <section class="block">
+        <h2>О программе</h2>
+${lead}${body}        <p class="about-source">Описание с официальной страницы программы на hse.ru.</p>
+      </section>`;
+}
+
 function renderSiblings(sphere, current) {
   const others = sphere.items.filter((x) => x.id !== current.id);
   if (!others.length) return '';
@@ -204,7 +225,7 @@ function renderPage(p, sphere) {
 
 <main id="main" class="layout">
   <div class="content">
-${slot('О программе', 'Описание пока не заполнено. Добавьте поле about у программы в .catalog-data.json – генератор подхватит его при следующей пересборке.')}
+${renderAbout(p)}
 ${slot('Программа обучения', 'Модули и объём часов пока не заполнены. Добавьте поле modules у программы в .catalog-data.json.')}
 ${slot('Преподаватели', 'Состав преподавателей пока не заполнен. Добавьте поле teachers у программы в .catalog-data.json.')}
 ${renderSiblings(sphere || { title: '', items: [] }, p)}
@@ -361,6 +382,9 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .block{margin-bottom:clamp(28px,4vw,48px)}
 .block h2{font-size:clamp(21px,2.2vw,28px);font-weight:600;margin-bottom:12px}
 .block-sub{font-size:13.5px;color:var(--ink-mute);margin:0 0 16px}
+.about-lead{font-size:17px;line-height:1.6;font-weight:600;color:var(--ink);margin:0 0 14px}
+.about-body{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px;max-width:68ch}
+.about-source{font-size:13px;color:var(--ink-mute);margin:0}
 .slot{font-size:15.5px;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgba(33,30,27,.25);border-radius:16px;padding:20px;margin:0}
 .siblings{list-style:none;margin:0;padding:0}

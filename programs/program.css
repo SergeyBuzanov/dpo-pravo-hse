@@ -53,6 +53,9 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .block{margin-bottom:clamp(28px,4vw,48px)}
 .block h2{font-size:clamp(21px,2.2vw,28px);font-weight:600;margin-bottom:12px}
 .block-sub{font-size:13.5px;color:var(--ink-mute);margin:0 0 16px}
+.about-lead{font-size:17px;line-height:1.6;font-weight:600;color:var(--ink);margin:0 0 14px}
+.about-body{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px;max-width:68ch}
+.about-source{font-size:13px;color:var(--ink-mute);margin:0}
 .slot{font-size:15.5px;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgba(33,30,27,.25);border-radius:16px;padding:20px;margin:0}
 .siblings{list-style:none;margin:0;padding:0}
