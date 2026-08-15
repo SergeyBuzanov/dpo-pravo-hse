@@ -16,23 +16,30 @@
   const CSS = `
 /* ── smooth-ui (injected) ───────────────────────────────── */
 html{ scroll-behavior: ${reduce ? 'auto' : 'smooth'}; }
+/* Частотный гейт (см. DESIGN.md, «Правило частотного гейта»).
+   Общий переход намеренно не трогает transform и box-shadow: ссылки
+   навигации наводят десятки раз за сессию, и движение на таком частом
+   действии читается как задержка. Цвет и граница остаются — они
+   объясняют состояние, а не двигают элемент. Движение живёт там, где
+   действие редкое: карточки, карусель, появление секций.
+
+   Отклик на нажатие под гейт не попадает: это обратная связь, а не
+   украшение. Поэтому transform в списке остался, но на 140 мс, вдвое
+   короче цветового перехода. Всё держим одним правилом сознательно:
+   у общего перехода стоит !important, и отдельное правило для transform
+   он бы перебил. */
 a, button, .btn, [role="button"]{
   transition:
     color .28s cubic-bezier(.22,1,.36,1),
     background .28s cubic-bezier(.22,1,.36,1),
     border-color .28s cubic-bezier(.22,1,.36,1),
-    box-shadow .32s cubic-bezier(.22,1,.36,1),
-    transform .28s cubic-bezier(.22,1,.36,1),
-    opacity .28s cubic-bezier(.22,1,.36,1) !important;
+    opacity .28s cubic-bezier(.22,1,.36,1),
+    transform .14s cubic-bezier(.22,1,.36,1) !important;
 }
-.btn, a.btn, button.btn, [class*="btn-"]{
-  will-change: transform;
-}
-.btn:hover, a.btn:hover, button.btn:hover, a[class*="btn-"]:hover{
-  transform: translateY(-2px);
-}
-.btn:active, a.btn:active, button.btn:active, a[class*="btn-"]:active{
-  transform: translateY(0) scale(0.97);
+/* Раньше отклик висел на классе .btn, которого нет ни на одном элементе
+   лендинга: 22 ссылки и 2 кнопки не отзывались на нажатие вообще. */
+a[href]:active, button:not(:disabled):active, [role="button"]:active{
+  transform: scale(0.97);
 }
 header nav a.link,
 header a.link,
@@ -55,13 +62,20 @@ header nav a[href^="#"]:not(.btn):not([class*="btn-"])::after{
   opacity: 0.9;
   pointer-events: none;
 }
-header nav a.link:hover::after,
-header a.link:hover::after,
-header nav a[href^="#"]:not(.btn):not([class*="btn-"]):hover::after,
+/* Подчёркивание активного раздела остаётся всегда: это индикатор состояния
+   при скролл-навигации, а не украшение. А вот подчёркивание по наведению
+   живёт только там, где есть настоящий курсор. */
 header nav a.link.is-active::after,
 header a.link.is-active::after,
 header nav a.is-active[href^="#"]:not(.btn):not([class*="btn-"])::after{
   transform: scaleX(1);
+}
+@media (hover: hover) and (pointer: fine){
+  header nav a.link:hover::after,
+  header a.link:hover::after,
+  header nav a[href^="#"]:not(.btn):not([class*="btn-"]):hover::after{
+    transform: scaleX(1);
+  }
 }
 /* CTA «Записаться» — без нижнего подчёркивания */
 header nav a.btn::after,
@@ -121,22 +135,27 @@ section#explore a[href]{
   will-change: transform, box-shadow;
   box-shadow: 0 0 0 rgba(33,30,27,0);
 }
-#explore a.explore-card:hover,
-section#explore a[href]:hover{
-  border-color: #1658DA !important;
-  transform: translateY(-5px) !important;
-  box-shadow: 0 18px 42px rgba(33,30,27,0.12) !important;
-  background: #FFFEFB !important;
+/* Подъём и тень — только на устройствах с настоящим курсором. На тач-экране
+   :hover срабатывает по тапу и залипает: карточка остаётся поднятой, пока
+   не тронут соседнюю. */
+@media (hover: hover) and (pointer: fine){
+  #explore a.explore-card:hover,
+  section#explore a[href]:hover{
+    /* Акцент берётся из --dpo-accent, которую лендинг выставляет на своей
+       обёртке из props.accentColor. Захардкоженный хекс оставлял подсветку
+       синей при смене темы. */
+    border-color: var(--dpo-accent, #1658DA) !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 18px 42px rgba(33,30,27,0.12) !important;
+    background: #FFFEFB !important;
+  }
+  #explore a:hover .explore-arrow{
+    transform: translateX(6px);
+  }
 }
 #explore a .explore-arrow{
   display: inline-block;
   transition: transform .32s cubic-bezier(.22,1,.36,1);
-}
-#explore a:hover .explore-arrow{
-  transform: translateX(6px);
-}
-#explore a:hover h3{
-  letter-spacing: 0.01em;
 }
 @media (prefers-reduced-motion: reduce){
   #explore a.explore-card:hover,
