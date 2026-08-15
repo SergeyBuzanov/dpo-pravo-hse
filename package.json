@@ -15,6 +15,9 @@
     "check-deploy": "node scripts/check-deploy.js",
     "test": "node --test tests/unit/*.test.js",
     "test:security": "python tests/security_test.py",
-    "build-programs": "node scripts/build-program-pages.js"
+    "build-programs": "node scripts/build-program-pages.js",
+    "template:extract": "node scripts/landing-template.js extract",
+    "template:inject": "node scripts/landing-template.js inject",
+    "template:verify": "node scripts/landing-template.js verify"
   }
 }
