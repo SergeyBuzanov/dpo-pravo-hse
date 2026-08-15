@@ -31,6 +31,7 @@ const {
   writeAtomic,
 } = require('./lib/catalog-store');
 const { programHref } = require('./lib/program-slug');
+const { SPHERES, sphereOf } = require('./lib/program-spheres');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
 /** Cross-process lock so CLI and admin-server cannot update concurrently. */
@@ -41,6 +42,8 @@ const MARKERS = Object.freeze({
   meta: Object.freeze(['<!-- CATALOG:META -->', '<!-- /CATALOG:META -->']),
   filtersType: Object.freeze(['<!-- CATALOG:FILTERS_TYPE -->', '<!-- /CATALOG:FILTERS_TYPE -->']),
   filtersFormat: Object.freeze(['<!-- CATALOG:FILTERS_FORMAT -->', '<!-- /CATALOG:FILTERS_FORMAT -->']),
+  filtersSphere: Object.freeze(['<!-- CATALOG:FILTERS_SPHERE -->', '<!-- /CATALOG:FILTERS_SPHERE -->']),
+  filtersDuration: Object.freeze(['<!-- CATALOG:FILTERS_DURATION -->', '<!-- /CATALOG:FILTERS_DURATION -->']),
   list: Object.freeze(['<!-- CATALOG:LIST -->', '<!-- /CATALOG:LIST -->']),
   jsonld: Object.freeze(['<!-- CATALOG:JSONLD -->', '<!-- /CATALOG:JSONLD -->']),
 });
@@ -77,10 +80,30 @@ function formatBucket(title = '') {
   return { value: 'other', label: title || 'Другое' };
 }
 
+/**
+ * Длительность в каталоге приходит свободной строкой («5 недель», «1,5 месяца»,
+ * «8 месяцев») или отсутствует. Раскладываем в три корзины плюс «не указана»:
+ * фильтровать по сырой строке нельзя, вариантов почти столько же, сколько
+ * программ.
+ */
+function durationBucket(raw) {
+  if (!raw) return { value: 'unknown', label: 'Не указана' };
+  const s = String(raw).toLowerCase().replace(',', '.');
+  const num = parseFloat(s.match(/[\d.]+/)?.[0] || '');
+  if (!Number.isFinite(num)) return { value: 'unknown', label: 'Не указана' };
+  const months = /недел/.test(s) ? num / 4.345 : /месяц/.test(s) ? num : /год|лет/.test(s) ? num * 12 : null;
+  if (months === null) return { value: 'unknown', label: 'Не указана' };
+  if (months < 1.5) return { value: 'short', label: 'До 1,5 месяца' };
+  if (months <= 3) return { value: 'medium', label: '1,5–3 месяца' };
+  return { value: 'long', label: 'Более 3 месяцев' };
+}
+
 function renderCard(item) {
   const typeShort = escapeHtml(item.type?.shortTitle || item.type?.title || '');
   const format = item.studyFormat?.title || '';
   const bucket = formatBucket(format);
+  const sphere = sphereOf(item);
+  const duration = durationBucket(item.duration);
   const date = formatDate(item);
   const metaBits = [format, item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
   const search = escapeHtml(
@@ -92,7 +115,7 @@ function renderCard(item) {
   // есть своя страница. Ссылка внутренняя, поэтому без target="_blank".
   const href = escapeHtml(programHref(item));
 
-  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-search="${search}">
+  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
       <span class="badge">${typeShort}</span>
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
@@ -115,6 +138,43 @@ function buildTypeChips(items) {
   }
   const chips = [renderChip('Все программы', 'all', items.length, true)];
   for (const [key, count] of counts) chips.push(renderChip(key, key, count, false));
+  return chips.join('\n');
+}
+
+/** Чипы направлений в порядке SPHERES, а не в порядке появления в каталоге. */
+function buildSphereChips(items) {
+  const counts = new Map();
+  for (const item of items) {
+    const s = sphereOf(item);
+    const key = s ? s.id : 'other';
+    const label = s ? s.title : 'Прочее';
+    const prev = counts.get(key);
+    counts.set(key, { label, count: (prev?.count || 0) + 1 });
+  }
+  const chips = [renderChip('Все направления', 'all', items.length, true)];
+  for (const s of SPHERES) {
+    const hit = counts.get(s.id);
+    if (hit) chips.push(renderChip(s.title, s.id, hit.count, false));
+  }
+  const other = counts.get('other');
+  if (other) chips.push(renderChip(other.label, 'other', other.count, false));
+  return chips.join('\n');
+}
+
+/** Чипы длительности в осмысленном порядке, а не по частоте. */
+function buildDurationChips(items) {
+  const ORDER = ['short', 'medium', 'long', 'unknown'];
+  const counts = new Map();
+  for (const item of items) {
+    const b = durationBucket(item.duration);
+    const prev = counts.get(b.value);
+    counts.set(b.value, { label: b.label, count: (prev?.count || 0) + 1 });
+  }
+  const chips = [renderChip('Любая длительность', 'all', items.length, true)];
+  for (const key of ORDER) {
+    const hit = counts.get(key);
+    if (hit) chips.push(renderChip(hit.label, key, hit.count, false));
+  }
   return chips.join('\n');
 }
 
@@ -264,7 +324,9 @@ async function writeCatalogHtml(items, { updatedLabel } = {}) {
     `<span class="meta">Обновлено: <b>${now}</b> · ${items.length} актуальных программ</span>`,
   );
   html = replaceBetween(html, MARKERS.filtersType, buildTypeChips(items));
+  html = replaceBetween(html, MARKERS.filtersSphere, buildSphereChips(items));
   html = replaceBetween(html, MARKERS.filtersFormat, buildFormatChips(items));
+  html = replaceBetween(html, MARKERS.filtersDuration, buildDurationChips(items));
   html = replaceBetween(html, MARKERS.list, items.map(renderCard).join('\n'));
   html = replaceBetween(html, MARKERS.jsonld, buildJsonLd(items));
   await writeAtomic(CATALOG_FILE, html);
