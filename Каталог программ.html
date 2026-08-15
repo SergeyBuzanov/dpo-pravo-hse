@@ -860,6 +860,43 @@
       card.dataset.search = (card.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
     }
   });
+  /**
+   * Состояние фильтров читается из адреса: ?sphere=language&format=online
+   * Это делает ссылки из выпадающего меню в шапке осмысленными и позволяет
+   * поделиться отфильтрованной выборкой. Значения сверяются с реально
+   * существующими чипами, поэтому мусор в адресе ничего не ломает.
+   */
+  function applyStateFromUrl() {
+    const params = new URLSearchParams(location.search);
+    let touched = false;
+
+    document.querySelectorAll('.filters[data-group]').forEach((row) => {
+      const group = row.dataset.group;
+      const wanted = params.get(group);
+      if (!wanted) return;
+      const chip = [...row.querySelectorAll('.chip')].find((c) => c.dataset.value === wanted);
+      if (!chip) return;
+      row.querySelectorAll('.chip').forEach((c) => {
+        c.classList.remove('active');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      chip.classList.add('active');
+      chip.setAttribute('aria-pressed', 'true');
+      active[group] = wanted;
+      touched = true;
+    });
+
+    const q = params.get('q');
+    if (q) { query = q; searchInput.value = q; touched = true; }
+
+    const sort = params.get('sort');
+    if (sort && [...sortSelect.options].some((o) => o.value === sort)) {
+      sortBy = sort; sortSelect.value = sort; touched = true;
+    }
+    return touched;
+  }
+
+  if (applyStateFromUrl()) applyFilters();
   updateChrome(totalCards());
 
   const viBtn = document.getElementById('viToggle');
