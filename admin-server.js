@@ -81,6 +81,13 @@ const COLLECT_REQS_PER_MIN = 600; // analytics beacons
 const MAX_URL_LEN = 2048;
 /** Catalog PUT can be larger (full program list). */
 const MAX_PROGRAMS_BODY = 512 * 1024;
+/**
+ * Заявка целиком помещается в несколько килобайт: длины полей ограничены в
+ * lib/application-form.js. Лимит с запасом, но далеко от 512 КБ каталога.
+ */
+const MAX_APPLICATION_BODY = 16 * 1024;
+/** Заявок в минуту с одного адреса. Человеку хватает одной. */
+const APPLICATION_REQS_PER_MIN = 5;
 const REQUIRED_MARKERS = [
   '<!-- CATALOG:META -->',
   '<!-- CATALOG:LIST -->',
@@ -122,6 +129,13 @@ const FAIL_DELAY_MS = 700;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const collectCounts = new Map(); // analytics beacons — separate budget
+/**
+ * Заявки считаются отдельно и строго. Маяк аналитики шлётся десятками в
+ * минуту с одной вкладки, заявка — единицы за день с одного человека, и
+ * общий с аналитикой бюджет означал бы, что активный посетитель не может
+ * подать заявку, потому что сам же исчерпал лимит просмотром страниц.
+ */
+const applicationCounts = new Map();
 
 function isThrottled(ip, map = reqCounts, limit = REQS_PER_MIN) {
   const now = Date.now();
@@ -196,6 +210,60 @@ async function handleCollect(req, res) {
   }
 }
 
+/**
+ * Приём заявки на программу. Публичный маршрут — как и маяк аналитики, он
+ * доступен без авторизации, потому что его вызывает посетитель сайта.
+ *
+ * Отличие от маяка в том, что здесь персональные данные, поэтому:
+ *   — ответ всегда содержит, что именно не так с формой (иначе человек
+ *     останется перед кнопкой, которая «не работает»), но никогда не
+ *     повторяет присланные значения обратно в текст ошибки;
+ *   — тело жёстко ограничено, а частота — пятью заявками в минуту;
+ *   — ловушка для роботов: поле, невидимое человеку. Заполнено — отвечаем
+ *     как при успехе и молча ничего не сохраняем. Робот не должен узнать,
+ *     что его отличили.
+ */
+async function handleApplication(req, res) {
+  try {
+    const raw = await readBody(req, MAX_APPLICATION_BODY);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw || '{}');
+    } catch {
+      sendJson(res, 400, { error: 'invalid json' });
+      return;
+    }
+
+    if (parsed && typeof parsed === 'object' && String(parsed.website || '').trim()) {
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    const { parseApplication } = require('./lib/application-form');
+    const result = parseApplication(parsed);
+    if (!result.ok) {
+      sendJson(res, 400, { error: 'validation', fields: result.errors });
+      return;
+    }
+
+    const { deliver } = require('./lib/application-delivery');
+    const delivered = await deliver(result.application);
+    console.log(
+      `заявка ${delivered.id}: ${delivered.duplicate ? 'повтор' : 'принята'}, письмо — ${delivered.mail}`,
+    );
+    sendJson(res, 200, { ok: true, id: delivered.id });
+  } catch (err) {
+    if (err.code === 'BODY_TOO_LARGE') {
+      sendTooLarge(req, res);
+      return;
+    }
+    // Заявка не сохранена — человек должен об этом узнать и попробовать
+    // ещё раз или позвонить. Молчаливый 200 здесь был бы обманом.
+    console.error('application error:', err.message);
+    sendJson(res, 500, { error: 'save failed' });
+  }
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [ip, rec] of reqCounts) {
@@ -203,6 +271,9 @@ setInterval(() => {
   }
   for (const [ip, rec] of collectCounts) {
     if (now - rec.windowStart > 60_000) collectCounts.delete(ip);
+  }
+  for (const [ip, rec] of applicationCounts) {
+    if (now - rec.windowStart > 60_000) applicationCounts.delete(ip);
   }
   for (const [ip, rec] of authFails) {
     if (!rec.lockedUntil || rec.lockedUntil < now) authFails.delete(ip);
@@ -687,6 +758,43 @@ async function handleAnalyticsSeed(req, res) {
   sendJson(res, 200, { ...summary, seed: result, csrfToken });
 }
 
+/**
+ * Список заявок для менеджера. Маршрут закрыт той же авторизацией, что и
+ * весь остальной API админки, а сама админка живёт только на 127.0.0.1 —
+ * персональные данные не покидают машину центра.
+ */
+async function handleApplicationsList(req, res) {
+  const urlObj = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+  const limit = Math.min(Number(urlObj.searchParams.get('limit') || 200), 1000);
+  const store = require('./lib/application-store');
+  const [items, stats] = await Promise.all([store.list({ limit }), store.stats()]);
+  sendJson(res, 200, { items, stats, csrfToken });
+}
+
+async function handleApplicationStatus(req, res) {
+  const store = require('./lib/application-store');
+  try {
+    const raw = await readBody(req, 4 * 1024);
+    const { id, status } = JSON.parse(raw || '{}');
+    if (!id || typeof id !== 'string') {
+      sendJson(res, 400, { error: 'нет идентификатора заявки', csrfToken });
+      return;
+    }
+    if (!store.STATUSES.includes(status)) {
+      sendJson(res, 400, { error: `статус должен быть одним из: ${store.STATUSES.join(', ')}`, csrfToken });
+      return;
+    }
+    const updated = await store.setStatus(id, status);
+    sendJson(res, 200, { ok: true, id, ...updated, csrfToken });
+  } catch (err) {
+    if (err.code === 'BODY_TOO_LARGE') {
+      sendTooLarge(req, res);
+      return;
+    }
+    sendJson(res, 400, { error: 'invalid json', csrfToken });
+  }
+}
+
 // ─── Daily auto-update ────────────────────────────────────────────────────────
 
 let dailyTimer = null;
@@ -871,6 +979,8 @@ const API_ROUTES = [
   { method: 'POST', path: '/api/schedule',       csrf: true, handler: handleSchedulePut },
   { method: 'GET',  path: '/api/analytics',      handler: handleAnalytics },
   { method: 'POST', path: '/api/analytics/seed', csrf: true, handler: handleAnalyticsSeed },
+  { method: 'GET',  path: '/api/applications',   handler: handleApplicationsList },
+  { method: 'POST', path: '/api/applications/status', csrf: true, handler: handleApplicationStatus },
   { method: 'POST', path: '/api/update',         csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: false }) },
   { method: 'POST', path: '/api/rebuild',        csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: true }) },
 ];
@@ -927,6 +1037,23 @@ async function createServer(credentials) {
           return;
         }
         await handleCollect(req, res);
+        return;
+      }
+
+      // Публичный приём заявок — тоже без авторизации: форму заполняет
+      // посетитель. Проверка Origin общая с маяком: и то и другое приходит
+      // со страниц сайта, адрес которого задан переменной SITE_ORIGIN.
+      if (method === 'POST' && pathname === '/api/application') {
+        if (isThrottled(ip, applicationCounts, APPLICATION_REQS_PER_MIN)) {
+          sendJson(res, 429, { error: 'too many applications' });
+          return;
+        }
+        const appOrigin = req.headers.origin;
+        if (appOrigin && !COLLECT_ORIGINS.has(appOrigin)) {
+          sendJson(res, 403, { error: 'origin not allowed' });
+          return;
+        }
+        await handleApplication(req, res);
         return;
       }
 

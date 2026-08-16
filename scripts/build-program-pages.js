@@ -258,10 +258,20 @@ function renderPage(p, sphere) {
     .map((s) => `<span>${esc(s)}</span>`)
     .join('');
 
-  const cta = official
-    ? `        <a class="cta" href="${esc(official)}" target="_blank" rel="noopener noreferrer">Перейти к записи на hse.ru</a>
-        <p class="cta-note">Заявку принимает учебный офис на официальной странице программы.</p>`
-    : `        <p class="cta-note">Ссылка на официальную страницу программы не подтверждена.</p>`;
+  // Заявка подаётся ЗДЕСЬ, а не на маркетплейсе: человек, дочитавший
+  // страницу программы, уже решился, и увод на чужой сайт в этот момент —
+  // самая дорогая потеря на всём пути. Ссылка на официальную страницу
+  // остаётся второй, для тех, кому нужен личный кабинет ВШЭ.
+  const cta = `        <button type="button" class="cta" data-application
+          data-program-id="${esc(String(p.id || ''))}"
+          data-program-title="${esc(p.title)}"
+          data-program-url="${esc(SITE)}/${esc(programHref(p))}">Подать заявку</button>
+        <p class="cta-note">Заявку принимает учебный офис Центра ДПО. Мы свяжемся с вами по телефону или почте.</p>${
+          official
+            ? `
+        <a class="cta-alt" href="${esc(official)}" target="_blank" rel="noopener noreferrer">Записаться через личный кабинет на hse.ru</a>`
+            : ''
+        }`;
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -350,6 +360,7 @@ ${cta}
   </span>
 </footer>
 
+<script src="../js/application-form.js" defer></script>
 <script src="../js/site-analytics.js" defer></script>
 <script src="../js/cookie-consent.js" defer></script>
 <script>
@@ -530,12 +541,15 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
   border-top:1px solid var(--line)}
 .fact dt{font-size:13px;color:var(--ink-mute);margin:0}
 .fact dd{font-size:14.5px;font-weight:600;margin:0;text-align:right}
-.cta{display:block;text-align:center;font-size:15px;font-weight:600;color:#fff;
+.cta{display:block;width:100%;font:inherit;border:0;cursor:pointer;text-align:center;font-size:15px;font-weight:600;color:#fff;
   background:var(--accent);border-radius:999px;padding:15px 24px;
   transition:background .28s var(--ease),transform 140ms ease}
 .cta:hover{background:var(--accent-dark)}
 .cta:active{transform:scale(.97)}
 .cta-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}
+.cta-alt{display:block;text-align:center;font-size:14px;color:var(--ink-mute);margin:14px 0 0;
+  text-decoration:underline;text-underline-offset:3px}
+.cta-alt:hover{color:var(--accent)}
 .doc{background:var(--bg-tint)}
 .doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);
   border-radius:999px;padding:4px 11px;margin-bottom:12px}

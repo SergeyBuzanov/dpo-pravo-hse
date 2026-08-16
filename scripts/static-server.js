@@ -138,6 +138,56 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  /**
+   * Приём заявки. На проде этот адрес nginx проксирует в admin-сервис, а
+   * здесь обрабатывается на месте — иначе форму нельзя было бы проверить
+   * локально, не поднимая docker compose целиком.
+   *
+   * Троттлинга здесь нет намеренно: превью-сервер слушает только петлю, а
+   * на проде частоту ограничивает nginx (zone=dpo_application) и сам
+   * admin-сервис. Дублировать лимит в третьем месте значит завести третье
+   * место, где его придётся править.
+   */
+  if (method === 'POST' && pathname === '/api/application') {
+    try {
+      const raw = await readBody(req, 16 * 1024);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(raw || '{}');
+      } catch {
+        res.writeHead(400, { ...SECURITY, 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'invalid json' }));
+        return;
+      }
+
+      // Ловушка для роботов: отвечаем как при успехе, ничего не сохраняя.
+      if (parsed && typeof parsed === 'object' && String(parsed.website || '').trim()) {
+        res.writeHead(200, { ...SECURITY, 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+
+      const { parseApplication } = require(path.join(ROOT, 'lib', 'application-form'));
+      const result = parseApplication(parsed);
+      if (!result.ok) {
+        res.writeHead(400, { ...SECURITY, 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'validation', fields: result.errors }));
+        return;
+      }
+
+      const { deliver } = require(path.join(ROOT, 'lib', 'application-delivery'));
+      const delivered = await deliver(result.application);
+      console.log(`заявка ${delivered.id}: ${delivered.duplicate ? 'повтор' : 'принята'}`);
+      res.writeHead(200, { ...SECURITY, 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, id: delivered.id }));
+    } catch (err) {
+      res.writeHead(500, { ...SECURITY, 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'save failed' }));
+      if (err && err.code === 'BODY_TOO_LARGE') req.destroy();
+    }
+    return;
+  }
+
   if (method !== 'GET' && method !== 'HEAD') {
     res.writeHead(405, { ...SECURITY, Allow: 'GET, HEAD, POST' });
     res.end('Method Not Allowed');

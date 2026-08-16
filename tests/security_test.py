@@ -260,6 +260,89 @@ def test_static_server() -> None:
             proc.kill()
 
 
+def test_application_intake() -> None:
+    """Приём заявок: единственный публичный маршрут с персональными данными.
+
+    Проверяется на превью-сервере: он повторяет прод-поведение (на проде тот
+    же адрес nginx проксирует в админ-сервис). Каталог заявок — временный:
+    тест не должен писать в настоящие заявки центра.
+    """
+    print("\nприём заявок (персональные данные)")
+    port = 6204
+    base = f"http://127.0.0.1:{port}"
+    with tempfile.TemporaryDirectory() as tmp:
+        proc = start_node(
+            "scripts/static-server.js",
+            {"PORT": str(port), "HOST": "127.0.0.1", "APPLICATIONS_DIR": tmp},
+            f"{base}/index.html",
+        )
+        try:
+            good = {
+                "firstName": "Анна", "lastName": "Петрова",
+                "phone": "+7 999 123-45-67", "email": "anna@example.org",
+                "consent": True,
+            }
+            hdr = {"Content-Type": "application/json"}
+
+            code, _, _ = http_req(f"{base}/api/application", method="POST",
+                                  data=json.dumps(good).encode(), headers=hdr)
+            check("application", "корректная заявка принимается", code == 200, f"status={code}")
+
+            no_consent = {**good, "email": "b@example.org", "consent": False}
+            code, _, body = http_req(f"{base}/api/application", method="POST",
+                                     data=json.dumps(no_consent).encode(), headers=hdr)
+            check("application", "без согласия на обработку ПДн → 400", code == 400, f"status={code}")
+            check("application", "ответ называет поле согласия",
+                  b"consent" in body, body[:120].decode("utf-8", "replace"))
+
+            trap = {**good, "email": "bot@example.org", "website": "http://spam.example"}
+            code, _, _ = http_req(f"{base}/api/application", method="POST",
+                                  data=json.dumps(trap).encode(), headers=hdr)
+            check("application", "ловушка для роботов отвечает как при успехе", code == 200, f"status={code}")
+
+            code, _, _ = http_req(f"{base}/api/application", method="POST",
+                                  data="{ не json".encode(), headers=hdr)
+            check("application", "битый JSON → 400", code == 400, f"status={code}")
+
+            code, _, _ = http_req(f"{base}/api/application", method="GET")
+            check("application", "GET не принимается", code in (404, 405), f"status={code}")
+
+            # Персональные данные не должны утечь через список файлов.
+            code, _, body = http_req(f"{base}/.applications/2026-08.jsonl")
+            check("application", "каталог заявок не отдаётся по HTTP",
+                  code in (400, 404) and b"example.org" not in body, f"status={code}")
+
+            files = sorted(Path(tmp).glob("*.jsonl"))
+            saved = files[0].read_text(encoding="utf-8") if files else ""
+            check("application", "заявка робота НЕ сохранена",
+                  "bot@example.org" not in saved, "заявка из ловушки попала в журнал")
+            check("application", "заявка без согласия НЕ сохранена",
+                  "b@example.org" not in saved, "заявка без согласия попала в журнал")
+            check("application", "файл заявок доступен только владельцу (0600)",
+                  bool(files) and (files[0].stat().st_mode & 0o777) == 0o600,
+                  f"mode={oct(files[0].stat().st_mode & 0o777) if files else 'нет файла'}")
+
+            # Разметка в имени — это ДАННЫЕ. В журнале она хранится как есть
+            # (JSONL не HTML-файл), а безопасность обеспечивает вывод: список
+            # заявок отдаётся как JSON, а админка рисует его через escapeHtml.
+            xss = {**good, "email": "xss@example.org",
+                   "firstName": "<img src=x onerror=alert(1)>"}
+            code, _, _ = http_req(f"{base}/api/application", method="POST",
+                                  data=json.dumps(xss).encode(), headers=hdr)
+            check("application", "заявка с разметкой в имени принимается как данные",
+                  code == 200, f"status={code}")
+            admin_html = (ROOT / "admin.html").read_text(encoding="utf-8")
+            check("application", "админка экранирует поля заявки при выводе",
+                  "escapeHtml(a.lastName" in admin_html and "escapeHtml(v)" in admin_html,
+                  "рендер заявок должен идти через escapeHtml")
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
+
 def test_admin_server() -> None:
     print("\nadmin-server.js (auth / csrf / collect origin)")
     base = f"http://127.0.0.1:{ADMIN_PORT}"
@@ -332,6 +415,15 @@ def test_admin_server() -> None:
             data=b"{}",
             headers={"Content-Type": "application/json"},
         )
+        code, _, body = http_req(f"{base}/api/applications")
+        check("admin", "список заявок без авторизации → 401",
+              code == 401 and b"example.org" not in body, f"status={code}")
+
+        code, _, _ = http_req(f"{base}/api/applications/status", method="POST",
+                              data=b'{"id":"x","status":"done"}',
+                              headers={"Content-Type": "application/json"})
+        check("admin", "смена статуса заявки без авторизации → 401", code == 401, f"status={code}")
+
         check("admin", "update without auth → 401", code == 401, f"status={code}")
 
         # With bogus auth, still 401 (cannot reach CSRF without valid password)
@@ -455,6 +547,7 @@ def main() -> None:
         test_unit_host_and_csp()
         test_nginx_allowlist()
         test_static_server()
+        test_application_intake()
         test_admin_server()
         test_admin_authed()
     except Exception as e:

@@ -305,6 +305,20 @@
   }
   .range-btn.active:hover:not(:disabled) { background: var(--accent-dark); }
   .muted { color: var(--ink-mute); font-size: 12.5px; }
+
+  /* Заявки. Карточка, а не строка таблицы: полей много, и половина из них
+     необязательные — в таблице получился бы частокол прочерков. */
+  .application { margin-bottom: 14px; }
+  .application-head { display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .application-head strong { font-size: 16px; }
+  .application-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px 20px; margin: 0 0 12px; }
+  .application-facts div { display: flex; gap: 8px; align-items: baseline; }
+  .application-facts dt { color: var(--ink-mute); font-size: 12.5px; flex: none; }
+  .application-facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .application-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .path-chip {
     display: inline-block;
     background: var(--bg-alt);
@@ -449,6 +463,8 @@
               id="tabbtn-catalog" role="tab" aria-selected="true" aria-controls="tab-catalog">Каталог</button>
       <button type="button" class="tab" data-tab="analytics"
               id="tabbtn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics">Аналитика</button>
+      <button type="button" class="tab" data-tab="applications"
+              id="tabbtn-applications" role="tab" aria-selected="false" aria-controls="tab-applications">Заявки</button>
       <button type="button" class="tab" data-tab="health"
               id="tabbtn-health" role="tab" aria-selected="false" aria-controls="tab-health">Диагностика</button>
     </div>
@@ -629,6 +645,19 @@
       </div>
     </div>
 
+    <!-- ═══ ЗАЯВКИ ═══ -->
+    <div id="tab-applications" class="hidden" role="tabpanel" aria-labelledby="tabbtn-applications" tabindex="0">
+      <div class="panel">
+        <div class="range">
+          <button type="button" class="secondary" id="applicationsRefresh">Обновить</button>
+          <span class="muted" id="applicationsMeta">Загрузка…</span>
+        </div>
+        <!-- Персональные данные заявителей. Админка слушает только 127.0.0.1,
+             и этот экран — единственное место, где они показываются. -->
+        <div id="applicationsList"></div>
+      </div>
+    </div>
+
     <!-- ═══ HEALTH ═══ -->
     <div id="tab-health" class="hidden" role="tabpanel" aria-labelledby="tabbtn-health" tabindex="0">
       <div class="panel">
@@ -674,7 +703,9 @@
       $('tab-catalog').classList.toggle('hidden', name !== 'catalog');
       $('tab-analytics').classList.toggle('hidden', name !== 'analytics');
       $('tab-health').classList.toggle('hidden', name !== 'health');
+      $('tab-applications').classList.toggle('hidden', name !== 'applications');
       if (name === 'analytics') loadAnalytics();
+      if (name === 'applications') loadApplications();
     });
   });
 
@@ -1207,6 +1238,107 @@
       $('analyticsMeta').textContent = 'Не удалось загрузить аналитику: ' + (e.message || e);
     }
   };
+
+  // ─── Заявки ────────────────────────────────────────────────────────────
+  //
+  // Список персональных данных, поэтому всё выводится через escapeHtml, а
+  // разметка собирается здесь, а не приходит с сервера: сервер отдаёт JSON.
+
+  const APPLICATION_STATUSES = [
+    ['new', 'Новая'],
+    ['in-progress', 'В работе'],
+    ['done', 'Обработана'],
+    ['rejected', 'Отклонена'],
+  ];
+
+  const SOURCE_LABELS = {
+    'hse-site': 'сайт НИУ ВШЭ', telegram: 'телеграм', search: 'поиск', ad: 'реклама',
+    social: 'соцсети', mailing: 'рассылка', board: 'стенд', recommendation: 'рекомендация',
+    other: 'другое',
+  };
+
+  const fmtMoscow = (iso) => {
+    try {
+      return new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    } catch {
+      return iso || '';
+    }
+  };
+
+  const renderApplications = (data) => {
+    const box = $('applicationsList');
+    const items = data.items || [];
+    $('applicationsMeta').textContent = items.length
+      ? `Всего ${data.stats.total}, новых ${data.stats.new}. Хранятся ${data.stats.retentionDays} дней.`
+      : 'Заявок пока нет.';
+
+    box.innerHTML = items
+      .map((a) => {
+        const sources = (a.sources || [])
+          .map((x) => SOURCE_LABELS[x] || x)
+          .concat(a.sourceOther ? [`«${a.sourceOther}»`] : [])
+          .join(', ');
+        const rows = [
+          ['Телефон', a.phone],
+          ['Почта', a.email],
+          ['Должность', a.position],
+          ['Место работы', a.company],
+          ['Программа', a.program && a.program.title],
+          ['Узнал(а) о нас', sources],
+          ['Комментарий', a.comment],
+        ].filter(([, v]) => v);
+
+        return `<div class="panel application" data-id="${escapeHtml(a.id)}">
+          <div class="application-head">
+            <strong>${escapeHtml(a.lastName + ' ' + a.firstName)}</strong>
+            <span class="muted">${escapeHtml(fmtMoscow(a.receivedAt))}</span>
+          </div>
+          <dl class="application-facts">
+            ${rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}
+          </dl>
+          ${a.noAnnouncements ? '<p class="muted">Анонсы получать отказался(лась).</p>' : ''}
+          <div class="application-actions">
+            ${APPLICATION_STATUSES.map(
+              ([value, label]) =>
+                `<button type="button" class="secondary status-btn${
+                  a.status === value ? ' active' : ''
+                }" data-status="${value}">${label}</button>`,
+            ).join('')}
+          </div>
+        </div>`;
+      })
+      .join('');
+  };
+
+  const loadApplications = async () => {
+    $('applicationsMeta').textContent = 'Загрузка…';
+    try {
+      renderApplications(await api('/api/applications'));
+    } catch (e) {
+      $('applicationsMeta').textContent = 'Не удалось загрузить заявки: ' + (e.message || e);
+    }
+  };
+
+  $('applicationsRefresh').addEventListener('click', loadApplications);
+
+  // Делегирование: карточки перерисовываются целиком после каждой смены
+  // статуса, и обработчики на самих кнопках пришлось бы вешать заново.
+  $('applicationsList').addEventListener('click', async (event) => {
+    const btn = event.target.closest('.status-btn');
+    if (!btn) return;
+    const card = btn.closest('.application');
+    try {
+      await ensureCsrf();
+      await api('/api/applications/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ id: card.dataset.id, status: btn.dataset.status }),
+      });
+      await loadApplications();
+    } catch (e) {
+      $('applicationsMeta').textContent = 'Статус не изменён: ' + (e.message || e);
+    }
+  });
 
   document.querySelectorAll('.range-btn').forEach((btn) => {
     btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
