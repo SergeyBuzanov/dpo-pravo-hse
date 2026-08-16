@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Подтягивает описания программ со страниц hse.ru в .catalog-data.json.
+ * Подтягивает данные программ со страниц hse.ru в .catalog-data.json.
  *
  *   node scripts/fetch-program-descriptions.js            # только пустые
  *   node scripts/fetch-program-descriptions.js --all      # перезаписать все
@@ -40,6 +40,10 @@ function assertHseUrl(url) {
 
 const decodeEntities = (s) =>
   String(s)
+    .replace(/&laquo;/g, '«')
+    .replace(/&raquo;/g, '»')
+    .replace(/&ndash;/g, '–')
+    .replace(/&mdash;/g, '–')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, '<')
@@ -47,10 +51,19 @@ const decodeEntities = (s) =>
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&');
 
-/** Текст из куска разметки: снимаем теги, схлопываем пробелы. */
+/**
+ * Текст из куска разметки: снимаем теги, схлопываем пробелы.
+ * Кавычки и скобки чистим отдельно: снятие тегов оставляет пробел на месте
+ * каждого тега, и «<b>Право</b>» превращается в «« Право »» с дырами внутри.
+ */
 const textOf = (chunk) =>
   decodeEntities(String(chunk).replace(/<[^>]+>/g, ' '))
     .replace(/\s+/g, ' ')
+    .replace(/«\s+/g, '«')
+    .replace(/\s+»/g, '»')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .replace(/\s+([,.;:!?])/g, '$1')
     .trim();
 
 /** Вырезает <section> с указанным классом целиком. */
@@ -98,13 +111,81 @@ function extractResults(html) {
   return out;
 }
 
+/**
+ * Учебный план из секции «Программа обучения» (`dpo-program`).
+ * Модуль – заголовок плюс объём часов, лежащие соседними узлами карточки.
+ * Номер («1. ») из заголовка снимаем: порядок несёт сам список, а
+ * дублировать его цифрой в тексте значило бы получить «1. 1. Профессия».
+ */
+function extractModules(html) {
+  const sec = sectionByClass(html, 'dpo-program');
+  if (!sec) return [];
+  const out = [];
+  for (const m of sec.matchAll(/<li[^>]*class="[^"]*dpo-program__li[^"]*"[^>]*>([\s\S]*?)<\/li>/g)) {
+    const card = m[1];
+    const title = card.match(/class="[^"]*dpo-program__caption-title[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
+    const badge = card.match(/class="[^"]*dpo-program__badge[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
+    const name = title ? textOf(title[1]).replace(/^\d+[.)]\s*/, '') : '';
+    if (!name) continue;
+    out.push({ title: name, hours: badge ? textOf(badge[1]) : null });
+  }
+  return out;
+}
+
+/**
+ * Преподаватели. Блок свёрстан как слайдер (`dpo-slider`) с карточками
+ * `dpo-sponsor__card`, и такой же слайдер на странице используют партнёры,
+ * поэтому берём только тот, что содержит карточки с классом
+ * `dpo-sponsor__img_person` – это и есть люди.
+ *
+ * Фото не забираем: снимки лежат на hse.ru, а наша CSP запрещает внешние
+ * картинки. Тянуть их к себе – отдельное решение, а не побочный эффект
+ * обновления каталога.
+ */
+function extractTeachers(html) {
+  const out = [];
+  for (const sec of html.matchAll(/<section[^>]*dpo-slider[\s\S]*?<\/section>/g)) {
+    const block = sec[0];
+    if (!block.includes('dpo-sponsor__img_person')) continue;
+    for (const c of block.matchAll(/<li[^>]*class="[^"]*dpo-sponsor__card[^"]*"[^>]*>([\s\S]*?)<\/li>/g)) {
+      const card = c[1];
+      const name = card.match(/class="[^"]*dpo-caption[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
+      const about = card.match(/class="[^"]*dpo-sponsor__text[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
+      const nm = name ? textOf(name[1]) : '';
+      if (!nm) continue;
+      out.push({ name: nm, about: about ? textOf(about[1]) : null });
+    }
+  }
+  return out;
+}
+
+/**
+ * Запасной источник описания: сама секция «О программе» на странице.
+ * У части программ нет ни og:description, ни микроразметки Course – тогда
+ * страница осталась бы без описания вовсе, хотя текст на ней есть.
+ * Видеоблок из секции выбрасывается: его подпись не про программу.
+ */
+function extractAboutFromSection(html) {
+  const sec = sectionByClass(html, 'dpo-about');
+  if (!sec) return null;
+  const content = sec.match(/class="[^"]*dpo-about__content[^"]*"[^>]*>([\s\S]*?)$/i);
+  let body = content ? content[1] : sec;
+  body = body.replace(/<div[^>]*class="[^"]*dpo-video[^"]*"[\s\S]*$/i, ' ');
+  const text = textOf(body);
+  return text.length > 40 ? text : null;
+}
+
 function extract(html) {
-  const out = { tagline: null, about: null, audience: null, results: null };
+  const out = { tagline: null, about: null, audience: null, results: null, modules: null, teachers: null };
 
   const audience = extractAudience(html);
   if (audience.items.length) out.audience = audience;
   const results = extractResults(html);
   if (results.length) out.results = results;
+  const modules = extractModules(html);
+  if (modules.length) out.modules = modules;
+  const teachers = extractTeachers(html);
+  if (teachers.length) out.teachers = teachers;
 
   const og = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i);
   if (og) out.tagline = decodeEntities(og[1]).trim() || null;
@@ -125,6 +206,10 @@ function extract(html) {
     }
     if (out.about) break;
   }
+
+  // Микроразметка предпочтительнее, но когда её нет – берём текст секции.
+  if (!out.about) out.about = extractAboutFromSection(html);
+
   return out;
 }
 
@@ -166,15 +251,17 @@ async function main() {
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
-      const { tagline, about, audience, results } = extract(html);
+      const { tagline, about, audience, results, modules, teachers } = extract(html);
 
-      if (!tagline && !about && !audience && !results) {
+      if (!tagline && !about && !audience && !results && !modules && !teachers) {
         failed.push({ title: program.title, reason: 'описание не найдено на странице' });
       } else {
         if (tagline) program.tagline = tagline;
         if (about) program.about = about;
         if (audience) program.audience = audience;
         if (results) program.results = results;
+        if (modules) program.modules = modules;
+        if (teachers) program.teachers = teachers;
         ok++;
       }
       process.stdout.write(`  [${i + 1}/${targets.length}] ${ok ? '' : ''}${program.title.slice(0, 60)}\n`);
@@ -187,11 +274,14 @@ async function main() {
 
   fs.writeFileSync(STORE, JSON.stringify(store, null, 2) + '\n', 'utf8');
 
-  const withAbout = programs.filter((p) => p.about).length;
-  const withTagline = programs.filter((p) => p.tagline).length;
+  const count = (field) => programs.filter((p) => p[field]).length;
   console.log(
-    `\nГотово. Описаний получено: ${ok}. ` +
-      `Всего в каталоге с about: ${withAbout}/${programs.length}, с tagline: ${withTagline}/${programs.length}.`,
+    `\nГотово. Страниц обработано: ${ok}. Всего в каталоге: ` +
+      `описание ${count('about')}/${programs.length}, ` +
+      `для кого ${count('audience')}/${programs.length}, ` +
+      `результаты ${count('results')}/${programs.length}, ` +
+      `учебный план ${count('modules')}/${programs.length}, ` +
+      `преподаватели ${count('teachers')}/${programs.length}.`,
   );
   if (failed.length) {
     console.warn(`Не удалось (${failed.length}):`);

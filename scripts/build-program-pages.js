@@ -158,6 +158,68 @@ ${items}
 }
 
 /** «Результаты»: чему научится выпускник. */
+/**
+ * Учебный план. Нумерованный список: порядок модулей содержателен, это
+ * последовательность обучения, а не набор. Часы стоят рядом с названием
+ * строкой, как пришли с hse.ru – форма записи там разная, приводить её к
+ * числу значило бы додумывать за источник.
+ */
+function renderModules(p) {
+  if (!p.modules || !p.modules.length) {
+    return slot('Программа обучения', 'Модули и объём часов пока не заполнены. Заполняются полем modules у программы – его подтягивает scripts/fetch-program-descriptions.js.');
+  }
+  const items = p.modules
+    .map(
+      (m) =>
+        `          <li><span class="module-title">${esc(m.title)}</span>` +
+        (m.hours ? `<span class="module-hours">${esc(m.hours)}</span>` : '') +
+        '</li>',
+    )
+    .join('\n');
+  const total = p.modules.length;
+  return `      <section class="block">
+        <h2>Программа обучения</h2>
+        <p class="block-note">${esc(pluralModules(total))}</p>
+        <ol class="modules">
+${items}
+        </ol>
+      </section>`;
+}
+
+/** «9 модулей» / «4 модуля» / «1 модуль». */
+function pluralModules(n) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} модуль`;
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${n} модуля`;
+  return `${n} модулей`;
+}
+
+/**
+ * Преподаватели: имя и краткая справка. Фотографий нет намеренно – снимки
+ * лежат на hse.ru, а CSP страницы запрещает внешние картинки. Тянуть их к
+ * себе это отдельное решение, а не побочный эффект обновления каталога.
+ */
+function renderTeachers(p) {
+  if (!p.teachers || !p.teachers.length) {
+    return slot('Преподаватели', 'Состав преподавателей пока не заполнен. Заполняется полем teachers у программы – его подтягивает scripts/fetch-program-descriptions.js.');
+  }
+  const items = p.teachers
+    .map(
+      (t) =>
+        `          <li>\n            <p class="teacher-name">${esc(t.name)}</p>` +
+        (t.about ? `\n            <p class="teacher-about">${esc(t.about)}</p>` : '') +
+        '\n          </li>',
+    )
+    .join('\n');
+  return `      <section class="block">
+        <h2>${p.teachers.length === 1 ? 'Преподаватель' : 'Преподаватели'}</h2>
+        <ul class="teachers">
+${items}
+        </ul>
+      </section>`;
+}
+
 function renderResults(p) {
   if (!p.results || !p.results.length) return '';
   const items = p.results.map((x) => `          <li>${esc(x)}</li>`).join('\n');
@@ -254,8 +316,8 @@ function renderPage(p, sphere) {
 ${renderAbout(p)}
 ${renderAudience(p)}
 ${renderResults(p)}
-${slot('Программа обучения', 'Модули и объём часов пока не заполнены. Добавьте поле modules у программы в .catalog-data.json.')}
-${slot('Преподаватели', 'Состав преподавателей пока не заполнен. Добавьте поле teachers у программы в .catalog-data.json.')}
+${renderModules(p)}
+${renderTeachers(p)}
 ${renderSiblings(sphere || { title: '', items: [] }, p)}
   </div>
 
@@ -426,6 +488,32 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .results li::before{content:"";position:absolute;left:8px;top:19px;width:7px;height:12px;
   border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);
   transform:rotate(45deg)}
+.block-note{font-size:13.5px;color:var(--ink-mute);margin:0 0 14px}
+
+/* Учебный план. Номер рисуется счётчиком, а не маркером списка: нужен
+   моноширинный столбец, иначе двузначные номера сдвигают все названия. */
+.modules{list-style:none;margin:0;padding:0;counter-reset:module}
+.modules li{counter-increment:module;display:grid;
+  grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;
+  padding:13px 0;border-top:1px solid var(--line)}
+.modules li::before{content:counter(module);font-size:13px;color:var(--ink-mute);
+  font-variant-numeric:tabular-nums}
+.module-title{font-size:15.5px;line-height:1.5;color:var(--ink-soft)}
+.module-hours{font-size:13px;color:var(--ink-mute);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+
+/* Преподаватели. Фотографий нет: снимки лежат на hse.ru, а CSP страницы
+   запрещает внешние картинки. Поэтому вес несёт имя, а не портрет. */
+.teachers{list-style:none;margin:0;padding:0}
+.teachers li{padding:16px 0;border-top:1px solid var(--line)}
+.teacher-name{font-size:16px;font-weight:600;margin:0 0 4px;color:var(--ink)}
+.teacher-about{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin:0}
+
+@media (max-width:520px){
+  .modules li{grid-template-columns:22px minmax(0,1fr);gap:2px 10px}
+  .module-hours{grid-column:2}
+}
+
 .siblings{list-style:none;margin:0;padding:0}
 .siblings li{border-top:1px solid var(--line)}
 .siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:var(--ink-soft);

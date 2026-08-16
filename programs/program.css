@@ -69,6 +69,32 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .results li::before{content:"";position:absolute;left:8px;top:19px;width:7px;height:12px;
   border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);
   transform:rotate(45deg)}
+.block-note{font-size:13.5px;color:var(--ink-mute);margin:0 0 14px}
+
+/* Учебный план. Номер рисуется счётчиком, а не маркером списка: нужен
+   моноширинный столбец, иначе двузначные номера сдвигают все названия. */
+.modules{list-style:none;margin:0;padding:0;counter-reset:module}
+.modules li{counter-increment:module;display:grid;
+  grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;
+  padding:13px 0;border-top:1px solid var(--line)}
+.modules li::before{content:counter(module);font-size:13px;color:var(--ink-mute);
+  font-variant-numeric:tabular-nums}
+.module-title{font-size:15.5px;line-height:1.5;color:var(--ink-soft)}
+.module-hours{font-size:13px;color:var(--ink-mute);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+
+/* Преподаватели. Фотографий нет: снимки лежат на hse.ru, а CSP страницы
+   запрещает внешние картинки. Поэтому вес несёт имя, а не портрет. */
+.teachers{list-style:none;margin:0;padding:0}
+.teachers li{padding:16px 0;border-top:1px solid var(--line)}
+.teacher-name{font-size:16px;font-weight:600;margin:0 0 4px;color:var(--ink)}
+.teacher-about{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin:0}
+
+@media (max-width:520px){
+  .modules li{grid-template-columns:22px minmax(0,1fr);gap:2px 10px}
+  .module-hours{grid-column:2}
+}
+
 .siblings{list-style:none;margin:0;padding:0}
 .siblings li{border-top:1px solid var(--line)}
 .siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:var(--ink-soft);
