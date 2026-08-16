@@ -88,7 +88,7 @@ header a[class*="btn-"]::after{
 /* Scroll reveal */
 .dpo-reveal{
   opacity: 0;
-  transform: translateY(28px);
+  transform: translateY(16px);
   filter: blur(4px);
   transition:
     opacity .7s cubic-bezier(.22,1,.36,1),
@@ -145,8 +145,8 @@ section#explore a[href]{
        обёртке из props.accentColor. Захардкоженный хекс оставлял подсветку
        синей при смене темы. */
     border-color: var(--dpo-accent, #1658DA) !important;
-    transform: translateY(-5px) !important;
-    box-shadow: 0 18px 42px rgba(33,30,27,0.12) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 28px rgba(33,30,27,0.1) !important;
     background: #FFFEFB !important;
   }
   #explore a:hover .explore-arrow{
@@ -261,7 +261,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
         seen.add(el);
         el.classList.add('dpo-reveal');
         if (el.matches('.card, .stat, .contact-row')) {
-          el.style.setProperty('--dpo-delay', `${(i % 6) * 60}ms`);
+          el.style.setProperty('--dpo-delay', `${(i % 6) * 36}ms`);
           i += 1;
         }
         if (el.matches('.quote-card, .contact-card')) el.classList.add('dpo-reveal-scale');
@@ -275,7 +275,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       kids.forEach((el, idx) => {
         if (el.classList.contains('dpo-reveal')) return;
         el.classList.add('dpo-reveal');
-        el.style.setProperty('--dpo-delay', `${idx * 80}ms`);
+        el.style.setProperty('--dpo-delay', `${idx * 50}ms`);
       });
       // show hero after paint
       requestAnimationFrame(() => {

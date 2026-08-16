@@ -330,7 +330,7 @@
     var caption = backdrop.querySelector('.dpo-app-program');
     caption.textContent = context.programTitle
       ? 'Программа: ' + context.programTitle
-      : 'Расскажите о себе — учебный офис свяжется с вами и подберёт программу.';
+      : 'Расскажите о себе – учебный офис свяжется с вами и подберёт программу.';
 
     document.addEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = 'hidden';
@@ -477,7 +477,7 @@
         // Сюда попадаем при обрыве сети и при недоступном приёмнике. Молчать
         // здесь нельзя: человек уверен, что заявку получили.
         status.textContent =
-          'Заявка не отправлена — нет связи с сервером. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
+          'Заявка не отправлена – нет связи с сервером. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
       });
   }
 

@@ -64,8 +64,15 @@ const ESCAPE_MAP = Object.freeze({
   "'": '&#39;',
 });
 
+// Em dash в видимых текстах сайта запрещён типографикой проекта, а данные
+// с hse.ru его приносят. Правка при выводе, а не в хранилище: хранилище
+// перезаписывается каждым обновлением каталога.
+function enDash(str) {
+  return String(str).replace(/\s—\s/g, ' – ').replace(/—/g, '–');
+}
+
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
+  return enDash(str).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
 }
 
 /**
@@ -115,8 +122,14 @@ function renderCard(item) {
   // есть своя страница. Ссылка внутренняя, поэтому без target="_blank".
   const href = escapeHtml(programHref(item));
 
+  // Метка сферы под шапкой карточки: без неё направление программы видно
+  // только в чипах фильтра, а на самой карточке – нет.
+  const sphereLine = sphere
+    ? `\n      <div class="sphere">${escapeHtml(sphere.title)}</div>`
+    : '';
+
   return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
-      <span class="badge">${typeShort}</span>
+      <span class="badge">${typeShort}</span>${sphereLine}
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
       <div class="foot">
@@ -130,6 +143,17 @@ function renderChip(label, value, count, active) {
   return `  <button type="button" class="chip${active ? ' active' : ''}" data-value="${escapeHtml(value)}">${escapeHtml(label)} (${count})</button>`;
 }
 
+/**
+ * Аббревиатура остаётся в чипе: она связывает чип с бейджем «ПК» на
+ * карточках. Но одна она ничего не говорит человеку не из отрасли,
+ * поэтому рядом расшифровка. data-value не трогаем: на «ПК»/«ПП»
+ * завязаны ссылки с фильтром из блока «Наши форматы» лендинга.
+ */
+const TYPE_CHIP_LABELS = Object.freeze({
+  'ПК': 'ПК · Повышение квалификации',
+  'ПП': 'ПП · Профессиональная переподготовка',
+});
+
 function buildTypeChips(items) {
   const counts = new Map();
   for (const item of items) {
@@ -137,7 +161,9 @@ function buildTypeChips(items) {
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   const chips = [renderChip('Все программы', 'all', items.length, true)];
-  for (const [key, count] of counts) chips.push(renderChip(key, key, count, false));
+  for (const [key, count] of counts) {
+    chips.push(renderChip(TYPE_CHIP_LABELS[key] || key, key, count, false));
+  }
   return chips.join('\n');
 }
 
@@ -196,8 +222,11 @@ function buildJsonLd(items) {
     const mode = COURSE_MODE[formatBucket(item.studyFormat?.title).value];
     const course = {
       '@type': 'Course',
-      name: item.title,
-      description: `${item.type?.title || 'Программа ДПО'} — факультет права НИУ ВШЭ.`,
+      // enDash и здесь: JSON-LD собирается мимо escapeHtml, а название
+      // программы приходит с hse.ru и может принести em dash.
+      name: enDash(item.title),
+      // En dash: em dash в текстах сайта запрещён, микроразметка – тоже текст.
+      description: `${item.type?.title || 'Программа ДПО'} – факультет права НИУ ВШЭ.`,
       url: item.url,
       provider: {
         '@type': 'Organization',

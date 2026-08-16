@@ -68,6 +68,97 @@ const ESCAPE_MAP = Object.freeze({
 });
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
 
+/**
+ * Чистка текстов, пришедших со скрапа hse.ru. В хранилище встречаются
+ * дважды экранированные сущности: на странице источника стояло
+ * «&amp;rarr;», fetch-скрипт снял один слой и оставил «&rarr;» буквально,
+ * а esc() при вёрстке превращал его в видимый текст. Поэтому декодируем
+ * ДВАЖДЫ, а после – убираем декоративные стрелки той же логикой, что в
+ * textOf у scripts/fetch-program-descriptions.js. Данные хранилища при
+ * этом не переписываются: трансляция происходит только при генерации.
+ */
+const NAMED_ENTITIES = Object.freeze({
+  laquo: '«', raquo: '»', ndash: '–', mdash: '–', quot: '"', apos: "'",
+  lt: '<', gt: '>', nbsp: ' ', amp: '&', hellip: '…',
+  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  rarr: '→', larr: '←', harr: '↔', uarr: '↑', darr: '↓',
+  // Латиница с диакритикой: французские программы каталога.
+  eacute: 'é', Eacute: 'É', egrave: 'è', Egrave: 'È', ecirc: 'ê', Ecirc: 'Ê',
+  euml: 'ë', agrave: 'à', Agrave: 'À', acirc: 'â', Acirc: 'Â',
+  ccedil: 'ç', Ccedil: 'Ç', icirc: 'î', Icirc: 'Î', iuml: 'ï',
+  ocirc: 'ô', Ocirc: 'Ô', ouml: 'ö', oelig: 'œ', OElig: 'Œ',
+  ucirc: 'û', Ucirc: 'Û', ugrave: 'ù', uuml: 'ü', aelig: 'æ', AElig: 'Æ',
+});
+
+const decodeOnce = (s) =>
+  String(s)
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&([a-zA-Z]+);/g, (m, name) => NAMED_ENTITIES[name] ?? m);
+
+function cleanText(s) {
+  if (s == null) return s;
+  return decodeOnce(decodeOnce(s))
+    // Декоративные стрелки скрапа – тот же диапазон, что в textOf.
+    .replace(/[←-⇿➔-➿⬀-⯿]/g, ' ')
+    // Em dash в видимых текстах запрещён типографикой проекта.
+    .replace(/—/g, '–')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Программа с очищенными текстовыми полями. Заголовок не трогаем: из него
+ * считается имя файла страницы, и чистка разъехалась бы со ссылками.
+ */
+function normalizeProgram(p) {
+  const out = { ...p };
+  if (p.tagline) out.tagline = cleanText(p.tagline);
+  if (p.about) out.about = cleanText(p.about);
+  if (p.audience) {
+    out.audience = {
+      intro: p.audience.intro ? cleanText(p.audience.intro) : null,
+      items: (p.audience.items || []).map(cleanText).filter(Boolean),
+    };
+  }
+  if (p.results) out.results = p.results.map(cleanText).filter(Boolean);
+  if (p.modules) {
+    out.modules = p.modules.map((m) => ({
+      ...m,
+      title: cleanText(m.title),
+      hours: m.hours ? cleanText(m.hours) : m.hours,
+    }));
+  }
+  if (p.teachers) {
+    out.teachers = p.teachers.map((t) => ({
+      ...t,
+      name: cleanText(t.name),
+      about: t.about ? cleanText(t.about) : t.about,
+    }));
+  }
+  return out;
+}
+
+/**
+ * Разбивка склеенного about на пункты. Часть описаний на hse.ru свёрстана
+ * списком <li>, а в хранилище попала одной строкой без разделителей.
+ * Признак склейки: в длинном тексте нет ни одного конца предложения, зато
+ * есть стыки «слово Слово» (строчная/скобка перед заглавной кириллицей) –
+ * места, где сходились соседние пункты. Порог в три стыка защищает
+ * обычные фразы с именами собственными («по праву Гонконга») от разбивки.
+ * Сами слова источника не меняются – только точки разреза.
+ */
+function splitGluedAbout(text) {
+  if (!text || text.length < 150) return null;
+  if (/[.!?](\s|$)/.test(text)) return null; // есть нормальные предложения
+  const junctions = text.match(/[а-яё)»"%](?=\s+[А-ЯЁ])/g);
+  if (!junctions || junctions.length < 3) return null;
+  return text
+    .split(/(?<=[а-яё)»"%])\s+(?=[А-ЯЁ])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Наружу пускаем только hse.ru – тот же контракт, что у каталога. */
 function safeUrl(url) {
   try {
@@ -136,7 +227,16 @@ function renderAbout(p) {
     );
   }
   const lead = p.tagline ? `        <p class="about-lead">${esc(p.tagline)}</p>\n` : '';
-  const body = p.about ? `        <p class="about-body">${esc(p.about)}</p>\n` : '';
+  // Склеенный из <li> источника текст возвращаем к виду списка;
+  // связный абзац остаётся абзацем.
+  const items = splitGluedAbout(p.about);
+  const body = items
+    ? `        <ul class="about-list">\n${items
+        .map((x) => `          <li>${esc(x)}</li>`)
+        .join('\n')}\n        </ul>\n`
+    : p.about
+      ? `        <p class="about-body">${esc(p.about)}</p>\n`
+      : '';
   return `      <section class="block">
         <h2>О программе</h2>
 ${lead}${body}        <p class="about-source">Описание с официальной страницы программы на hse.ru.</p>
@@ -249,7 +349,9 @@ ${links}
       </section>`;
 }
 
-function renderPage(p, sphere) {
+function renderPage(rawProgram, sphere) {
+  // Тексты чистятся здесь, при генерации; хранилище остаётся как есть.
+  const p = normalizeProgram(rawProgram);
   const official = safeUrl(p.url);
   const short = p.type?.shortTitle || '';
   const doc = DOC_BY_TYPE[short];
@@ -306,8 +408,10 @@ function renderPage(p, sphere) {
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
   <span class="header-side">
+    <nav class="header-nav" aria-label="Разделы сайта">
+      <a class="nav-link" href="../Каталог программ.html">Программы</a>
+    </nav>
     <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
-    <a class="back" href="../Каталог программ.html">← В каталог</a>
   </span>
 </header>
 
@@ -445,7 +549,9 @@ body{margin:0;background:var(--bg);color:var(--ink);
 a{color:inherit;text-decoration:none}
 h1,h2{font-family:'HSE Slab','Source Serif 4',Georgia,serif;margin:0}
 
-a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+/* Фокус: тонкий контур для контраста плюс мягкое кольцо системы. */
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;
+  box-shadow:0 0 0 3px rgba(22,88,218,.18)}
 
 .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:var(--accent);
   font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
@@ -459,8 +565,9 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .logo .name{font-weight:700;font-size:15px;color:var(--accent)}
 .logo .sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.back{font-size:14px;font-weight:600;color:var(--accent)}
-.back:hover{text-decoration:underline}
+.header-nav{display:flex;align-items:center;gap:14px}
+.nav-link{font-size:14px;font-weight:600;color:var(--accent)}
+.nav-link:hover{text-decoration:underline}
 .vi-btn{font:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft);
   background:transparent;border:1px solid rgba(33,30,27,.25);border-radius:999px;padding:8px 14px;
   white-space:nowrap;transition:color .28s var(--ease),border-color .28s var(--ease)}
@@ -484,8 +591,20 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .block h2{font-size:clamp(21px,2.2vw,28px);font-weight:600;margin-bottom:12px}
 .block-sub{font-size:13.5px;color:var(--ink-mute);margin:0 0 16px}
 .about-lead{font-size:17px;line-height:1.6;font-weight:600;color:var(--ink);margin:0 0 14px}
-.about-body{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px;max-width:68ch}
+.about-body{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px}
+/* about, склеенный источником из <li>, возвращаем к виду списка. */
+.about-list{list-style:none;margin:0 0 14px;padding:0}
+.about-list li{position:relative;font-size:15.5px;line-height:1.6;color:var(--ink-soft);
+  padding:10px 0 10px 22px;border-top:1px solid var(--line)}
+/* Точка нарисована бордером, а не фоном: в режиме для слабовидящих фоны
+   обнуляются, и маркер на background там бы исчез. */
+.about-list li::before{content:"";position:absolute;left:2px;top:19px;width:0;height:0;
+  border:3px solid var(--accent);border-radius:50%}
 .about-source{font-size:13px;color:var(--ink-mute);margin:0}
+/* Мера строки: длинные текстовые блоки держим около 72ch, сетка колонок
+   при этом не меняется – ограничивается только ширина самого текста. */
+.about-lead,.about-body,.about-list li,.block-sub,.block-note,.slot,
+.results li,.modules li,.teachers li,.siblings a{max-width:72ch}
 .slot{font-size:15.5px;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgba(33,30,27,.25);border-radius:16px;padding:20px;margin:0}
 .pills{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0}
@@ -527,9 +646,12 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 
 .siblings{list-style:none;margin:0;padding:0}
 .siblings li{border-top:1px solid var(--line)}
-.siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:var(--ink-soft);
-  transition:color .28s var(--ease)}
-.siblings a:hover{color:var(--accent)}
+/* Ссылки на соседние программы выглядят ссылками: цвет акцента и
+   проявляющееся подчёркивание по системной кривой. */
+.siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:var(--accent);
+  text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;
+  transition:color .28s var(--ease),text-decoration-color .28s var(--ease)}
+.siblings a:hover{color:var(--accent-dark);text-decoration-color:currentColor}
 
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.side{position:static}}

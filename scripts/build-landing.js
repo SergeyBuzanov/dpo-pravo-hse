@@ -4,10 +4,12 @@
  *
  *   node scripts/build-landing.js
  *
- * Сейчас таких участков три:
+ * Сейчас таких участков пять:
  *   - панель «Направления» в шапке (сферы и по три программы в каждой);
  *   - блок «Наши форматы» (число программ и цены по типам ПК и ПП);
- *   - карусель «Авторы и преподаватели» (люди из данных программ).
+ *   - карусель «Авторы и преподаватели» (люди из данных программ);
+ *   - секция «Программы по сферам» (карточки сфер с тремя программами);
+ *   - ячейка статистики героя с числом программ ДПО.
  *
  * Зачем генератор, а не разметка руками
  * -------------------------------------
@@ -45,13 +47,20 @@ const REGIONS = {
   panel: { start: '<!-- dpo:nav-panel:start -->', end: '<!-- dpo:nav-panel:end -->' },
   formats: { start: '<!-- dpo:formats:start -->', end: '<!-- dpo:formats:end -->' },
   teachers: { start: '<!-- dpo:teachers:start -->', end: '<!-- dpo:teachers:end -->' },
+  spheres: { start: '<!-- dpo:spheres:start -->', end: '<!-- dpo:spheres:end -->' },
 };
 
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
 const PREVIEW = 3;
 
+// Em dash в видимых текстах сайта запрещён типографикой проекта, а данные
+// с hse.ru его приносят («…института права и развития ВШЭ — Сколково»).
+// Правим при выводе, а не в .catalog-data.json: хранилище перезаписывается
+// каждым обновлением каталога, и правка в нём не пережила бы ночь.
+const enDash = (s) => String(s).replace(/\s—\s/g, ' – ').replace(/—/g, '–');
+
 const escapeHtml = (s) =>
-  String(s)
+  enDash(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -127,6 +136,102 @@ ${filled.map(renderSphere).join('\n')}
 /** «22 000» с неразрывными пробелами: цена не должна рваться по строкам. */
 function formatPrice(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + '\u00A0₽';
+}
+
+/** Тип программы словами: «ПК» на карточке сферы ничего не говорит. */
+function kindLabel(p) {
+  const s = (p.type && (p.type.shortTitle || p.type.title)) || '';
+  if (s === 'ПК') return 'Повышение квалификации';
+  if (s === 'ПП') return 'Переподготовка';
+  return s || 'Программа ДПО';
+}
+
+/**
+ * Формат без пояснения в скобках: «Гибридный (обучение проходит очно и
+ * параллельно в онлайн)» в строке меты карточки сферы занимал бы три строки.
+ * Пояснение остаётся на странице программы, где ему и место.
+ */
+function shortFormat(p) {
+  return String(p.studyFormat?.title || '').replace(/\s*\(.*\)\s*$/, '');
+}
+
+/**
+ * Секция «Программы по сферам»: карточка сферы с тремя программами
+ * и строкой-ссылкой в каталог с уже применённым фильтром направления –
+ * та же механика адреса, что у «ещё N» в панели «Направления».
+ */
+function renderSphereCard(sphere) {
+  const total = sphere.items.length;
+  if (!total) return '';
+
+  const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
+
+  const rows = sphere.items.slice(0, PREVIEW).map((p) => {
+    const price = p.discountPrice || p.educationPricing;
+    const priceHtml =
+      Number.isFinite(price) && price > 0
+        ? `\n              <span class="dpo-prog-price">${escapeHtml(formatPrice(price))}</span>`
+        : '';
+    const meta = [kindLabel(p), shortFormat(p)].filter(Boolean).join(' · ');
+    return `          <li>
+            <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
+              <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
+              <span class="dpo-prog-meta">${escapeHtml(meta)}</span>
+            </a>
+          </li>`;
+  });
+
+  // Когда скрытых программ нет, «Все 3 программы сферы» обещало бы больше,
+  // чем покажет: те же три уже на карточке. Формулировка честнее.
+  const allLabel =
+    total > PREVIEW ? `Все ${pluralPrograms(total)} сферы` : 'Открыть сферу в каталоге';
+
+  return `        <div class="dpo-sphere">
+          <div class="dpo-sphere-head">
+            <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>
+            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}</span>
+          </div>
+          <ul class="dpo-sphere-list">
+${rows.join('\n')}
+          </ul>
+          <a class="dpo-sphere-all" href="${escapeHtml(catalogHref)}">${escapeHtml(allLabel)}</a>
+        </div>`;
+}
+
+function renderSpheres(programs) {
+  const { spheres, unassigned } = groupBySphere(programs);
+  const filled = spheres.filter((s) => s.items.length);
+  if (!filled.length) throw new Error('ни одна сфера не заполнена, секция «по сферам» пуста');
+
+  // Стили строки-ссылки и посадка карточек лежат в регионе, а не в шаблонном
+  // <style>: до шаблонного блока генератору не дотянуться, а правило рядом
+  // с разметкой переживает пересборку вместе с ней.
+  const style = `      <style>
+        /* Карточка по контенту: ряд сетки не растягивает соседей до самой
+           высокой карточки, пустых хвостов под списком не остаётся. */
+        .dpo-spheres { align-items: start; }
+        .dpo-sphere { padding-bottom: 0; }
+        .dpo-sphere-all {
+          display: block;
+          margin: 0 -24px;
+          padding: 14px 24px 18px;
+          border-top: 1px solid rgba(33, 30, 27, 0.1);
+          font-size: 14.5px;
+          font-weight: 600;
+          color: var(--dpo-accent, #1658DA);
+        }
+        .dpo-sphere-all::after { content: ' →'; }
+        @media (hover: hover) and (pointer: fine) {
+          .dpo-sphere-all:hover { text-decoration: underline; }
+        }
+      </style>`;
+
+  const html = `${style}
+      <div class="dpo-spheres">
+${filled.map(renderSphereCard).join('\n')}
+      </div>`;
+
+  return { html, spheres: filled.length, unassigned: unassigned.length };
 }
 
 /**
@@ -215,6 +320,8 @@ function renderFormats(programs) {
           <div class="dpo-format-body">
             <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
             <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>
+          </div>
+          <div class="dpo-format-side">
             <p class="dpo-format-facts">${facts
               .map((f) => `<span>${f}</span>`)
               .join('')}</p>${cta}
@@ -222,7 +329,26 @@ function renderFormats(programs) {
         </li>`;
   }).filter(Boolean);
 
-  return `      <ul class="dpo-formats">
+  // Третья колонка добавлена генератором, а не шаблоном: на 1440px правая
+  // половина строки пустовала, потому что описание ограничено 62ch. Документ,
+  // цена и ссылка ушли направо; стиль живёт в регионе, потому что шаблонный
+  // <style> отсюда недостижим, а регион пересобирается целиком.
+  return `      <style>
+        .dpo-format-side { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+        /* На средней ширине третьей колонки нет – факты встают под описанием. */
+        @media (min-width: 621px) {
+          .dpo-format-side { grid-column: 2; }
+        }
+        @media (min-width: 980px) {
+          .dpo-format { grid-template-columns: minmax(104px, 168px) minmax(0, 1fr) minmax(220px, 0.55fr); }
+          .dpo-format-side { grid-column: 3; align-items: flex-end; text-align: right; }
+          /* Точка-разделитель в столбике осталась бы одна в начале строки. */
+          .dpo-format-side .dpo-format-facts { flex-direction: column; gap: 4px; align-items: flex-end; }
+          .dpo-format-side .dpo-format-facts span + span::before { content: none; }
+          .dpo-format-side .dpo-format-cta { align-self: flex-end; }
+        }
+      </style>
+      <ul class="dpo-formats">
 ${rows.join('\n')}
       </ul>`;
 }
@@ -285,9 +411,30 @@ function mergeTeachers(programs) {
   return { people, rawCount: raw.length };
 }
 
+/**
+ * Монограмма для круга-аватара: первая буква имени + первая буква фамилии.
+ * Источник пишет имена двояко: «Максимов Дмитрий Михайлович» (три слова,
+ * фамилия впереди) и «Дмитрий Максимов» (два, имя впереди). Порядок букв
+ * выравниваем по числу слов, чтобы монограмма всегда читалась «Имя Фамилия».
+ */
+function initials(name) {
+  const words = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  const first = (w) => (w[0] || '').toUpperCase();
+  if (words.length >= 3) return first(words[1]) + first(words[0]);
+  if (words.length === 2) return first(words[0]) + first(words[1]);
+  return first(words[0]);
+}
+
 function renderTeachers(programs) {
   const { people, rawCount } = mergeTeachers(programs);
   if (!people.length) throw new Error('в данных нет ни одного преподавателя');
+
+  // Кламп в inline-стиле, а не в шаблонном <style>: до шаблонного блока
+  // генератору не дотянуться. max-height – запасной ход для движков без
+  // -webkit-line-clamp: без него текст не обрезался бы вовсе.
+  const clamp =
+    'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; max-height: 4.7em;';
 
   const cards = people
     .map((t) => {
@@ -299,25 +446,50 @@ function renderTeachers(programs) {
               pluralPrograms(t.programs.length),
             )}</p>`
           : '';
-      const about = t.about
-        ? `\n          <p class="dpo-teacher-desc">${escapeHtml(t.about)}</p>`
-        : '';
+      // Пустая справка или служебная пометка «todo» – хвост не рисуем:
+      // карточка заканчивается именем, а не заглушкой.
+      const aboutText = typeof t.about === 'string' ? t.about.trim() : '';
+      const about =
+        aboutText && !/\btodo\b/i.test(aboutText)
+          ? `\n          <p class="dpo-teacher-desc" style="${clamp}">${escapeHtml(aboutText)}</p>`
+          : '';
+      // Монограмма текстом, не SVG: в режиме для слабовидящих svg скрыты,
+      // а текст в круге остаётся. Круг декоративен – имя стоит рядом.
       return `        <li class="dpo-teacher">
-          <span class="dpo-portrait" aria-hidden="true">
-            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="34" height="34" opacity="0.45"><circle cx="20" cy="15" r="6.5"/><path d="M8.5 32.5c1.8-5.6 6.3-8.6 11.5-8.6s9.7 3 11.5 8.6"/></svg>
-          </span>
+          <span class="dpo-portrait" aria-hidden="true" style="width: 44px; height: 44px; font-size: 17px;">${escapeHtml(
+            initials(t.name),
+          )}</span>
           <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>${note}${about}
         </li>`;
     })
     .join('\n');
 
+  // align-items: flex-start – карточка по высоте контента: дорожка-flex
+  // иначе растягивает все карточки до самой высокой, оставляя пустые хвосты.
   return {
-    html: `      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0;">
+    html: `      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0; align-items: flex-start;">
 ${cards}
       </ul>`,
     people: people.length,
     merged: rawCount - people.length,
   };
+}
+
+/**
+ * Ячейка статистики героя «30+ программ доп. профобразования»: рукописное
+ * «30+» разошлось с каталогом (в нём 26). Число подставляется из данных –
+ * точное и без «+». Ячейка ищется по подписи; если подпись из data-блока
+ * шаблона пропала или переписана – сборка падает, а не молчит: молчание
+ * означало бы вечное «30+».
+ */
+const STATS_LABEL = 'программ доп. профобразования';
+const STATS_CELL_RE = /\{\s*n:\s*'[^']*',\s*label:\s*'программ доп\. профобразования'\s*\}/;
+
+function applyHeroStats(template, count) {
+  if (!STATS_CELL_RE.test(template)) {
+    throw new Error(`в шаблоне не найдена ячейка статистики с подписью '${STATS_LABEL}'`);
+  }
+  return template.replace(STATS_CELL_RE, `{ n: '${count}', label: '${STATS_LABEL}' }`);
 }
 
 /** Меняет содержимое одной размеченной области шаблона. */
@@ -345,6 +517,9 @@ function build() {
   template = replaceRegion(template, REGIONS.formats, renderFormats(programs));
   const teachers = renderTeachers(programs);
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
+  const spheresSection = renderSpheres(programs);
+  template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
+  template = applyHeroStats(template, programs.length);
 
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
@@ -361,6 +536,7 @@ function build() {
     `Карусель преподавателей: ${teachers.people} человек` +
       (teachers.merged ? `, склеено повторов ${teachers.merged}` : ''),
   );
+  console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}, в героя подставлено число ${programs.length}`);
   return { spheres, total: programs.length, unassigned };
 }
 
@@ -373,4 +549,11 @@ if (require.main === module) {
   }
 }
 
-module.exports = { build, buildPanel, renderFormats };
+module.exports = {
+  build,
+  buildPanel,
+  renderFormats,
+  renderSpheres,
+  renderTeachers,
+  applyHeroStats,
+};

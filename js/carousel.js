@@ -99,6 +99,11 @@
    */
   var SPEED_PX_PER_SEC = 26;
 
+  // На тач-экране :hover не существует, и остановить автоход было бы нечем
+  // (WCAG 2.2.2). Поэтому там лента не едет сама вовсе: остаётся ручная
+  // прокрутка пальцем и стрелками.
+  var COARSE = window.matchMedia('(hover: none), (pointer: coarse)');
+
   function loopedTracks() {
     return document.querySelectorAll('[data-dpo-loop]');
   }
@@ -106,7 +111,48 @@
   function paused(track) {
     // Прокручиваемый контейнер он же и есть цель наведения, поэтому
     // отдельной обёртки искать не нужно.
-    return track.matches(':hover') || track.contains(document.activeElement);
+    return track.hasAttribute('data-dpo-stopped') ||
+      track.matches(':hover') || track.contains(document.activeElement);
+  }
+
+  // Кнопка «пауза»: явный орган остановки, а не только hover и фокус.
+  // Состояние живёт атрибутом на самой дорожке: рантайм пересобирает
+  // разметку, и атрибут кнопки после перерисовки потерялся бы вместе с ней.
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-dpo-pause]') : null;
+    if (!btn) return;
+    var track = trackFor(btn);
+    if (!track) return;
+    var stopped = track.toggleAttribute('data-dpo-stopped');
+    var btns = document.querySelectorAll('[aria-controls="' + track.id + '"][data-dpo-pause]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', stopped ? 'true' : 'false');
+      btns[i].setAttribute('aria-label', stopped ? 'Запустить ленту' : 'Остановить ленту');
+      btns[i].classList.toggle('is-stopped', stopped);
+    }
+  });
+
+  // Автоход включается только когда лента видна: до этого первая карточка
+  // стоит ровно по левому полю, и посетитель застаёт кадр целым, а не
+  // уехавшим за время прокрутки страницы к секции.
+  var visible = typeof WeakSet === 'function' ? new WeakSet() : null;
+  var io = null;
+  if (visible && typeof IntersectionObserver === 'function') {
+    io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) visible.add(entries[i].target);
+        else visible.delete(entries[i].target);
+      }
+    }, { threshold: 0.15 });
+  }
+  function inView(track) {
+    if (!io) return true;
+    if (!track._dpoObserved) {
+      track._dpoObserved = true;
+      io.observe(track);
+      return false;
+    }
+    return visible.has(track);
   }
 
   var last = null;
@@ -114,12 +160,13 @@
     var dt = last == null ? 0 : Math.min((now - last) / 1000, 0.05);
     last = now;
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+        !COARSE.matches &&
         !document.documentElement.classList.contains('vi-mode') &&
         !document.hidden) {
       var tracks = loopedTracks();
       for (var i = 0; i < tracks.length; i++) {
         var t = tracks[i];
-        if (paused(t)) continue;
+        if (!inView(t) || paused(t)) continue;
         // Пока идёт плавная прокрутка от стрелки, не трогаем scrollLeft:
         // запись каждый кадр обрывала бы её, и нажатие двигало ленту на
         // пару пикселей вместо целого шага.
