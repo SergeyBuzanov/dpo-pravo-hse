@@ -307,6 +307,15 @@
     transform: translateY(14px) scale(0.97);
     filter: blur(2px);
   }
+  /* Миниатюра-обложка (кладёт update-catalog.js, если у программы есть
+     image). Выпускается до краёв карточки отрицательными полями; радиус
+     верхних углов чуть меньше радиуса карточки – картинка лежит внутри
+     1px рамки. Без тени в покое, как и вся карточка. */
+  .card-thumb{
+    display: block; width: calc(100% + 48px); height: 150px;
+    margin: -24px -24px 0; object-fit: cover;
+    border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+  }
   .card .badge{
     align-self: flex-start; font-size: 12.5px; font-weight: 700;
     padding: 4px 11px; border-radius: var(--radius-sm); background: var(--bg-tint); color: var(--blue);
@@ -364,6 +373,8 @@
   html.vi-mode body{ background: #fff !important; }
   html.vi-mode a{ text-decoration: underline !important; }
   html.vi-mode svg{ display: none !important; }
+  /* Миниатюры – теги img, общее правило background-image их не снимает. */
+  html.vi-mode .card-thumb{ display: none !important; }
   html.vi-mode .card, html.vi-mode .contact-card{ border: 2px solid #000 !important; }
   html.vi-mode .chip, html.vi-mode .vi-btn, html.vi-mode button{ border: 2px solid #000 !important; }
   html.vi-mode .chip.active{ background: #000 !important; color: #fff !important; }
@@ -416,7 +427,7 @@
   <h1>Программы факультета права</h1>
   <p>Повышение квалификации и профессиональная переподготовка для юристов. Отберите программы по направлению, формату и длительности; на странице программы собраны условия, а запись открывается на hse.ru.</p>
   <!-- CATALOG:META -->
-<span class="meta">Обновлено: <b>16 августа 2026 г. в 03:00</b> · 26 актуальных программ</span>
+<span class="meta">Обновлено: <b>16 августа 2026 г. в 19:06</b> · 26 актуальных программ</span>
   <!-- /CATALOG:META -->
 </section>
 
@@ -481,6 +492,7 @@
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->
     <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1786914000000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный 17 августа 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/958734693.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Актуальные вопросы гражданского права</h3>
@@ -491,6 +503,7 @@
       </div>
     </a>
     <a href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="45000" data-start="1788210000000" data-title="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers" data-search="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers пк онлайн асинхронный 1 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/959312137.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Юридический язык</div>
       <h3>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</h3>
@@ -501,6 +514,7 @@
       </div>
     </a>
     <a href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="57000" data-start="1788728400000" data-title="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" data-search="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса пк онлайн асинхронный 7 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/1129129055.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</h3>
@@ -511,6 +525,7 @@
       </div>
     </a>
     <a href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="50000" data-start="1788987600000" data-title="правовые вопросы банкротства: теории и практики" data-search="правовые вопросы банкротства: теории и практики пк онлайн синхронный 10 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/1008772871.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Правовые вопросы банкротства: теории и практики</h3>
@@ -521,6 +536,7 @@
       </div>
     </a>
     <a href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" class="card" data-type="ПП" data-format="mixed" data-sphere="international" data-duration="unknown" data-price="180000" data-start="1789333200000" data-title="французское (европейское) экономическое право / droit économique français (européen)" data-search="французское (европейское) экономическое право / droit économique français (européen) пп смешанный 14 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/961021723.jpg" alt="" loading="lazy">
       <span class="badge">ПП</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Французское (европейское) экономическое право / Droit économique français (européen)</h3>
@@ -531,6 +547,7 @@
       </div>
     </a>
     <a href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="50000" data-start="1789419600000" data-title="контрактное право гонконга" data-search="контрактное право гонконга пк онлайн синхронный 15 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/1025688553.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Контрактное право Гонконга</h3>
@@ -541,6 +558,7 @@
       </div>
     </a>
     <a href="programs/personalnyy-assistent-pro-829977883.html" class="card" data-type="ПК" data-format="mixed" data-sphere="practice" data-duration="short" data-price="47000" data-start="1789765200000" data-title="персональный ассистент pro" data-search="персональный ассистент pro пк смешанный 2 недели 19 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/829977883.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Персональный ассистент PRO</h3>
@@ -551,6 +569,7 @@
       </div>
     </a>
     <a href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="short" data-price="45000" data-start="1789938000000" data-title="интеллектуальная собственность: от закона к практике" data-search="интеллектуальная собственность: от закона к практике пк очный 6 недель 21 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/816497962.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Интеллектуальная собственность: от закона к практике</h3>
@@ -561,6 +580,7 @@
       </div>
     </a>
     <a href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" class="card" data-type="ПК" data-format="online" data-sphere="digital" data-duration="medium" data-price="55000" data-start="1790110800000" data-title="цифровое право для бизнеса" data-search="цифровое право для бизнеса пк онлайн синхронный 1,5 месяца 23 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/837181759.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Цифровое право для бизнеса</h3>
@@ -571,6 +591,7 @@
       </div>
     </a>
     <a href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" class="card" data-type="ПК" data-format="mixed" data-sphere="international" data-duration="medium" data-price="50000" data-start="1790197200000" data-title="международное частное право: трансграничные операции" data-search="международное частное право: трансграничные операции пк смешанный 1,5 месяца 24 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/474599435.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Международное частное право: трансграничные операции</h3>
@@ -581,6 +602,7 @@
       </div>
     </a>
     <a href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="medium" data-price="78000" data-start="1790542800000" data-title="исламские финансы: правовые основы, комплаенс и бизнес-практика" data-search="исламские финансы: правовые основы, комплаенс и бизнес-практика пк онлайн синхронный 3 месяца 28 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/814248062.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Исламские финансы: правовые основы, комплаенс и бизнес-практика</h3>
@@ -591,6 +613,7 @@
       </div>
     </a>
     <a href="programs/pravo-na-angliyskom-legal-english-474776084.html" class="card" data-type="ПП" data-format="hybrid" data-sphere="language" data-duration="long" data-price="130000" data-start="1790715600000" data-title="право на английском / legal english" data-search="право на английском / legal english пп гибридный (обучение проходит очно и параллельно в онлайн) 8 месяцев 30 сентября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/474776084.jpg" alt="" loading="lazy">
       <span class="badge">ПП</span>
       <div class="sphere">Юридический язык</div>
       <h3>Право на английском / Legal English</h3>
@@ -601,6 +624,7 @@
       </div>
     </a>
     <a href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="short" data-price="75000" data-start="1791147600000" data-title="авторское право в информационном обществе" data-search="авторское право в информационном обществе пк очный 5 недель 5 октября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/472681893.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Авторское право в информационном обществе</h3>
@@ -611,6 +635,7 @@
       </div>
     </a>
     <a href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" class="card" data-type="ПК" data-format="hybrid" data-sphere="practice" data-duration="unknown" data-price="150000" data-start="1791838800000" data-title="правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (gr в фарме)" data-search="правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (gr в фарме) пк гибридный (обучение проходит очно и параллельно в онлайн) 13 октября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/1163275658.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</h3>
@@ -621,6 +646,7 @@
       </div>
     </a>
     <a href="programs/biznes-mediatsiya-494685723.html" class="card" data-type="ПП" data-format="mixed" data-sphere="practice" data-duration="long" data-price="390000" data-start="1791925200000" data-title="бизнес-медиация" data-search="бизнес-медиация пп смешанный 6 месяцев 14 октября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/494685723.jpg" alt="" loading="lazy">
       <span class="badge">ПП</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Бизнес-медиация</h3>
@@ -641,6 +667,7 @@
       </div>
     </a>
     <a href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="90000" data-start="1792962000000" data-title="французский юридический язык: право, терминология и аргументация (le français juridique: droit, terminologie et argumentation)" data-search="французский юридический язык: право, терминология и аргументация (le français juridique: droit, terminologie et argumentation) пк онлайн синхронный 26 октября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/1057557281.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Юридический язык</div>
       <h3>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</h3>
@@ -651,6 +678,7 @@
       </div>
     </a>
     <a href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" class="card" data-type="ПК" data-format="online" data-sphere="international" data-duration="unknown" data-price="125000" data-start="1793566800000" data-title="введение в правовую систему китая" data-search="введение в правовую систему китая пк онлайн синхронный 2 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/894108285.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Введение в правовую систему Китая</h3>
@@ -661,6 +689,7 @@
       </div>
     </a>
     <a href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="50000" data-start="1794171600000" data-title="английское контрактное право" data-search="английское контрактное право пк онлайн синхронный 1 месяц 9 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/856421092.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Английское контрактное право</h3>
@@ -671,6 +700,7 @@
       </div>
     </a>
     <a href="programs/morskoy-arbitrazh-906651510.html" class="card" data-type="ПК" data-format="online" data-sphere="international" data-duration="unknown" data-price="60000" data-start="1794258000000" data-title="морской арбитраж" data-search="морской арбитраж пк онлайн синхронный 10 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/906651510.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Морской арбитраж</h3>
@@ -681,6 +711,7 @@
       </div>
     </a>
     <a href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="60000" data-start="1794776400000" data-title="корпоративное право: основные проблемы" data-search="корпоративное право: основные проблемы пк онлайн синхронный 5 недель 16 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/474596729.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Корпоративное право: основные проблемы</h3>
@@ -691,6 +722,7 @@
       </div>
     </a>
     <a href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" class="card" data-type="ПК" data-format="online" data-sphere="practice" data-duration="short" data-price="40000" data-start="1794776400000" data-title="техники эффективного анализа юридических документов" data-search="техники эффективного анализа юридических документов пк онлайн синхронный 4 недели 16 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/820703080.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Техники эффективного анализа юридических документов</h3>
@@ -701,6 +733,7 @@
       </div>
     </a>
     <a href="programs/delovye-peregovory-pravovye-strategii-589527758.html" class="card" data-type="ПК" data-format="mixed" data-sphere="corporate" data-duration="short" data-price="45000" data-start="1794862800000" data-title="деловые переговоры: правовые стратегии" data-search="деловые переговоры: правовые стратегии пк смешанный 5 недель 17 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/589527758.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Деловые переговоры: правовые стратегии</h3>
@@ -711,6 +744,7 @@
       </div>
     </a>
     <a href="programs/transportnoe-pravo-802031223.html" class="card" data-type="ПК" data-format="online" data-sphere="practice" data-duration="short" data-price="45000" data-start="1794949200000" data-title="транспортное право" data-search="транспортное право пк онлайн синхронный 1 месяц 18 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/802031223.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Транспортное право</h3>
@@ -721,6 +755,7 @@
       </div>
     </a>
     <a href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="40000" data-start="1795554000000" data-title="общие вопросы договорного права" data-search="общие вопросы договорного права пк онлайн синхронный 3 недели 25 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/907279244.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Общие вопросы договорного права</h3>
@@ -731,6 +766,7 @@
       </div>
     </a>
     <a href="programs/neyropravo-905186485.html" class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="unknown" data-price="50000" data-start="1795986000000" data-title="нейроправо" data-search="нейроправо пк очный 30 ноября 2026 г.">
+      <img class="card-thumb" src="images/programs/thumbs/905186485.jpg" alt="" loading="lazy">
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Нейроправо</h3>

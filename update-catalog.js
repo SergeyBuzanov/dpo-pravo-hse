@@ -105,6 +105,21 @@ function durationBucket(raw) {
   return { value: 'long', label: 'Более 3 месяцев' };
 }
 
+/**
+ * Миниатюра карточки: обложка программы, скачанная scripts/fetch-program-media.js.
+ * Берётся thumb 640px, если он есть; иначе оригинал. Путь проверяется той же
+ * строгой маской, что в lib/catalog-store.js, и файл обязан лежать на диске –
+ * битая картинка в каталоге хуже, чем карточка без неё (без image карточка
+ * рендерится как раньше, пустой дыры не остаётся).
+ */
+function cardImage(item) {
+  const image = typeof item.image === 'string' ? item.image.trim() : '';
+  if (!/^images\/programs\/[a-z0-9_.-]+$/i.test(image)) return null;
+  if (!fssync.existsSync(path.join(__dirname, image))) return null;
+  const thumb = `images/programs/thumbs/${String(item.id)}.jpg`;
+  return fssync.existsSync(path.join(__dirname, thumb)) ? thumb : image;
+}
+
 function renderCard(item) {
   const typeShort = escapeHtml(item.type?.shortTitle || item.type?.title || '');
   const format = item.studyFormat?.title || '';
@@ -128,7 +143,13 @@ function renderCard(item) {
     ? `\n      <div class="sphere">${escapeHtml(sphere.title)}</div>`
     : '';
 
-  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
+  // Миниатюра декоративна (alt=""): вся суть карточки продублирована текстом.
+  const thumb = cardImage(item);
+  const thumbLine = thumb
+    ? `\n      <img class="card-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy">`
+    : '';
+
+  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">${thumbLine}
       <span class="badge">${typeShort}</span>${sphereLine}
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>

@@ -41,6 +41,17 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 
 .hero{background:linear-gradient(160deg,var(--accent) 0%,var(--accent-dark) 100%);color:#fff;
   padding:clamp(32px,5vw,56px) var(--gutter) clamp(36px,6vw,64px)}
+/* Герой с обложкой программы. Стопка: градиент героя (фолбэк) -> фото ->
+   вуаль -> текст. isolation держит отрицательные z-index внутри секции.
+   Вуаль – по «правилу вуали» DESIGN.md: те же тона darken(accent), что у
+   героя лендинга, но плотнее (0.80/0.84/0.90 против 0.72/0.80/0.93):
+   белый h1 здесь идёт по всей ширине кадра, включая самые светлые участки
+   обложек. Замер по пикселям (см. отчёт сборки): самый светлый пиксель под
+   заголовком даёт контраст с #fff не ниже 4.5:1. */
+.hero--photo{position:relative;isolation:isolate}
+.hero-bg{position:absolute;inset:0;z-index:-2;background-size:cover;background-position:center 30%}
+.hero-veil{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,
+  rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
 .crumbs{font-size:13px;color:rgba(255,255,255,.88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .crumbs a{text-decoration:underline}
 .hero h1{font-weight:600;font-size:clamp(28px,3.2vw,42px);line-height:1.15;max-width:20ch;
@@ -138,6 +149,13 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .cta-alt{display:block;text-align:center;font-size:14px;color:var(--ink-mute);margin:14px 0 0;
   text-decoration:underline;text-underline-offset:3px}
 .cta-alt:hover{color:var(--accent)}
+/* Вторичная кнопка оплаты: контур в акцент, не спорит с primary.
+   Hover только у настоящего курсора – на тач-экране :hover залипает. */
+.cta-pay{display:block;text-align:center;font-size:15px;font-weight:600;color:var(--accent);
+  background:transparent;border:1.5px solid var(--accent);border-radius:999px;
+  padding:13px 24px;margin:12px 0 0;transition:background .28s var(--ease),color .28s var(--ease)}
+@media (hover:hover) and (pointer:fine){.cta-pay:hover{background:var(--accent);color:#fff}}
+.cta-pay-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:8px 0 0;text-align:center}
 .doc{background:var(--bg-tint)}
 .doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);
   border-radius:999px;padding:4px 11px;margin-bottom:12px}
@@ -155,4 +173,4 @@ html.vi-mode body{zoom:1.25;background:#fff !important}
 html.vi-mode *{background:transparent !important;background-image:none !important;color:#000 !important;
   box-shadow:none !important;text-shadow:none !important;animation:none !important;transition:none !important}
 html.vi-mode a{text-decoration:underline !important}
-html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .vi-btn{border:2px solid #000 !important}
+html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .cta-pay,html.vi-mode .vi-btn{border:2px solid #000 !important}

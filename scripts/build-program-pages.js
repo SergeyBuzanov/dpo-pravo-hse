@@ -171,6 +171,34 @@ function safeUrl(url) {
   }
 }
 
+/**
+ * Персональная ссылка оплаты на маркетплейсе hse.ru. Это ровно та ссылка,
+ * которую маркетплейс сам ставит на «В корзину» для неавторизованных
+ * (снята с живой страницы программы): вход в ЛК, затем шлюз ЕЛК
+ * возвращает человека на страницу программы с action=cart. Звёздочка
+ * перед base64 обязательна – так закодирован адрес возврата у самого
+ * маркетплейса. Ссылка ВЫЧИСЛЯЕТСЯ из id при каждой сборке и в хранилище
+ * не кладётся: хранить производное значило бы дать ему разойтись с формулой.
+ */
+function buildPayUrl(id) {
+  const cart = `https://www.hse.ru/edu/dpo/${id}?action=cart`;
+  const gateway =
+    'https://www.hse.ru/mirror/co-auth/elk/gateway.html?ext=marketplace&i=*' +
+    Buffer.from(cart).toString('base64');
+  return 'https://lk.hse.ru/signin?redirecturl=' + encodeURIComponent(gateway) + '&systemid=27';
+}
+
+/**
+ * Путь обложки: только наши локальные файлы (та же строгая маска, что в
+ * lib/catalog-store.js) и только реально лежащие на диске – битый фон
+ * хуже, чем его отсутствие.
+ */
+function safeImagePath(p) {
+  const image = typeof p.image === 'string' ? p.image.trim() : '';
+  if (!/^images\/programs\/[a-z0-9_.-]+$/i.test(image)) return null;
+  return fs.existsSync(path.join(ROOT, image)) ? image : null;
+}
+
 const DOC_BY_TYPE = {
   ПК: {
     name: 'Удостоверение о повышении квалификации',
@@ -226,7 +254,17 @@ function renderAbout(p) {
         'чтобы подтянуть его со страницы программы на hse.ru.',
     );
   }
-  const lead = p.tagline ? `        <p class="about-lead">${esc(p.tagline)}</p>\n` : '';
+  // og:description на hse.ru – это обрезанное начало того же about (иногда
+  // прямо на полуслове: «…а юрист – без понимани»). Показывать его жирным
+  // лидом над полным текстом значит дублировать абзац и выставлять обрыв.
+  // Лид выводится только когда он самостоятельный, а не префикс about.
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const taglineIsPrefix =
+    p.tagline && p.about && norm(p.about).startsWith(norm(p.tagline).slice(0, 60));
+  const lead =
+    p.tagline && !taglineIsPrefix
+      ? `        <p class="about-lead">${esc(p.tagline)}</p>\n`
+      : '';
   // Склеенный из <li> источника текст возвращаем к виду списка;
   // связный абзац остаётся абзацем.
   const items = splitGluedAbout(p.about);
@@ -360,20 +398,47 @@ function renderPage(rawProgram, sphere) {
     .map((s) => `<span>${esc(s)}</span>`)
     .join('');
 
+  // Фон героя – обложка программы с маркетплейса (см. fetch-program-media.js)
+  // под синей вуалью по «правилу вуали» DESIGN.md: текст поверх фото лежит
+  // только под слоями darken(accent). Без loading="lazy": это первый экран.
+  // Первым в стопке подключается thumb (если есть) через image-set – на 1x
+  // экранах полноразмерная обложка не нужна. В режиме для слабовидящих оба
+  // слоя снимаются общим правилом background-image: none.
+  const image = safeImagePath(p);
+  let heroMedia = '';
+  if (image) {
+    const thumbRel = `images/programs/thumbs/${String(p.id)}.jpg`;
+    const hasThumb = fs.existsSync(path.join(ROOT, thumbRel));
+    const bg = hasThumb
+      ? `background-image: url('../${esc(thumbRel)}'); ` +
+        `background-image: image-set(url('../${esc(thumbRel)}') 1x, url('../${esc(image)}') 2x);`
+      : `background-image: url('../${esc(image)}');`;
+    heroMedia =
+      `  <div class="hero-bg" aria-hidden="true" style="${bg}"></div>\n` +
+      '  <div class="hero-veil" aria-hidden="true"></div>';
+  }
+
   // Заявка подаётся ЗДЕСЬ, а не на маркетплейсе: человек, дочитавший
   // страницу программы, уже решился, и увод на чужой сайт в этот момент —
-  // самая дорогая потеря на всём пути. Ссылка на официальную страницу
-  // остаётся второй, для тех, кому нужен личный кабинет ВШЭ.
+  // самая дорогая потеря на всём пути. Второй, вторичной кнопкой стоит
+  // оплата на hse.ru: у программ маркетплейса (числовой id) она ведёт по
+  // персональной корзинной ссылке ЛК – осознанный внешний переход.
+  // Для программ без числового id (ручные записи админки) корзины на
+  // маркетплейсе нет – остаётся прежняя ссылка на официальную страницу.
+  const payUrl = /^\d+$/.test(String(p.id || '')) ? buildPayUrl(String(p.id)) : null;
+  const secondary = payUrl
+    ? `
+        <a class="cta-pay" href="${esc(payUrl)}" target="_blank" rel="noopener">Оплатить на hse.ru</a>
+        <p class="cta-pay-note">Запись и оплата – в личном кабинете hse.ru</p>`
+    : official
+      ? `
+        <a class="cta-alt" href="${esc(official)}" target="_blank" rel="noopener noreferrer">Записаться через личный кабинет на hse.ru</a>`
+      : '';
   const cta = `        <button type="button" class="cta" data-application
           data-program-id="${esc(String(p.id || ''))}"
           data-program-title="${esc(p.title)}"
           data-program-url="${esc(SITE)}/${esc(programHref(p))}">Подать заявку</button>
-        <p class="cta-note">Заявку принимает учебный офис Центра ДПО. Мы свяжемся с вами по телефону или почте.</p>${
-          official
-            ? `
-        <a class="cta-alt" href="${esc(official)}" target="_blank" rel="noopener noreferrer">Записаться через личный кабинет на hse.ru</a>`
-            : ''
-        }`;
+        <p class="cta-note">Заявку принимает учебный офис Центра ДПО. Мы свяжемся с вами по телефону или почте.</p>${secondary}`;
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -415,7 +480,8 @@ function renderPage(rawProgram, sphere) {
   </span>
 </header>
 
-<section class="hero">
+${heroMedia ? `<section class="hero hero--photo">
+${heroMedia}` : '<section class="hero">'}
   <nav class="crumbs" aria-label="Навигационная цепочка">
     <a href="../Каталог программ.html">Каталог программ</a>
     <span aria-hidden="true">/</span>
@@ -575,6 +641,17 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 
 .hero{background:linear-gradient(160deg,var(--accent) 0%,var(--accent-dark) 100%);color:#fff;
   padding:clamp(32px,5vw,56px) var(--gutter) clamp(36px,6vw,64px)}
+/* Герой с обложкой программы. Стопка: градиент героя (фолбэк) -> фото ->
+   вуаль -> текст. isolation держит отрицательные z-index внутри секции.
+   Вуаль – по «правилу вуали» DESIGN.md: те же тона darken(accent), что у
+   героя лендинга, но плотнее (0.80/0.84/0.90 против 0.72/0.80/0.93):
+   белый h1 здесь идёт по всей ширине кадра, включая самые светлые участки
+   обложек. Замер по пикселям (см. отчёт сборки): самый светлый пиксель под
+   заголовком даёт контраст с #fff не ниже 4.5:1. */
+.hero--photo{position:relative;isolation:isolate}
+.hero-bg{position:absolute;inset:0;z-index:-2;background-size:cover;background-position:center 30%}
+.hero-veil{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,
+  rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
 .crumbs{font-size:13px;color:rgba(255,255,255,.88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .crumbs a{text-decoration:underline}
 .hero h1{font-weight:600;font-size:clamp(28px,3.2vw,42px);line-height:1.15;max-width:20ch;
@@ -672,6 +749,13 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .cta-alt{display:block;text-align:center;font-size:14px;color:var(--ink-mute);margin:14px 0 0;
   text-decoration:underline;text-underline-offset:3px}
 .cta-alt:hover{color:var(--accent)}
+/* Вторичная кнопка оплаты: контур в акцент, не спорит с primary.
+   Hover только у настоящего курсора – на тач-экране :hover залипает. */
+.cta-pay{display:block;text-align:center;font-size:15px;font-weight:600;color:var(--accent);
+  background:transparent;border:1.5px solid var(--accent);border-radius:999px;
+  padding:13px 24px;margin:12px 0 0;transition:background .28s var(--ease),color .28s var(--ease)}
+@media (hover:hover) and (pointer:fine){.cta-pay:hover{background:var(--accent);color:#fff}}
+.cta-pay-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:8px 0 0;text-align:center}
 .doc{background:var(--bg-tint)}
 .doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);
   border-radius:999px;padding:4px 11px;margin-bottom:12px}
@@ -689,9 +773,9 @@ html.vi-mode body{zoom:1.25;background:#fff !important}
 html.vi-mode *{background:transparent !important;background-image:none !important;color:#000 !important;
   box-shadow:none !important;text-shadow:none !important;animation:none !important;transition:none !important}
 html.vi-mode a{text-decoration:underline !important}
-html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .vi-btn{border:2px solid #000 !important}
+html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .cta-pay,html.vi-mode .vi-btn{border:2px solid #000 !important}
 `;
 
 if (require.main === module) build();
 
-module.exports = { build, renderPage, safeUrl, slugifyHref: programHref };
+module.exports = { build, renderPage, safeUrl, slugifyHref: programHref, buildPayUrl };

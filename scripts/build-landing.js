@@ -365,11 +365,13 @@ ${rows.join('\n')}
  * – сливаем, оставляя более полную форму. Просто совпадения фамилии мало:
  * однофамильцы существуют, и склеить их хуже, чем показать дважды.
  */
-function mergeTeachers(programs) {
+function mergeTeachers(programs, photos = {}) {
   const raw = [];
   for (const p of programs) {
     for (const t of p.teachers || []) {
-      if (t && t.name) raw.push({ name: t.name, about: t.about || null, program: p.title });
+      if (t && t.name) {
+        raw.push({ name: t.name, about: t.about || null, program: p.title, photo: teacherPhoto(photos, t.name) });
+      }
     }
   }
 
@@ -394,7 +396,7 @@ function mergeTeachers(programs) {
       }
     }
     if (!hit) {
-      people.push({ name: r.name, tokens: tk, about: r.about, programs: [r.program] });
+      people.push({ name: r.name, tokens: tk, about: r.about, programs: [r.program], photo: r.photo });
       continue;
     }
     // Держим более полную форму имени и самую подробную справку.
@@ -404,6 +406,8 @@ function mergeTeachers(programs) {
     }
     if (r.about && (!hit.about || r.about.length > hit.about.length)) hit.about = r.about;
     if (!hit.programs.includes(r.program)) hit.programs.push(r.program);
+    // Фото могло прийти под любой из форм имени слитого человека.
+    if (!hit.photo && r.photo) hit.photo = r.photo;
   }
 
   // Порядок: сначала те, кто ведёт больше программ, затем по алфавиту.
@@ -426,8 +430,20 @@ function initials(name) {
   return first(words[0]);
 }
 
-function renderTeachers(programs) {
-  const { people, rawCount } = mergeTeachers(programs);
+/**
+ * Фото человека из справочника teacherPhotos (.catalog-data.json, кладёт
+ * scripts/fetch-program-media.js). Путь проверяется той же строгой маской,
+ * что в lib/catalog-store.js, и файл обязан лежать на диске: битая рамка
+ * вместо портрета хуже монограммы.
+ */
+function teacherPhoto(photos, name) {
+  const p = photos && typeof photos[name] === 'string' ? photos[name].trim() : '';
+  if (!/^images\/teachers\/[a-z0-9_.-]+$/i.test(p)) return null;
+  return fs.existsSync(path.join(ROOT, p)) ? p : null;
+}
+
+function renderTeachers(programs, photos = {}) {
+  const { people, rawCount } = mergeTeachers(programs, photos);
   if (!people.length) throw new Error('в данных нет ни одного преподавателя');
 
   // Кламп в inline-стиле, а не в шаблонном <style>: до шаблонного блока
@@ -455,23 +471,38 @@ function renderTeachers(programs) {
           : '';
       // Монограмма текстом, не SVG: в режиме для слабовидящих svg скрыты,
       // а текст в круге остаётся. Круг декоративен – имя стоит рядом.
+      // Фото (если скачано fetch-program-media.js) лежит ПОВЕРХ монограммы:
+      // в режиме для слабовидящих фото снимается правилом региона ниже, и
+      // круг сам возвращается к текстовой монограмме.
+      const photo = t.photo
+        ? `<img src="${escapeHtml(t.photo)}" alt="" loading="lazy" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 999px;">`
+        : '';
       return `        <li class="dpo-teacher">
-          <span class="dpo-portrait" aria-hidden="true" style="width: 44px; height: 44px; font-size: 17px;">${escapeHtml(
+          <span class="dpo-portrait" aria-hidden="true" style="width: 44px; height: 44px; font-size: 17px; position: relative;">${escapeHtml(
             initials(t.name),
-          )}</span>
+          )}${photo}</span>
           <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>${note}${about}
         </li>`;
     })
     .join('\n');
 
+  const withPhoto = people.filter((t) => t.photo).length;
+
+  // Правило vi-mode лежит в регионе, а не в шаблонном <style>: до шаблонного
+  // блока генератору не дотянуться. Общие правила режима прячут svg и
+  // background-image, но фото – тег img, его надо снимать отдельно.
   // align-items: flex-start – карточка по высоте контента: дорожка-flex
   // иначе растягивает все карточки до самой высокой, оставляя пустые хвосты.
   return {
-    html: `      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0; align-items: flex-start;">
+    html: `      <style>
+        html.vi-mode .dpo-portrait img { display: none !important; }
+      </style>
+      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0; align-items: flex-start;">
 ${cards}
       </ul>`,
     people: people.length,
     merged: rawCount - people.length,
+    withPhoto,
   };
 }
 
@@ -482,6 +513,47 @@ ${cards}
  * шаблона пропала или переписана – сборка падает, а не молчит: молчание
  * означало бы вечное «30+».
  */
+/**
+ * Обложки тайлам «Топ-5». Сами тайлы рендерит sc-for в шаблоне, который
+ * генератор не трогает, – но данные лежат в data-блоке шаблона, и вот их
+ * генератор обновить может: каждому элементу top5 дописывается/обновляется
+ * поле image (путь миниатюры). Разметку, использующую поле, в sc-for
+ * добавляет человек – см. отчёт сборки.
+ *
+ * Подстановка идемпотентна: старое поле image снимается и пишется заново.
+ * Если структура top5 в шаблоне пропала или переписана – сборка падает,
+ * а не молчит: молчание означало бы тайлы навсегда без обложек.
+ */
+function applyTop5Images(template, programs) {
+  const open = template.indexOf('top5: [');
+  if (open < 0) throw new Error('в data-блоке шаблона не найдена структура top5: [');
+  const close = template.indexOf(']', open);
+  if (close < 0) throw new Error('data-блок top5 не закрыт скобкой ]');
+
+  const byId = new Map();
+  for (const p of programs) {
+    if (!p.image) continue;
+    const thumb = `images/programs/thumbs/${p.id}.jpg`;
+    byId.set(String(p.id), fs.existsSync(path.join(ROOT, thumb)) ? thumb : p.image);
+  }
+
+  let hits = 0;
+  const body = template.slice(open, close).replace(/\{[^{}]*\}/g, (obj) => {
+    const href = obj.match(/href:\s*'programs\/[^']*-(\d+)\.html'/);
+    if (!href) return obj;
+    hits++;
+    // Снять прежнее поле, затем вписать свежее первым – идемпотентно.
+    const cleaned = obj.replace(/image:\s*'[^']*',\s*/, '');
+    const image = byId.get(href[1]);
+    if (!image) return cleaned;
+    return cleaned.replace(/^\{\s*/, `{ image: '${image}', `);
+  });
+  if (!hits) {
+    throw new Error('в data-блоке top5 не найдено ни одного элемента с href на programs/…');
+  }
+  return template.slice(0, open) + body + template.slice(close);
+}
+
 const STATS_LABEL = 'программ доп. профобразования';
 const STATS_CELL_RE = /\{\s*n:\s*'[^']*',\s*label:\s*'программ доп\. профобразования'\s*\}/;
 
@@ -515,11 +587,12 @@ function build() {
   const { html, spheres, unassigned } = buildPanel(programs);
   template = replaceRegion(template, REGIONS.panel, html);
   template = replaceRegion(template, REGIONS.formats, renderFormats(programs));
-  const teachers = renderTeachers(programs);
+  const teachers = renderTeachers(programs, store.teacherPhotos || {});
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
   const spheresSection = renderSpheres(programs);
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
   template = applyHeroStats(template, programs.length);
+  template = applyTop5Images(template, programs);
 
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
@@ -534,7 +607,8 @@ function build() {
   console.log(`Блок «Наши форматы»: ${byType}`);
   console.log(
     `Карусель преподавателей: ${teachers.people} человек` +
-      (teachers.merged ? `, склеено повторов ${teachers.merged}` : ''),
+      (teachers.merged ? `, склеено повторов ${teachers.merged}` : '') +
+      `, с фото ${teachers.withPhoto}`,
   );
   console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}, в героя подставлено число ${programs.length}`);
   return { spheres, total: programs.length, unassigned };
@@ -556,4 +630,5 @@ module.exports = {
   renderSpheres,
   renderTeachers,
   applyHeroStats,
+  applyTop5Images,
 };
