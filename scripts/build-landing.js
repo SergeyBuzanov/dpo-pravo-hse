@@ -32,6 +32,9 @@ const path = require('node:path');
 const { extract, inject } = require('./landing-template');
 const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
+// Наружу пускаем только https://*.hse.ru – тот же контракт, что у каталога
+// и у генератора страниц программ. Проверка живёт в одном месте.
+const { safeHseUrl } = require('../lib/hse-catalog');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -138,8 +141,10 @@ function formatPrice(n) {
  *
  * «Второе высшее» в каталоге ДПО отсутствует – это программа бакалавриата,
  * и данных о ней в `.catalog-data.json` нет. Поэтому её счётчик задан
- * явно, а кнопки у неё нет: ссылки на страницу этой программы в проекте
- * тоже нет, а выдумывать URL нельзя.
+ * явно, а адрес страницы (`url`) прописан здесь же: его прислал владелец
+ * 16.08.2026. Выдумывать URL по-прежнему нельзя – если однажды ссылка
+ * пропадёт из этого места, строка снова останется без кнопки, а не уведёт
+ * человека в никуда.
  */
 const FORMATS = [
   {
@@ -161,6 +166,8 @@ const FORMATS = [
     title: 'Второе высшее образование',
     desc: '«Юриспруденция: правовое регулирование бизнеса» – бакалавриат. Профили: корпоративный юрист, юрист в сфере строительства и недвижимости, финансового и налогового права.',
     document: 'Диплом о высшем образовании',
+    url: 'https://pravo.hse.ru/doplaw/',
+    ctaLabel: 'О программе на pravo.hse.ru',
   },
 ];
 
@@ -181,12 +188,22 @@ function renderFormats(programs) {
     if (prices.length) facts.push('от ' + formatPrice(prices[0]));
 
     // Кнопка ведёт в каталог с уже применённым фильтром по типу: механика
-    // чтения фильтров из адреса в каталоге уже работает.
-    const cta = fmt.type
-      ? `\n            <a class="dpo-format-cta" href="Каталог программ.html?type=${encodeURIComponent(
-          fmt.type,
-        )}">Смотреть ${escapeHtml(pluralPrograms(count))}</a>`
-      : '';
+    // чтения фильтров из адреса в каталоге уже работает. У формата без типа
+    // (второе высшее) своей страницы в каталоге нет, поэтому ссылка ведёт
+    // на официальную страницу программы – и только если она задана.
+    let cta = '';
+    if (fmt.type) {
+      cta = `\n            <a class="dpo-format-cta" href="Каталог программ.html?type=${encodeURIComponent(
+        fmt.type,
+      )}">Смотреть ${escapeHtml(pluralPrograms(count))}</a>`;
+    } else if (fmt.url) {
+      const href = safeHseUrl(fmt.url);
+      if (href) {
+        cta = `\n            <a class="dpo-format-cta" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(
+          fmt.ctaLabel || 'Подробнее',
+        )}</a>`;
+      }
+    }
 
     const [num, unit] = pluralPrograms(count).split(' ');
 
