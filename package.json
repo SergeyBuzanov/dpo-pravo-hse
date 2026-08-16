@@ -19,6 +19,7 @@
     "template:extract": "node scripts/landing-template.js extract",
     "template:inject": "node scripts/landing-template.js inject",
     "template:verify": "node scripts/landing-template.js verify",
+    "unbundle": "node scripts/unbundle-assets.js",
     "set-domain": "node scripts/set-domain.js"
   }
 }
