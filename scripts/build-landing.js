@@ -4,9 +4,10 @@
  *
  *   node scripts/build-landing.js
  *
- * Сейчас таких участков два:
+ * Сейчас таких участков три:
  *   - панель «Направления» в шапке (сферы и по три программы в каждой);
- *   - блок «Наши форматы» (число программ и цены по типам ПК и ПП).
+ *   - блок «Наши форматы» (число программ и цены по типам ПК и ПП);
+ *   - карусель «Авторы и преподаватели» (люди из данных программ).
  *
  * Зачем генератор, а не разметка руками
  * -------------------------------------
@@ -40,6 +41,7 @@ const WORK = path.join(ROOT, '.landing-template.html');
 const REGIONS = {
   panel: { start: '<!-- dpo:nav-panel:start -->', end: '<!-- dpo:nav-panel:end -->' },
   formats: { start: '<!-- dpo:formats:start -->', end: '<!-- dpo:formats:end -->' },
+  teachers: { start: '<!-- dpo:teachers:start -->', end: '<!-- dpo:teachers:end -->' },
 };
 
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
@@ -208,6 +210,99 @@ ${rows.join('\n')}
       </ul>`;
 }
 
+/**
+ * Слияние записей об одном человеке.
+ *
+ * Источник пишет имена по-разному: «Максимов Дмитрий Михайлович» на одной
+ * странице и «Дмитрий Максимов» на другой. Показать обоих в карусели значило
+ * бы выдать одного человека за двоих.
+ *
+ * Правило слияния намеренно узкое: набор слов одного имени должен быть
+ * ПОДМНОЖЕСТВОМ другого. «Дмитрий Максимов» ⊂ «Максимов Дмитрий Михайлович»
+ * – сливаем, оставляя более полную форму. Просто совпадения фамилии мало:
+ * однофамильцы существуют, и склеить их хуже, чем показать дважды.
+ */
+function mergeTeachers(programs) {
+  const raw = [];
+  for (const p of programs) {
+    for (const t of p.teachers || []) {
+      if (t && t.name) raw.push({ name: t.name, about: t.about || null, program: p.title });
+    }
+  }
+
+  const tokens = (name) =>
+    new Set(
+      String(name)
+        .toLowerCase()
+        .replace(/[^\p{L}\s-]/gu, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 1),
+    );
+  const isSubset = (a, b) => [...a].every((w) => b.has(w));
+
+  const people = [];
+  for (const r of raw) {
+    const tk = tokens(r.name);
+    let hit = null;
+    for (const person of people) {
+      if (isSubset(tk, person.tokens) || isSubset(person.tokens, tk)) {
+        hit = person;
+        break;
+      }
+    }
+    if (!hit) {
+      people.push({ name: r.name, tokens: tk, about: r.about, programs: [r.program] });
+      continue;
+    }
+    // Держим более полную форму имени и самую подробную справку.
+    if (tk.size > hit.tokens.size) {
+      hit.name = r.name;
+      hit.tokens = tk;
+    }
+    if (r.about && (!hit.about || r.about.length > hit.about.length)) hit.about = r.about;
+    if (!hit.programs.includes(r.program)) hit.programs.push(r.program);
+  }
+
+  // Порядок: сначала те, кто ведёт больше программ, затем по алфавиту.
+  people.sort((a, b) => b.programs.length - a.programs.length || a.name.localeCompare(b.name, 'ru'));
+  return { people, rawCount: raw.length };
+}
+
+function renderTeachers(programs) {
+  const { people, rawCount } = mergeTeachers(programs);
+  if (!people.length) throw new Error('в данных нет ни одного преподавателя');
+
+  const cards = people
+    .map((t) => {
+      // Число программ показываем только тем, у кого их больше одной:
+      // «1 программа» под каждым вторым именем – шум, а не сведение.
+      const note =
+        t.programs.length > 1
+          ? `\n          <p class="dpo-teacher-role">${escapeHtml(
+              pluralPrograms(t.programs.length),
+            )}</p>`
+          : '';
+      const about = t.about
+        ? `\n          <p class="dpo-teacher-desc">${escapeHtml(t.about)}</p>`
+        : '';
+      return `        <li class="dpo-teacher">
+          <span class="dpo-portrait" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="34" height="34" opacity="0.45"><circle cx="20" cy="15" r="6.5"/><path d="M8.5 32.5c1.8-5.6 6.3-8.6 11.5-8.6s9.7 3 11.5 8.6"/></svg>
+          </span>
+          <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>${note}${about}
+        </li>`;
+    })
+    .join('\n');
+
+  return {
+    html: `      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0;">
+${cards}
+      </ul>`,
+    people: people.length,
+    merged: rawCount - people.length,
+  };
+}
+
 /** Меняет содержимое одной размеченной области шаблона. */
 function replaceRegion(template, region, html) {
   const from = template.indexOf(region.start);
@@ -231,6 +326,8 @@ function build() {
   const { html, spheres, unassigned } = buildPanel(programs);
   template = replaceRegion(template, REGIONS.panel, html);
   template = replaceRegion(template, REGIONS.formats, renderFormats(programs));
+  const teachers = renderTeachers(programs);
+  template = replaceRegion(template, REGIONS.teachers, teachers.html);
 
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
@@ -243,6 +340,10 @@ function build() {
       (unassigned ? `, вне сфер ${unassigned}` : ''),
   );
   console.log(`Блок «Наши форматы»: ${byType}`);
+  console.log(
+    `Карусель преподавателей: ${teachers.people} человек` +
+      (teachers.merged ? `, склеено повторов ${teachers.merged}` : ''),
+  );
   return { spheres, total: programs.length, unassigned };
 }
 
