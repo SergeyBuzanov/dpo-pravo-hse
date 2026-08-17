@@ -412,6 +412,21 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     document.body.classList.add('dpo-has-mobile-cta');
   };
 
+  /**
+   * Обложки тайлов «Топ-5»: путь лежит в data-dpo-cover, а background-image
+   * ставится отсюда. Инлайновый url('{{ p.image }}') в разметке нельзя:
+   * в placeholder-фазе рантайм отдаёт шаблонную строку буквально, и браузер
+   * ходил за «/%7B%7B p.image %7D%7D» — 404 в консоли на каждой загрузке.
+   */
+  const applyCovers = () => {
+    document.querySelectorAll('[data-dpo-cover]').forEach((el) => {
+      const src = el.getAttribute('data-dpo-cover') || '';
+      if (!src || src.indexOf('{{') !== -1) return;
+      const want = `url("${src}")`;
+      if (el.style.backgroundImage !== want) el.style.backgroundImage = want;
+    });
+  };
+
   const start = () => {
     injectCss();
     bindAnchors();
@@ -419,6 +434,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     observeReveals();
     bindActiveNav();
     ensureMobileCta();
+    applyCovers();
   };
 
   // React / bundler shell may mount late — retry a few times
@@ -430,6 +446,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       n += 1;
       // Bundler replaces <html> — re-inject CSS whenever head is new.
       injectCss();
+      applyCovers();
       const hasHeader = document.querySelector('header');
       const hasSection = document.querySelector('section, main, #explore');
       const htmlNow = document.documentElement;
