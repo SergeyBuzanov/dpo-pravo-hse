@@ -365,12 +365,18 @@ ${rows.join('\n')}
  * – сливаем, оставляя более полную форму. Просто совпадения фамилии мало:
  * однофамильцы существуют, и склеить их хуже, чем показать дважды.
  */
-function mergeTeachers(programs, photos = {}) {
+function mergeTeachers(programs, photos = {}, pages = {}) {
   const raw = [];
   for (const p of programs) {
     for (const t of p.teachers || []) {
       if (t && t.name) {
-        raw.push({ name: t.name, about: t.about || null, program: p.title, photo: teacherPhoto(photos, t.name) });
+        raw.push({
+          name: t.name,
+          about: t.about ? fixTeacherText(t.about) : null,
+          program: { title: p.title, href: programHref(p) },
+          photo: teacherPhoto(photos, t.name),
+          page: teacherPage(pages, t.name),
+        });
       }
     }
   }
@@ -396,7 +402,7 @@ function mergeTeachers(programs, photos = {}) {
       }
     }
     if (!hit) {
-      people.push({ name: r.name, tokens: tk, about: r.about, programs: [r.program], photo: r.photo });
+      people.push({ name: r.name, tokens: tk, about: r.about, programs: [r.program], photo: r.photo, page: r.page });
       continue;
     }
     // Держим более полную форму имени и самую подробную справку.
@@ -405,9 +411,10 @@ function mergeTeachers(programs, photos = {}) {
       hit.tokens = tk;
     }
     if (r.about && (!hit.about || r.about.length > hit.about.length)) hit.about = r.about;
-    if (!hit.programs.includes(r.program)) hit.programs.push(r.program);
-    // Фото могло прийти под любой из форм имени слитого человека.
+    if (!hit.programs.some((p) => p.href === r.program.href)) hit.programs.push(r.program);
+    // Фото и персональная страница могли прийти под любой из форм имени.
     if (!hit.photo && r.photo) hit.photo = r.photo;
+    if (!hit.page && r.page) hit.page = r.page;
   }
 
   // Порядок: сначала те, кто ведёт больше программ, затем по алфавиту.
@@ -442,8 +449,35 @@ function teacherPhoto(photos, name) {
   return fs.existsSync(path.join(ROOT, p)) ? p : null;
 }
 
-function renderTeachers(programs, photos = {}) {
-  const { people, rawCount } = mergeTeachers(programs, photos);
+/**
+ * Персональная страница на hse.ru из справочника teacherPages
+ * (.catalog-data.json, заполняется руками – автоматический поиск адресов
+ * запрещён: однофамильцы дали бы ссылки на чужих людей). Пустое поле –
+ * штатно: ссылка в карточке просто не выводится.
+ */
+function teacherPage(pages, name) {
+  const u = pages && typeof pages[name] === 'string' ? pages[name].trim() : '';
+  return u ? safeHseUrl(u) : null;
+}
+
+/**
+ * Точечные правки текстов, приезжающих с hse.ru. Правка при выводе, а не в
+ * .catalog-data.json: хранилище перезаписывается каждым обновлением каталога,
+ * и правка в нём не пережила бы ночь (тот же принцип, что у enDash выше).
+ * Сюда попадают только подтверждённые опечатки источника.
+ */
+const TEXT_FIXES = [
+  ['внешнеэкономический деятельности', 'внешнеэкономической деятельности'],
+];
+
+function fixTeacherText(s) {
+  let out = String(s);
+  for (const [from, to] of TEXT_FIXES) out = out.split(from).join(to);
+  return out;
+}
+
+function renderTeachers(programs, photos = {}, pages = {}) {
+  const { people, rawCount } = mergeTeachers(programs, photos, pages);
   if (!people.length) throw new Error('в данных нет ни одного преподавателя');
 
   // Кламп в inline-стиле, а не в шаблонном <style>: до шаблонного блока
@@ -454,50 +488,75 @@ function renderTeachers(programs, photos = {}) {
 
   const cards = people
     .map((t) => {
-      // Число программ показываем только тем, у кого их больше одной:
-      // «1 программа» под каждым вторым именем – шум, а не сведение.
-      const note =
-        t.programs.length > 1
-          ? `\n          <p class="dpo-teacher-role">${escapeHtml(
-              pluralPrograms(t.programs.length),
-            )}</p>`
-          : '';
       // Пустая справка или служебная пометка «todo» – хвост не рисуем:
-      // карточка заканчивается именем, а не заглушкой.
+      // карточка заканчивается кнопкой, а не заглушкой.
       const aboutText = typeof t.about === 'string' ? t.about.trim() : '';
-      const about =
-        aboutText && !/\btodo\b/i.test(aboutText)
-          ? `\n          <p class="dpo-teacher-desc" style="${clamp}">${escapeHtml(aboutText)}</p>`
-          : '';
+      const hasAbout = aboutText && !/\btodo\b/i.test(aboutText);
+      const about = hasAbout
+        ? `\n          <p class="dpo-teacher-desc" style="${clamp}">${escapeHtml(aboutText)}</p>`
+        : '';
+      // Полные сведения для окна «подробнее» (js/team-modal.js) лежат в
+      // data-атрибуте карточки, а не собираются из её обрезанной вёрстки:
+      // в карточке должность клампится, в окне она обязана быть целиком.
+      const payload = JSON.stringify({
+        name: t.name,
+        about: hasAbout ? aboutText : '',
+        programs: t.programs.map((p) => ({ t: p.title, h: p.href })),
+        url: t.page || '',
+      });
       // Монограмма текстом, не SVG: в режиме для слабовидящих svg скрыты,
       // а текст в круге остаётся. Круг декоративен – имя стоит рядом.
       // Фото (если скачано fetch-program-media.js) лежит ПОВЕРХ монограммы:
       // в режиме для слабовидящих фото снимается правилом региона ниже, и
-      // круг сам возвращается к текстовой монограмме.
+      // круг сам возвращается к текстовой монограмме. Кадрирование прижато
+      // к верхней трети: у портретов в полный рост лицо иначе уходит вверх
+      // за круг, а внизу остаётся пустой фон.
       const photo = t.photo
-        ? `<img src="${escapeHtml(t.photo)}" alt="" loading="lazy" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 999px;">`
+        ? `<img src="${escapeHtml(t.photo)}" alt="" loading="lazy" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; border-radius: 999px;">`
         : '';
-      return `        <li class="dpo-teacher">
-          <span class="dpo-portrait" aria-hidden="true" style="width: 44px; height: 44px; font-size: 17px; position: relative;">${escapeHtml(
+      // Кнопка «N программ» – единственный фокусируемый вход в окно
+      // подробностей; клик по всей карточке делает то же (делегирование в
+      // js/team-modal.js), но клавиатуре и диктору нужна настоящая кнопка.
+      return `        <li class="dpo-teacher" data-dpo-teacher="${escapeHtml(payload)}">
+          <span class="dpo-portrait" aria-hidden="true" style="position: relative;">${escapeHtml(
             initials(t.name),
           )}${photo}</span>
-          <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>${note}${about}
+          <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>
+          <button type="button" class="dpo-teacher-more" aria-haspopup="dialog" aria-label="${escapeHtml(
+            'Подробнее: ' + t.name,
+          )}">${escapeHtml(pluralPrograms(t.programs.length))}</button>${about}
         </li>`;
     })
     .join('\n');
 
   const withPhoto = people.filter((t) => t.photo).length;
 
-  // Правило vi-mode лежит в регионе, а не в шаблонном <style>: до шаблонного
-  // блока генератору не дотянуться. Общие правила режима прячут svg и
-  // background-image, но фото – тег img, его надо снимать отдельно.
-  // align-items: flex-start – карточка по высоте контента: дорожка-flex
-  // иначе растягивает все карточки до самой высокой, оставляя пустые хвосты.
+  // Правила региона (до шаблонного <style> генератору не дотянуться):
+  //  - vi-mode: общие правила режима прячут svg и background-image, но фото –
+  //    тег img, его надо снимать отдельно;
+  //  - карточки одной высоты: дорожка-flex по умолчанию растягивает li до
+  //    самой высокой – прежний align-items: flex-start снят намеренно,
+  //    заказчик просил одинаковую высоту независимо от длины описания;
+  //  - кнопка «N программ» стилизуется здесь же: её рисует генератор.
   return {
     html: `      <style>
         html.vi-mode .dpo-portrait img { display: none !important; }
+        .dpo-portrait { position: relative; }
+        .dpo-teacher { cursor: pointer; }
+        .dpo-teacher-more {
+          background: none; border: 0; padding: 0; align-self: flex-start;
+          font: 600 13px/1.4 'HSE Sans', 'IBM Plex Sans', sans-serif;
+          color: #6B6459; cursor: pointer;
+          text-decoration: underline;
+          text-decoration-color: rgba(33, 30, 27, 0.35);
+          text-underline-offset: 3px;
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .dpo-teacher-more:hover,
+          .dpo-teacher:hover .dpo-teacher-more { color: var(--dpo-accent, #1658DA); }
+        }
       </style>
-      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0; align-items: flex-start;">
+      <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0;">
 ${cards}
       </ul>`,
     people: people.length,
@@ -587,7 +646,7 @@ function build() {
   const { html, spheres, unassigned } = buildPanel(programs);
   template = replaceRegion(template, REGIONS.panel, html);
   template = replaceRegion(template, REGIONS.formats, renderFormats(programs));
-  const teachers = renderTeachers(programs, store.teacherPhotos || {});
+  const teachers = renderTeachers(programs, store.teacherPhotos || {}, store.teacherPages || {});
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
   const spheresSection = renderSpheres(programs);
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
