@@ -144,9 +144,11 @@ function renderCard(item) {
     : '';
 
   // Миниатюра декоративна (alt=""): вся суть карточки продублирована текстом.
+  // Обёртка .card-media несёт затемняющий слой (::after) – единый приём с
+  // тайлами «Топ-5» на главной; сам img на псевдоэлементы не способен.
   const thumb = cardImage(item);
   const thumbLine = thumb
-    ? `\n      <img class="card-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy">`
+    ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy"></span>`
     : '';
 
   return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">${thumbLine}
