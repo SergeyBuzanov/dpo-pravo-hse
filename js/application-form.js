@@ -32,6 +32,30 @@
   /** Телефон центра показывается, когда отправка не удалась. */
   var FALLBACK_PHONE = '+7 (495) 772-95-90';
 
+  /**
+   * Темы обращения. Одна форма на все каналы: карточки «Куда пойти дальше»
+   * открывают её с предвыбранной темой (data-application-topic), кнопки
+   * записи на программу – с темой «Заявка на программу». Тема уходит на
+   * сервер, пишется в журнал и попадает в тему письма учебному офису.
+   */
+  var TOPICS = [
+    ['program', 'Заявка на программу'],
+    ['course-idea', 'Идея курса'],
+    ['teaching', 'Хочу стать преподавателем'],
+    ['feedback', 'Отзыв о работе центра'],
+  ];
+  var TOPIC_TITLES = {
+    program: 'Заявка на обучение',
+    'course-idea': 'Идея курса',
+    teaching: 'Стать нашим преподавателем',
+    feedback: 'Помогите нам стать лучше',
+  };
+  var TOPIC_HINTS = {
+    'course-idea': 'Расскажите в комментарии, какой программы вам не хватает.',
+    teaching: 'Расскажите в комментарии о себе и о курсе, который готовы вести.',
+    feedback: 'Поделитесь в комментарии, что стоит улучшить в работе центра или на сайте.',
+  };
+
   var SOURCES = [
     ['hse-site', 'Сайт НИУ ВШЭ'],
     ['telegram', 'Телеграм-канал'],
@@ -69,12 +93,12 @@
     '.dpo-app-row .dpo-app-field{margin-bottom:0}',
     '.dpo-app label{font-size:13px;font-weight:600;letter-spacing:.01em}',
     '.dpo-app .req{color:#1658DA}',
-    '.dpo-app input[type=text],.dpo-app input[type=tel],.dpo-app input[type=email],.dpo-app textarea{',
+    '.dpo-app input[type=text],.dpo-app input[type=tel],.dpo-app input[type=email],.dpo-app textarea,.dpo-app select{',
     'font:inherit;font-size:15px;color:#211E1B;background:#fff;border:1px solid rgba(33,30,27,.16);',
     'border-radius:10px;padding:11px 13px;width:100%;transition:border-color .15s,box-shadow .15s}',
     '.dpo-app textarea{min-height:88px;resize:vertical;font-family:inherit}',
     '.dpo-app ::placeholder{color:#6B6459;opacity:.75}',
-    '.dpo-app input:focus-visible,.dpo-app textarea:focus-visible{outline:none;border-color:#1658DA;',
+    '.dpo-app input:focus-visible,.dpo-app textarea:focus-visible,.dpo-app select:focus-visible{outline:none;border-color:#1658DA;',
     'box-shadow:0 0 0 3px rgba(22,88,218,.18)}',
     '.dpo-app [aria-invalid=true]{border-color:#B00020;background:rgba(176,0,32,.05)}',
     '.dpo-app-err{font-size:13px;line-height:1.4;color:#B00020;min-height:0}',
@@ -111,7 +135,7 @@
     // Режим для слабовидящих: та же логика, что у остальных страниц —
     // жирные границы, никакой полупрозрачности.
     'html.vi-mode .dpo-app{border:2px solid #000}',
-    'html.vi-mode .dpo-app input,html.vi-mode .dpo-app textarea{border:2px solid #000}',
+    'html.vi-mode .dpo-app input,html.vi-mode .dpo-app textarea,html.vi-mode .dpo-app select{border:2px solid #000}',
     'html.vi-mode .dpo-app-backdrop{background:rgba(0,0,0,.8)}',
   ].join('');
 
@@ -186,7 +210,25 @@
       el('input', { type: 'text', id: 'dpo-app-sourceOther', name: 'sourceOther', autocomplete: 'off' }),
     ]);
 
+    // Выбор темы обращения: одна форма на все каналы, карточки «Куда пойти
+    // дальше» лишь предвыбирают тему. Смена темы меняет заголовок окна и
+    // подсказку – человек видит, что именно отправляет.
+    var topicSelect = el(
+      'select',
+      { id: 'dpo-app-topic', name: 'topic' },
+      TOPICS.map(function (pair) {
+        return el('option', { value: pair[0], text: pair[1] });
+      }),
+    );
+    topicSelect.addEventListener('change', function () {
+      applyTopic(topicSelect.value);
+    });
+
     var form = el('form', { class: 'dpo-app-form', novalidate: 'novalidate' }, [
+      el('div', { class: 'dpo-app-field' }, [
+        el('label', { for: 'dpo-app-topic', text: 'Тема обращения' }),
+        topicSelect,
+      ]),
       el('div', { class: 'dpo-app-row' }, [
         field('lastName', 'Фамилия', 'text', true, 'family-name'),
         field('firstName', 'Имя', 'text', true, 'given-name'),
@@ -313,6 +355,23 @@
     }
   }
 
+  /** Заголовок окна и подсказка следуют за выбранной темой обращения. */
+  function applyTopic(topic) {
+    if (!backdrop) return;
+    context.topic = topic;
+    var title = backdrop.querySelector('h2');
+    if (title) title.textContent = TOPIC_TITLES[topic] || TOPIC_TITLES.program;
+    var caption = backdrop.querySelector('.dpo-app-program');
+    if (!caption) return;
+    if (topic === 'program') {
+      caption.textContent = context.programTitle
+        ? 'Программа: ' + context.programTitle
+        : 'Расскажите о себе – учебный офис свяжется с вами и подберёт программу.';
+    } else {
+      caption.textContent = TOPIC_HINTS[topic] || '';
+    }
+  }
+
   function openDialog(trigger) {
     injectStyles();
     lastTrigger = trigger;
@@ -320,6 +379,7 @@
       programId: trigger.getAttribute('data-program-id') || '',
       programTitle: trigger.getAttribute('data-program-title') || '',
       programUrl: trigger.getAttribute('data-program-url') || location.href,
+      topic: trigger.getAttribute('data-application-topic') || 'program',
     };
 
     if (!backdrop) {
@@ -327,10 +387,9 @@
       document.body.appendChild(backdrop);
     }
 
-    var caption = backdrop.querySelector('.dpo-app-program');
-    caption.textContent = context.programTitle
-      ? 'Программа: ' + context.programTitle
-      : 'Расскажите о себе – учебный офис свяжется с вами и подберёт программу.';
+    var topicSelect = backdrop.querySelector('#dpo-app-topic');
+    if (topicSelect) topicSelect.value = context.topic;
+    applyTopic(context.topic);
 
     document.addEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = 'hidden';
@@ -385,6 +444,7 @@
   function collect(form) {
     var data = new FormData(form);
     return {
+      topic: data.get('topic') || 'program',
       firstName: data.get('firstName') || '',
       lastName: data.get('lastName') || '',
       phone: data.get('phone') || '',
@@ -405,13 +465,18 @@
   function showDone(dialog) {
     var form = dialog.querySelector('form');
     if (form) form.remove();
+    // Текст итога зависит от темы: «подтвердить участие» уместно только
+    // у заявки на программу, обращению обещается ответ при необходимости.
+    var isProgram = (context.topic || 'program') === 'program';
     var done = el('div', { class: 'dpo-app-done' }, [
       el('p', {
-        text:
-          'Заявка принята. Учебный офис Центра ДПО свяжется с вами по указанному телефону ' +
-          'или почте, чтобы подтвердить участие и рассказать о ближайшем наборе.',
+        text: isProgram
+          ? 'Заявка принята. Учебный офис Центра ДПО свяжется с вами по указанному телефону ' +
+            'или почте, чтобы подтвердить участие и рассказать о ближайшем наборе.'
+          : 'Обращение принято и записано. Учебный офис Центра ДПО прочитает его и свяжется ' +
+            'с вами, если потребуется уточнение.',
       }),
-      el('p', { text: 'Обычно это занимает один рабочий день.' }),
+      isProgram ? el('p', { text: 'Обычно это занимает один рабочий день.' }) : null,
     ]);
     dialog.querySelector('h2').textContent = 'Спасибо!';
     var caption = dialog.querySelector('.dpo-app-program');
@@ -482,10 +547,16 @@
   }
 
   // Делегирование: кнопки могут появиться после загрузки (карточки каталога
-  // и лента программ рисуются скриптом).
+  // и лента программ рисуются скриптом). Форму открывают два вида триггеров:
+  // [data-application] – заявка на программу, и [data-application-topic] с
+  // НЕПУСТОЙ темой – карточки обращений «Куда пойти дальше». Пустая тема
+  // означает обычную ссылку, её не перехватываем.
   document.addEventListener('click', function (event) {
-    var trigger = event.target.closest('[data-application]');
+    var trigger = event.target.closest('[data-application],[data-application-topic]');
     if (!trigger) return;
+    if (!trigger.hasAttribute('data-application') && !trigger.getAttribute('data-application-topic')) {
+      return;
+    }
     event.preventDefault();
     openDialog(trigger);
   });

@@ -1257,6 +1257,13 @@
     other: 'другое',
   };
 
+  // Темы обращений единой формы (август 2026). Записи без темы – заявки
+  // старого образца, они всегда «заявка на программу».
+  const TOPIC_LABELS = {
+    program: 'Заявка на программу', 'course-idea': 'Идея курса',
+    teaching: 'Заявка преподавателя', feedback: 'Отзыв о работе центра',
+  };
+
   const fmtMoscow = (iso) => {
     try {
       return new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
@@ -1279,6 +1286,7 @@
           .concat(a.sourceOther ? [`«${a.sourceOther}»`] : [])
           .join(', ');
         const rows = [
+          ['Тема', TOPIC_LABELS[a.topic || 'program'] || a.topic],
           ['Телефон', a.phone],
           ['Почта', a.email],
           ['Должность', a.position],
