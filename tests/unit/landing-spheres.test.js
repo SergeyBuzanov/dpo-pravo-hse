@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { renderSpheres, applyHeroStats } = require('../../scripts/build-landing');
+const { renderSpheres } = require('../../scripts/build-landing');
 
 // Программы с названиями из lib/program-spheres.js: раскладка по сферам
 // идёт по фрагментам названий, выдуманное название ушло бы в unassigned.
@@ -53,11 +53,6 @@ test('em dash из данных не доходит до разметки', () =
   assert.match(html, /Корпоративное право – основные проблемы/);
 });
 
-test('число программ в статистике героя подставляется по подписи', () => {
-  const tpl = "a\n{ n: '30+', label: 'программ доп. профобразования' }\nb";
-  assert.match(applyHeroStats(tpl, 26), /\{ n: '26', label: 'программ доп\. профобразования' \}/);
-});
-
-test('пропавшая подпись статистики роняет сборку, а не молчит', () => {
-  assert.throws(() => applyHeroStats('никакой статистики тут нет', 26), /не найдена ячейка/);
-});
+// Тесты applyHeroStats сняты вместе с самой функцией: полоса показателей
+// героя перестроена по указанию заказчика (август 2026) и больше не содержит
+// зависящей от каталога ячейки «N программ доп. профобразования».

@@ -19,6 +19,7 @@ const FILES = [
   'sitemap.xml',
   'index.html',
   'privacy.html',
+  'ratings.html',
   'Каталог программ.html',
 ];
 

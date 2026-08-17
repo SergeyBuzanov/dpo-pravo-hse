@@ -41,6 +41,7 @@ const DEFAULT_FROM = 'https://example.com';
 const FILES = [
   'index.html',
   'privacy.html',
+  'ratings.html',
   'Каталог программ.html',
   '404.html',
   'robots.txt',

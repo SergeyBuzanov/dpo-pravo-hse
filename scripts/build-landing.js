@@ -4,12 +4,12 @@
  *
  *   node scripts/build-landing.js
  *
- * Сейчас таких участков пять:
+ * Сейчас таких участков четыре:
  *   - панель «Направления» в шапке (сферы и по три программы в каждой);
  *   - блок «Наши форматы» (число программ и цены по типам ПК и ПП);
- *   - карусель «Авторы и преподаватели» (люди из данных программ);
- *   - секция «Программы по сферам» (карточки сфер с тремя программами);
- *   - ячейка статистики героя с числом программ ДПО.
+ *   - карусель «Наша команда» (люди из данных программ);
+ *   - секция «Программы по сферам» (карточки сфер с тремя программами).
+ * Плюс данные тайлов «Топ-5» в data-блоке шаблона (обложки, даты старта).
  *
  * Зачем генератор, а не разметка руками
  * -------------------------------------
@@ -613,15 +613,11 @@ function applyTop5Images(template, programs) {
   return template.slice(0, open) + body + template.slice(close);
 }
 
-const STATS_LABEL = 'программ доп. профобразования';
-const STATS_CELL_RE = /\{\s*n:\s*'[^']*',\s*label:\s*'программ доп\. профобразования'\s*\}/;
-
-function applyHeroStats(template, count) {
-  if (!STATS_CELL_RE.test(template)) {
-    throw new Error(`в шаблоне не найдена ячейка статистики с подписью '${STATS_LABEL}'`);
-  }
-  return template.replace(STATS_CELL_RE, `{ n: '${count}', label: '${STATS_LABEL}' }`);
-}
+// applyHeroStats снят вместе с ячейкой «N программ доп. профобразования»:
+// полоса показателей героя перестроена по указанию заказчика (август 2026)
+// и теперь состоит из «25 лет» и позиций в рейтингах с годами – данных,
+// которые не зависят от каталога. Живое число программ осталось в панели
+// «Направления» («Все N программ с фильтрами»), его пишет buildPanel.
 
 /** Меняет содержимое одной размеченной области шаблона. */
 function replaceRegion(template, region, html) {
@@ -650,7 +646,6 @@ function build() {
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
   const spheresSection = renderSpheres(programs);
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
-  template = applyHeroStats(template, programs.length);
   template = applyTop5Images(template, programs);
 
   fs.writeFileSync(WORK, template, 'utf8');
@@ -669,7 +664,7 @@ function build() {
       (teachers.merged ? `, склеено повторов ${teachers.merged}` : '') +
       `, с фото ${teachers.withPhoto}`,
   );
-  console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}, в героя подставлено число ${programs.length}`);
+  console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}`);
   return { spheres, total: programs.length, unassigned };
 }
 
@@ -688,6 +683,5 @@ module.exports = {
   renderFormats,
   renderSpheres,
   renderTeachers,
-  applyHeroStats,
   applyTop5Images,
 };
