@@ -15,7 +15,7 @@ const path = require('node:path');
 const {
   fetchProgramItems,
   formatPrice,
-  formatDate,
+  upcomingStartLabel,
   isoDate,
   CATALOG_URL,
   MOSCOW_TZ,
@@ -126,7 +126,9 @@ function renderCard(item) {
   const bucket = formatBucket(format);
   const sphere = sphereOf(item);
   const duration = durationBucket(item.duration);
-  const date = formatDate(item);
+  // «Старт: …» – единая подпись всех витрин (upcomingStartLabel): прошедшая
+  // или отсутствующая дата не выводится вовсе, «уточняется» не подставляется.
+  const date = upcomingStartLabel(item);
   const metaBits = [format, item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
   const search = escapeHtml(
     [item.title, typeShort, format, item.duration, date].filter(Boolean).join(' ').toLowerCase(),

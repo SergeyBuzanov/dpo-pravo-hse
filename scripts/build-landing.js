@@ -36,7 +36,9 @@ const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
 // Наружу пускаем только https://*.hse.ru – тот же контракт, что у каталога
 // и у генератора страниц программ. Проверка живёт в одном месте.
-const { safeHseUrl } = require('../lib/hse-catalog');
+// upcomingStartLabel – единая подпись «Старт: …» для всех витрин: прошедшая
+// или отсутствующая дата не выводится вовсе.
+const { safeHseUrl, upcomingStartLabel } = require('../lib/hse-catalog');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -172,7 +174,7 @@ function renderSphereCard(sphere) {
       Number.isFinite(price) && price > 0
         ? `\n              <span class="dpo-prog-price">${escapeHtml(formatPrice(price))}</span>`
         : '';
-    const meta = [kindLabel(p), shortFormat(p)].filter(Boolean).join(' · ');
+    const meta = [kindLabel(p), shortFormat(p), upcomingStartLabel(p)].filter(Boolean).join(' · ');
     return `          <li>
             <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
               <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
@@ -566,24 +568,19 @@ ${cards}
 }
 
 /**
- * Ячейка статистики героя «30+ программ доп. профобразования»: рукописное
- * «30+» разошлось с каталогом (в нём 26). Число подставляется из данных –
- * точное и без «+». Ячейка ищется по подписи; если подпись из data-блока
- * шаблона пропала или переписана – сборка падает, а не молчит: молчание
- * означало бы вечное «30+».
- */
-/**
- * Обложки тайлам «Топ-5». Сами тайлы рендерит sc-for в шаблоне, который
- * генератор не трогает, – но данные лежат в data-блоке шаблона, и вот их
- * генератор обновить может: каждому элементу top5 дописывается/обновляется
- * поле image (путь миниатюры). Разметку, использующую поле, в sc-for
- * добавляет человек – см. отчёт сборки.
+ * Данные тайлам «Топ-5»: обложка и ближайший старт. Сами тайлы рендерит
+ * sc-for в шаблоне, который генератор не трогает, – но данные лежат в
+ * data-блоке шаблона, и вот их генератор обновить может: каждому элементу
+ * top5 дописываются/обновляются поля image (путь миниатюры) и start
+ * (подпись «Старт: …» из upcomingStartLabel; пустая строка, когда даты нет
+ * или она прошла – пустой span в разметке гасится правилом :empty).
  *
- * Подстановка идемпотентна: старое поле image снимается и пишется заново.
+ * Подстановка идемпотентна: старые поля снимаются и пишутся заново.
  * Если структура top5 в шаблоне пропала или переписана – сборка падает,
- * а не молчит: молчание означало бы тайлы навсегда без обложек.
+ * а не молчит: молчание означало бы тайлы навсегда без обложек и с
+ * протухшими датами.
  */
-function applyTop5Images(template, programs) {
+function applyTop5Data(template, programs) {
   const open = template.indexOf('top5: [');
   if (open < 0) throw new Error('в data-блоке шаблона не найдена структура top5: [');
   const close = template.indexOf(']', open);
@@ -591,21 +588,29 @@ function applyTop5Images(template, programs) {
 
   const byId = new Map();
   for (const p of programs) {
-    if (!p.image) continue;
-    const thumb = `images/programs/thumbs/${p.id}.jpg`;
-    byId.set(String(p.id), fs.existsSync(path.join(ROOT, thumb)) ? thumb : p.image);
+    let image = null;
+    if (p.image) {
+      const thumb = `images/programs/thumbs/${p.id}.jpg`;
+      image = fs.existsSync(path.join(ROOT, thumb)) ? thumb : p.image;
+    }
+    byId.set(String(p.id), { image, start: upcomingStartLabel(p) || '' });
   }
+
+  const q = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
   let hits = 0;
   const body = template.slice(open, close).replace(/\{[^{}]*\}/g, (obj) => {
     const href = obj.match(/href:\s*'programs\/[^']*-(\d+)\.html'/);
     if (!href) return obj;
     hits++;
-    // Снять прежнее поле, затем вписать свежее первым – идемпотентно.
-    const cleaned = obj.replace(/image:\s*'[^']*',\s*/, '');
-    const image = byId.get(href[1]);
-    if (!image) return cleaned;
-    return cleaned.replace(/^\{\s*/, `{ image: '${image}', `);
+    // Снять прежние поля, затем вписать свежие первыми – идемпотентно.
+    let cleaned = obj
+      .replace(/image:\s*'[^']*',\s*/, '')
+      .replace(/start:\s*'[^']*',\s*/, '');
+    const data = byId.get(href[1]) || { image: null, start: '' };
+    cleaned = cleaned.replace(/^\{\s*/, `{ start: '${q(data.start)}', `);
+    if (data.image) cleaned = cleaned.replace(/^\{\s*/, `{ image: '${q(data.image)}', `);
+    return cleaned;
   });
   if (!hits) {
     throw new Error('в data-блоке top5 не найдено ни одного элемента с href на programs/…');
@@ -646,7 +651,7 @@ function build() {
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
   const spheresSection = renderSpheres(programs);
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
-  template = applyTop5Images(template, programs);
+  template = applyTop5Data(template, programs);
 
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
@@ -683,5 +688,5 @@ module.exports = {
   renderFormats,
   renderSpheres,
   renderTeachers,
-  applyTop5Images,
+  applyTop5Data,
 };
