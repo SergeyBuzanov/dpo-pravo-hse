@@ -15,11 +15,15 @@
 <meta property="og:description" content="Как сайт Центра ДПО факультета права НИУ ВШЭ обрабатывает персональные данные (152-ФЗ).">
 <meta property="og:url" content="https://example.com/privacy">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:image" content="https://example.com/images/hero-justice.jpg">
-<meta property="og:image:width" content="1380">
-<meta property="og:image:height" content="789">
-<meta property="og:image:alt" content="Статуя Фемиды с весами – Центр ДПО факультета права НИУ ВШЭ">
-<meta name="twitter:image" content="https://example.com/images/hero-justice.jpg">
+<!-- Абсолютный адрес показного зеркала, а не домен-заглушка: заглушка
+     не резолвится и превью приходило без картинки. Расхождение с og:url выше
+     намеренное, см. пояснение в index.html. set-domain.js эти ссылки не
+     тронет – при переезде на боевой домен править руками. -->
+<meta property="og:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
+<meta property="og:image:width" content="2226">
+<meta property="og:image:height" content="1298">
+<meta property="og:image:alt" content="Статуя Фемиды с весами на фоне здания факультета права НИУ ВШЭ">
+<meta name="twitter:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="theme-color" content="#1658DA">
 <link rel="stylesheet" href="fonts/fonts-hse.css">
