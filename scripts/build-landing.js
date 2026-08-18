@@ -660,49 +660,110 @@ ${cards}
  * а не молчит: молчание означало бы тайлы навсегда без обложек и с
  * протухшими датами.
  */
-function applyTop5Data(template, programs) {
+/**
+ * Сколько программ показываем в блоке. Сетка адаптивная (1/2/3/5 колонок),
+ * пятнадцать ложатся тремя полными рядами на широком экране.
+ */
+const TOP_COUNT = 15;
+
+/**
+ * Отобранные вручную программы, идущие первыми. Это редакторское решение, а
+ * не выборка: подводка блока прямо говорит, что программы отобраны. Порядок
+ * внутри списка сохраняется.
+ *
+ * Программа, исчезнувшая из каталога, просто выпадает – сверять список руками
+ * не нужно.
+ */
+const TOP_CURATED = Object.freeze([
+  '837181759', // Цифровое право для бизнеса
+  '816497962', // Интеллектуальная собственность: от закона к практике
+  '474596729', // Корпоративное право: основные проблемы
+  '1008772871', // Правовые вопросы банкротства: теории и практики
+  '474599435', // Международное частное право: трансграничные операции
+]);
+
+/**
+ * Данные блока программ.
+ *
+ * Раньше здесь стояла точечная правка: в захардкоженном списке из пяти записей
+ * обновлялись обложка и дата старта, всё остальное лежало в шаблоне руками –
+ * и расходилось с каталогом при первой же смене цены. Теперь список собирается
+ * целиком из .catalog-data.json, тем же способом, что «Направления»,
+ * «Форматы», «Преподаватели», «По сферам», «Ближайшие старты» и «Отзывы».
+ *
+ * Порядок: сначала отобранные вручную, затем остальные по близости старта.
+ * Программы без будущей даты уходят в конец – показывать их можно, звать на
+ * них нельзя.
+ */
+function renderTop5Data(template, programs) {
   const open = template.indexOf('top5: [');
   if (open < 0) throw new Error('в data-блоке шаблона не найдена структура top5: [');
   const close = template.indexOf(']', open);
   if (close < 0) throw new Error('data-блок top5 не закрыт скобкой ]');
 
-  const byId = new Map();
-  for (const p of programs) {
+  const byId = new Map(programs.map((p) => [String(p.id), p]));
+  const picked = [];
+  const taken = new Set();
+  for (const id of TOP_CURATED) {
+    const p = byId.get(id);
+    if (p) {
+      picked.push(p);
+      taken.add(id);
+    }
+  }
+
+  const rest = programs
+    .filter((p) => !taken.has(String(p.id)))
+    .sort((a, b) => {
+      const ua = upcomingStartLabel(a) ? a.startDate || Infinity : Infinity;
+      const ub = upcomingStartLabel(b) ? b.startDate || Infinity : Infinity;
+      if (ua !== ub) return ua - ub;
+      return String(a.title).localeCompare(String(b.title), 'ru');
+    });
+  for (const p of rest) {
+    if (picked.length >= TOP_COUNT) break;
+    picked.push(p);
+  }
+
+  const q = (s) => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const priceOf = (p) => {
+    const value = p.discountPrice != null ? p.discountPrice : p.educationPricing;
+    if (value == null) return 'Цена по запросу';
+    return value === 0 ? 'Бесплатно' : formatPrice(value);
+  };
+
+  const entries = picked.map((p, i) => {
     let image = null;
     if (p.image) {
       const thumb = `images/programs/thumbs/${p.id}.jpg`;
       image = fs.existsSync(path.join(ROOT, thumb)) ? thumb : p.image;
     }
-    byId.set(String(p.id), { image, start: upcomingStartLabel(p) || '' });
-  }
-
-  const q = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-  let hits = 0;
-  const body = template.slice(open, close).replace(/\{[^{}]*\}/g, (obj) => {
-    const href = obj.match(/href:\s*'programs\/[^']*-(\d+)\.html'/);
-    if (!href) return obj;
-    hits++;
-    // Снять прежние поля, затем вписать свежие первыми – идемпотентно.
-    let cleaned = obj
-      .replace(/image:\s*'[^']*',\s*/, '')
-      .replace(/start:\s*'[^']*',\s*/, '');
-    const data = byId.get(href[1]) || { image: null, start: '' };
-    cleaned = cleaned.replace(/^\{\s*/, `{ start: '${q(data.start)}', `);
-    if (data.image) cleaned = cleaned.replace(/^\{\s*/, `{ image: '${q(data.image)}', `);
-    return cleaned;
+    // Подводка: tagline, иначе первое предложение описания. Выдумывать нечего –
+    // если нет ни того, ни другого, строка остаётся пустой.
+    const source = String(p.tagline || p.about || '').trim();
+    const tagline = enDash(source.split(/(?<=[.!?])\s+/)[0] || '');
+    const fields = [
+      image ? `image: '${q(image)}'` : null,
+      `start: '${q(upcomingStartLabel(p) || '')}'`,
+      `rank: '${i + 1}'`,
+      `title: '${q(enDash(p.title))}'`,
+      `tagline: '${q(tagline)}'`,
+      `kind: '${q(kindLabel(p))}'`,
+      `format: '${q((p.studyFormat && p.studyFormat.title) || '')}'`,
+      `duration: '${q(p.duration || '')}'`,
+      `price: '${q(priceOf(p))}'`,
+      `href: '${q(programHref(p))}'`,
+    ].filter(Boolean);
+    return `        { ${fields.join(', ')} }`;
   });
-  if (!hits) {
-    throw new Error('в data-блоке top5 не найдено ни одного элемента с href на programs/…');
-  }
-  return template.slice(0, open) + body + template.slice(close);
-}
 
-// applyHeroStats снят вместе с ячейкой «N программ доп. профобразования»:
-// полоса показателей героя перестроена по указанию заказчика (август 2026)
-// и теперь состоит из пяти ключевых показателей, переданных заказчиком
-// (позиции в рейтингах) – данных, которые не зависят от каталога. Живое число программ осталось в панели
-// «Направления» («Все N программ с фильтрами»), его пишет buildPanel.
+  const body = 'top5: [\n' + entries.join(',\n') + '\n      ';
+  return {
+    template: template.slice(0, open) + body + template.slice(close),
+    count: picked.length,
+    curated: taken.size,
+  };
+}
 
 /**
  * Полоса «Ближайшие старты» под героем (просьба заказчика 18.08.2026).
@@ -986,6 +1047,7 @@ function replaceRegion(template, region, html) {
   return template.slice(0, from + region.start.length) + '\n' + html + '\n        ' + template.slice(to);
 }
 
+
 function build() {
   if (!fs.existsSync(STORE)) {
     throw new Error('нет .catalog-data.json – сначала запустите node update-catalog.js');
@@ -1006,7 +1068,8 @@ function build() {
   template = replaceRegion(template, REGIONS.starts, starts.html);
   const reviews = renderReviews(programs);
   template = replaceRegion(template, REGIONS.reviews, reviews.html);
-  template = applyTop5Data(template, programs);
+  const top = renderTop5Data(template, programs);
+  template = top.template;
 
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
@@ -1032,6 +1095,9 @@ function build() {
     `Карусель преподавателей: ${teachers.people} человек` +
       (teachers.merged ? `, склеено повторов ${teachers.merged}` : '') +
       `, с фото ${teachers.withPhoto}`,
+  );
+  console.log(
+    `Блок программ: ${top.count} карточек, из них отобрано вручную ${top.curated}`,
   );
   console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}`);
   console.log(`Полоса «Ближайшие старты»: программ ${starts.count}`);
@@ -1061,5 +1127,5 @@ module.exports = {
   renderFormats,
   renderSpheres,
   renderTeachers,
-  applyTop5Data,
+  renderTop5Data,
 };
