@@ -43,6 +43,7 @@ const { safeHseUrl, upcomingStartLabel, formatDate } = require('../lib/hse-catal
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
+const INDEX = path.join(ROOT, 'index.html');
 const WORK = path.join(ROOT, '.landing-template.html');
 
 /** Участки шаблона, которые скрипт переписывает целиком. */
@@ -53,6 +54,16 @@ const REGIONS = {
   spheres: { start: '<!-- dpo:spheres:start -->', end: '<!-- dpo:spheres:end -->' },
   starts: { start: '<!-- dpo:starts:start -->', end: '<!-- dpo:starts:end -->' },
   reviews: { start: '<!-- dpo:reviews:start -->', end: '<!-- dpo:reviews:end -->' },
+};
+
+/**
+ * Регион в СТАТИЧЕСКОЙ части index.html, вне шаблона бандла: список программ
+ * внутри <noscript>. Правится после inject(), иначе упаковка шаблона затрёт
+ * правку.
+ */
+const NOSCRIPT_REGION = {
+  start: '<!-- dpo:noscript-programs:start -->',
+  end: '<!-- dpo:noscript-programs:end -->',
 };
 
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
@@ -764,6 +775,71 @@ ${cards}
 }
 
 /** Меняет содержимое одной размеченной области шаблона. */
+/**
+ * Список программ для фолбэка <noscript>.
+ *
+ * Зачем. Разметка лендинга лежит JSON-строкой внутри
+ * <script type="__bundler/template"> и собирается React-рантаймом уже в
+ * браузере. В сыром ответе index.html оставалось около 780 знаков текста,
+ * один заголовок и две внутренние ссылки – на каталог и на политику. Ссылок
+ * на 26 страниц программ не было ни одной, то есть с главной к ним не вёл ни
+ * один путь обхода. Google рендерит JS и увидит страницу второй волной,
+ * Яндекс исполняет его выборочно и с задержкой – для него главная выглядела
+ * заглушкой «Unpacking…».
+ *
+ * Здесь не подмена контента для робота: ровно то же видит человек с
+ * отключённым JavaScript, и содержимое – подмножество настоящей страницы,
+ * а не отдельный текст для поисковика.
+ *
+ * Полное решение – пререндер шаблона на этапе сборки; этот блок закрывает
+ * главное: шесть заголовков направлений и путь обхода ко всем 26 страницам.
+ */
+function renderNoscriptPrograms(programs) {
+  // groupBySphere отдаёт { spheres, unassigned }, а не массив.
+  // unassigned здесь не теряется: программы вне сфер дописываются отдельным
+  // списком ниже, иначе часть каталога осталась бы без пути обхода.
+  const { spheres: groups, unassigned } = groupBySphere(programs);
+  const parts = [];
+  let links = 0;
+  for (const sphere of groups) {
+    if (!sphere.items.length) continue;
+    const items = sphere.items
+      .map((p) => {
+        links += 1;
+        return `          <li><a href="${escapeHtml(programHref(p))}">${escapeHtml(p.title)}</a></li>`;
+      })
+      .join('\n');
+    parts.push(
+      `        <h2>${escapeHtml(sphere.title)}</h2>\n` +
+        `        <p>${escapeHtml(pluralPrograms(sphere.items.length))} повышения квалификации и переподготовки для юристов.</p>\n` +
+        `        <ul>\n${items}\n        </ul>`,
+    );
+  }
+  if (unassigned.length) {
+    const items = unassigned
+      .map((p) => {
+        links += 1;
+        return `          <li><a href="${escapeHtml(programHref(p))}">${escapeHtml(p.title)}</a></li>`;
+      })
+      .join('\n');
+    parts.push(
+      `        <h2>Другие программы</h2>\n        <ul>\n${items}\n        </ul>`,
+    );
+  }
+  return { html: parts.join('\n'), links, spheres: parts.length };
+}
+
+/** Замена региона в произвольном файле по тем же маркерам, что и в шаблоне. */
+function replaceRegionIn(source, region, html, where) {
+  const from = source.indexOf(region.start);
+  const to = source.indexOf(region.end);
+  if (from < 0 || to < 0) {
+    throw new Error(`в ${where} не найдены маркеры ${region.start} / ${region.end}`);
+  }
+  if (to < from) throw new Error(`маркеры ${region.start} в ${where} идут в обратном порядке`);
+  return source.slice(0, from + region.start.length) + '\n' + html + '\n      ' + source.slice(to);
+}
+
 function replaceRegion(template, region, html) {
   const from = template.indexOf(region.start);
   const to = template.indexOf(region.end);
@@ -799,6 +875,15 @@ function build() {
   fs.writeFileSync(WORK, template, 'utf8');
   inject(WORK);
 
+  // ПОСЛЕ inject: список программ в <noscript> живёт в статической части
+  // index.html, а inject переписывает файл целиком из шаблона.
+  const noscript = renderNoscriptPrograms(programs);
+  fs.writeFileSync(
+    INDEX,
+    replaceRegionIn(fs.readFileSync(INDEX, 'utf8'), NOSCRIPT_REGION, noscript.html, 'index.html'),
+    'utf8',
+  );
+
   const byType = FORMATS.filter((f) => f.type)
     .map((f) => f.type + ' ' + programs.filter((p) => (p.type && (p.type.shortTitle || p.type.title)) === f.type).length)
     .join(', ');
@@ -815,6 +900,9 @@ function build() {
   console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}`);
   console.log(`Полоса «Ближайшие старты»: программ ${starts.count}`);
   console.log(`Секция «Отзывы выпускников»: цитат ${reviews.count}`);
+  console.log(
+    `Фолбэк <noscript>: направлений ${noscript.spheres}, ссылок на программы ${noscript.links}`,
+  );
   return { spheres, total: programs.length, unassigned };
 }
 
