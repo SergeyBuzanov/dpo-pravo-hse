@@ -105,6 +105,12 @@ header a[class*="btn-"]::after{
 .dpo-reveal-left.dpo-in{ transform: translateX(0); }
 .dpo-reveal-scale{ transform: scale(0.96); }
 .dpo-reveal-scale.dpo-in{ transform: scale(1); }
+/* Карточный каскад (заказчик выбрал вариант с движением, 18.08.2026):
+   карточки внутри секции догоняют её со ступенчатой задержкой. У карточки
+   нет собственного blur и сдвиг меньше секционного: родительская секция
+   уже даёт и размытие, и подъём – дубль давал 32px хода и 8px блюра. */
+.dpo-reveal.dpo-reveal-card{ filter: none; transform: translateY(10px); }
+.dpo-reveal.dpo-reveal-card.dpo-in{ filter: none; transform: translateY(0); }
 
 @media (prefers-reduced-motion: reduce){
   .dpo-reveal, .dpo-reveal.dpo-in{
@@ -249,6 +255,18 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       'main section',
       '[data-reveal]',
     ];
+    // Карточный каскад поверх секционного появления (заказчик выбрал
+    // вариант с движением, 18.08.2026): карточки в сетках догоняют свою
+    // секцию со ступенчатой задержкой. Задержка считается от позиции в
+    // родителе (а не сквозным счётчиком): сетки разной длины, сквозной
+    // i%6 давал бы случайные ступени между соседями.
+    const CARD_CASCADE = [
+      '.dpo-top5-grid .dpo-tile',
+      '.dpo-sphere',
+      '.dpo-explore-grid .explore-card',
+      '.dpo-why-card',
+      '.dpo-start',
+    ].join(', ');
     const seen = new Set();
     let i = 0;
     for (const sel of selectors) {
@@ -267,6 +285,15 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
         if (el.matches('.quote-card, .contact-card')) el.classList.add('dpo-reveal-scale');
       });
     }
+    document.querySelectorAll(CARD_CASCADE).forEach((el) => {
+      if (seen.has(el)) return;
+      seen.add(el);
+      el.classList.add('dpo-reveal', 'dpo-reveal-card');
+      const idx = el.parentElement
+        ? Array.prototype.indexOf.call(el.parentElement.children, el)
+        : 0;
+      el.style.setProperty('--dpo-delay', `${Math.min(idx * 70, 280)}ms`);
+    });
 
     // Hero children: gentle entrance without waiting for scroll
     const hero = document.querySelector('.hero, [class*="hero"]');
@@ -297,7 +324,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       return;
     }
     if (revealObserver) revealObserver.disconnect();
-    if (revealFailsafe) window.clearTimeout(revealFailsafe);
+    if (revealFailsafe) window.clearInterval(revealFailsafe);
     revealObserver = null;
     revealFailsafe = null;
     if (!nodes.length) return;
@@ -317,11 +344,26 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     revealObserver = io;
     // Failsafe: never leave content invisible if IO misses a frame after
     // the Design bundler swaps documentElement.
-    revealFailsafe = window.setTimeout(() => {
-      document.querySelectorAll('.dpo-reveal:not(.dpo-in)').forEach((el) => {
-        el.classList.add('dpo-in');
+    // Прежний вариант через 1.8с раскрывал ВСЁ разом, включая секции ниже
+    // экрана, – к моменту, когда посетитель начинал прокручивать, анимации
+    // появления уже не оставалось (заказчик её попросту не видел, 18.08.2026).
+    // Теперь страховка принудительно раскрывает только то, что УЖЕ в
+    // видимой области (защита от пропущенного кадра IO), а остальное ждёт
+    // прокрутки. Поллер постоянный и дешёвый: даже если наблюдатель умер
+    // вместе с подменённым documentElement, скрытый элемент оживёт не
+    // позднее 0.7с после попадания в кадр – CSS-переход сработает так же.
+    revealFailsafe = window.setInterval(() => {
+      const rest = document.querySelectorAll('.dpo-reveal:not(.dpo-in)');
+      if (!rest.length) {
+        window.clearInterval(revealFailsafe);
+        revealFailsafe = null;
+        return;
+      }
+      rest.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) el.classList.add('dpo-in');
       });
-    }, 1800);
+    }, 700);
   };
 
   // Функция вызывается из boot-цикла повторно; без снятия прежних листенеров

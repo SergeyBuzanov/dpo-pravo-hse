@@ -39,7 +39,7 @@ const { programHref } = require('../lib/program-slug');
 // и у генератора страниц программ. Проверка живёт в одном месте.
 // upcomingStartLabel – единая подпись «Старт: …» для всех витрин: прошедшая
 // или отсутствующая дата не выводится вовсе.
-const { safeHseUrl, upcomingStartLabel } = require('../lib/hse-catalog');
+const { safeHseUrl, upcomingStartLabel, formatDate } = require('../lib/hse-catalog');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -51,6 +51,7 @@ const REGIONS = {
   formats: { start: '<!-- dpo:formats:start -->', end: '<!-- dpo:formats:end -->' },
   teachers: { start: '<!-- dpo:teachers:start -->', end: '<!-- dpo:teachers:end -->' },
   spheres: { start: '<!-- dpo:spheres:start -->', end: '<!-- dpo:spheres:end -->' },
+  starts: { start: '<!-- dpo:starts:start -->', end: '<!-- dpo:starts:end -->' },
 };
 
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
@@ -655,6 +656,39 @@ function applyTop5Data(template, programs) {
 // (позиции в рейтингах) – данных, которые не зависят от каталога. Живое число программ осталось в панели
 // «Направления» («Все N программ с фильтрами»), его пишет buildPanel.
 
+/**
+ * Полоса «Ближайшие старты» под героем (просьба заказчика 18.08.2026).
+ * Три ближайших БУДУЩИХ старта: прошедшие и пустые даты отсеивает
+ * upcomingStartLabel – та же логика, что у подписи «Старт: …» в витринах,
+ * поэтому полоса не протухает при устаревшем каталоге. Если будущих
+ * стартов нет вовсе, секция не выводится совсем (между маркерами пусто).
+ */
+function renderStarts(programs) {
+  const upcoming = programs
+    .filter((p) => upcomingStartLabel(p))
+    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    .slice(0, 3);
+  if (!upcoming.length) return { html: '', count: 0 };
+
+  const items = upcoming
+    .map(
+      (p) => `      <a class="dpo-start" href="${escapeHtml(programHref(p))}">
+        <span class="dpo-start-date">${escapeHtml(formatDate(p) || '')}</span>
+        <span class="dpo-start-title">${escapeHtml(p.title)}</span>
+      </a>`,
+    )
+    .join('\n');
+
+  const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(28px, 4vw, 48px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
+    <div class="dpo-starts">
+      <span class="dpo-starts-label">Ближайшие старты</span>
+${items}
+      <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
+    </div>
+  </section>`;
+  return { html, count: upcoming.length };
+}
+
 /** Меняет содержимое одной размеченной области шаблона. */
 function replaceRegion(template, region, html) {
   const from = template.indexOf(region.start);
@@ -682,6 +716,8 @@ function build() {
   template = replaceRegion(template, REGIONS.teachers, teachers.html);
   const spheresSection = renderSpheres(programs);
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
+  const starts = renderStarts(programs);
+  template = replaceRegion(template, REGIONS.starts, starts.html);
   template = applyTop5Data(template, programs);
 
   fs.writeFileSync(WORK, template, 'utf8');
@@ -701,6 +737,7 @@ function build() {
       `, с фото ${teachers.withPhoto}`,
   );
   console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}`);
+  console.log(`Полоса «Ближайшие старты»: программ ${starts.count}`);
   return { spheres, total: programs.length, unassigned };
 }
 
