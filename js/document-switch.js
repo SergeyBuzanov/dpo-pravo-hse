@@ -74,10 +74,20 @@
   // Рантайм может пересобрать разметку в первые секунды загрузки и вернуть
   // состояние по умолчанию (ПК). Возвращаем выбор посетителя — тот же
   // таймер ~10 секунд, что в carousel.js.
+  // Сверять только класс вкладки недостаточно: пересборка теряет голые
+  // булевы атрибуты hidden у самих бланков, вкладка при этом остаётся
+  // «правильной» (ПК активна и в разметке), и до первого клика все четыре
+  // образца стояли столбиком. Поэтому проверяются и items.
   var n = 0;
   var timer = setInterval(function () {
     var active = document.querySelector('[data-dpo-doc].is-active');
-    if (active && active.getAttribute('data-dpo-doc') !== current) activate(current);
+    var stale = active && active.getAttribute('data-dpo-doc') !== current;
+    var items = document.querySelectorAll('[data-dpo-doc-item]');
+    for (var i = 0; i < items.length && !stale; i++) {
+      var mustHide = items[i].getAttribute('data-dpo-doc-item') !== current;
+      if (items[i].hidden !== mustHide) stale = true;
+    }
+    if (stale) activate(current);
     if (++n > 40) clearInterval(timer);
   }, 250);
 })();
