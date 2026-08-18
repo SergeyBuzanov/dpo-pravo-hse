@@ -164,6 +164,27 @@ function extractTeachers(html) {
 }
 
 /**
+ * Отзывы выпускников: слайдер с карточками `dpo-feedback` (текст в
+ * `dpo-feedback__text`, автор в `dpo-feedback__author`; автор бывает
+ * завёрнут в <a>, бывает голым текстом – textOf снимает разницу).
+ * Отзыв без автора отбрасывается: безымянная цитата на сайте выглядела бы
+ * выдуманной, а весь смысл блока – в реальных людях. Тексты забираются
+ * целиком, без усечения: как показывать длинную цитату, решает витрина.
+ */
+function extractFeedback(html) {
+  const out = [];
+  for (const m of html.matchAll(/<li[^>]*class="[^"]*dpo-feedback[^"]*"[^>]*>([\s\S]*?)<\/li>/g)) {
+    const card = m[1];
+    const text = card.match(/class="[^"]*dpo-feedback__text[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    const author = card.match(/class="[^"]*dpo-feedback__author[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+    const t = text ? textOf(text[1]) : '';
+    const a = author ? textOf(author[1]) : '';
+    if (t && a) out.push({ text: t, author: a });
+  }
+  return out;
+}
+
+/**
  * Запасной источник описания: сама секция «О программе» на странице.
  * У части программ нет ни og:description, ни микроразметки Course – тогда
  * страница осталась бы без описания вовсе, хотя текст на ней есть.
@@ -180,7 +201,7 @@ function extractAboutFromSection(html) {
 }
 
 function extract(html) {
-  const out = { tagline: null, about: null, audience: null, results: null, modules: null, teachers: null };
+  const out = { tagline: null, about: null, audience: null, results: null, modules: null, teachers: null, feedback: null };
 
   const audience = extractAudience(html);
   if (audience.items.length) out.audience = audience;
@@ -190,6 +211,8 @@ function extract(html) {
   if (modules.length) out.modules = modules;
   const teachers = extractTeachers(html);
   if (teachers.length) out.teachers = teachers;
+  const feedback = extractFeedback(html);
+  if (feedback.length) out.feedback = feedback;
 
   const og = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i);
   if (og) out.tagline = decodeEntities(og[1]).trim() || null;
@@ -255,9 +278,9 @@ async function main() {
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const html = await res.text();
-      const { tagline, about, audience, results, modules, teachers } = extract(html);
+      const { tagline, about, audience, results, modules, teachers, feedback } = extract(html);
 
-      if (!tagline && !about && !audience && !results && !modules && !teachers) {
+      if (!tagline && !about && !audience && !results && !modules && !teachers && !feedback) {
         failed.push({ title: program.title, reason: 'описание не найдено на странице' });
       } else {
         if (tagline) program.tagline = tagline;
@@ -266,6 +289,7 @@ async function main() {
         if (results) program.results = results;
         if (modules) program.modules = modules;
         if (teachers) program.teachers = teachers;
+        if (feedback) program.feedback = feedback;
         ok++;
       }
       process.stdout.write(`  [${i + 1}/${targets.length}] ${ok ? '' : ''}${program.title.slice(0, 60)}\n`);
@@ -285,7 +309,8 @@ async function main() {
       `для кого ${count('audience')}/${programs.length}, ` +
       `результаты ${count('results')}/${programs.length}, ` +
       `учебный план ${count('modules')}/${programs.length}, ` +
-      `преподаватели ${count('teachers')}/${programs.length}.`,
+      `преподаватели ${count('teachers')}/${programs.length}, ` +
+      `отзывы ${count('feedback')}/${programs.length}.`,
   );
   if (failed.length) {
     console.warn(`Не удалось (${failed.length}):`);

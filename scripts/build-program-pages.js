@@ -136,6 +136,11 @@ function normalizeProgram(p) {
       about: t.about ? cleanText(t.about) : t.about,
     }));
   }
+  if (p.feedback) {
+    out.feedback = p.feedback
+      .map((f) => ({ text: cleanText(f.text), author: cleanText(f.author) }))
+      .filter((f) => f.text && f.author);
+  }
   return out;
 }
 
@@ -369,6 +374,33 @@ ${items}
       </section>`;
 }
 
+/**
+ * Отзывы выпускников – настоящие цитаты с официальной страницы программы
+ * на hse.ru (собирает scripts/fetch-program-descriptions.js, поле feedback).
+ * Приводится дословно и целиком: усечённая или «улучшенная» цитата – уже
+ * не цитата. Без отзывов секции нет вовсе – пустой блок или заглушка
+ * читались бы как «выпускников нет», а не как «данные не собраны».
+ */
+function renderFeedback(p) {
+  if (!p.feedback || !p.feedback.length) return '';
+  const items = p.feedback
+    .map(
+      (f) =>
+        `          <li>
+            <blockquote>${esc(f.text)}</blockquote>
+            <p class="review-author">${esc(f.author)}</p>
+          </li>`,
+    )
+    .join('\n');
+  return `      <section class="block">
+        <h2>Отзывы выпускников</h2>
+        <p class="block-sub">С официальной страницы программы на hse.ru</p>
+        <ul class="reviews">
+${items}
+        </ul>
+      </section>`;
+}
+
 function renderSiblings(sphere, current) {
   const others = sphere.items.filter((x) => x.id !== current.id);
   if (!others.length) return '';
@@ -498,6 +530,7 @@ ${renderAudience(p)}
 ${renderResults(p)}
 ${renderModules(p)}
 ${renderTeachers(p)}
+${renderFeedback(p)}
 ${renderSiblings(sphere || { title: '', items: [] }, p)}
   </div>
 
@@ -713,6 +746,13 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
    запрещает внешние картинки. Поэтому вес несёт имя, а не портрет. */
 .teachers{list-style:none;margin:0;padding:0}
 .teachers li{padding:16px 0;border-top:1px solid var(--line)}
+.reviews{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.reviews li{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:20px 22px;max-width:72ch}
+.reviews blockquote{margin:0;font-size:15px;line-height:1.65;color:var(--ink-soft)}
+.reviews blockquote::before{content:"« "}
+.reviews blockquote::after{content:" »"}
+.review-author{margin:12px 0 0;font-size:13.5px;font-weight:600;color:var(--ink)}
 .teacher-name{font-size:16px;font-weight:600;margin:0 0 4px;color:var(--ink)}
 .teacher-about{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin:0}
 

@@ -52,6 +52,7 @@ const REGIONS = {
   teachers: { start: '<!-- dpo:teachers:start -->', end: '<!-- dpo:teachers:end -->' },
   spheres: { start: '<!-- dpo:spheres:start -->', end: '<!-- dpo:spheres:end -->' },
   starts: { start: '<!-- dpo:starts:start -->', end: '<!-- dpo:starts:end -->' },
+  reviews: { start: '<!-- dpo:reviews:start -->', end: '<!-- dpo:reviews:end -->' },
 };
 
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
@@ -689,6 +690,56 @@ ${items}
   return { html, count: upcoming.length };
 }
 
+/**
+ * Секция «Отзывы выпускников» на лендинге. Отзывы настоящие – поле
+ * feedback программ, которое fetch-program-descriptions.js забирает с
+ * официальных страниц hse.ru. Правила отбора:
+ *  - цитата приводится ДОСЛОВНО И ЦЕЛИКОМ, поэтому на лендинг попадают
+ *    только отзывы средней длины (120–520 знаков): гигантские честно
+ *    живут на странице программы, обрезать их нельзя;
+ *  - по одному отзыву на программу (ближайший к 280 знакам) – подборка
+ *    из шести программ разнообразнее, чем шесть голосов об одной;
+ *  - порядок программ – порядок каталога, отбор детерминирован: пересборка
+ *    без смены данных не перетасовывает карточки.
+ */
+function renderReviews(programs) {
+  const picks = [];
+  for (const p of programs) {
+    if (!Array.isArray(p.feedback) || !p.feedback.length) continue;
+    const fit = p.feedback
+      .filter((f) => f.text && f.author && f.text.length >= 120 && f.text.length <= 520)
+      .sort((a, b) => Math.abs(a.text.length - 280) - Math.abs(b.text.length - 280));
+    if (!fit.length) continue;
+    picks.push({ ...fit[0], program: p });
+    if (picks.length === 6) break;
+  }
+  if (!picks.length) return { html: '', count: 0 };
+
+  const cards = picks
+    .map(
+      (r) => `      <figure class="dpo-review">
+        <blockquote class="dpo-review-text">${escapeHtml(fixTeacherText(r.text))}</blockquote>
+        <figcaption class="dpo-review-foot">
+          <p class="dpo-review-author">${escapeHtml(r.author)}</p>
+          <a class="dpo-review-program" href="${escapeHtml(programHref(r.program))}">${escapeHtml(r.program.title)}</a>
+        </figcaption>
+      </figure>`,
+    )
+    .join('\n');
+
+  const html = `  <section data-screen-label="Reviews" id="reviews" style="padding: clamp(64px, 9vw, 120px) clamp(20px, 6vw, 64px); background: #F2ECE1;">
+    <div class="dpo-section-head">
+      <span class="dpo-eyebrow">Слово выпускникам</span>
+      <h2 class="dpo-h2">Отзывы выпускников</h2>
+    </div>
+    <div class="dpo-reviews-grid">
+${cards}
+    </div>
+    <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ.</p>
+  </section>`;
+  return { html, count: picks.length };
+}
+
 /** Меняет содержимое одной размеченной области шаблона. */
 function replaceRegion(template, region, html) {
   const from = template.indexOf(region.start);
@@ -718,6 +769,8 @@ function build() {
   template = replaceRegion(template, REGIONS.spheres, spheresSection.html);
   const starts = renderStarts(programs);
   template = replaceRegion(template, REGIONS.starts, starts.html);
+  const reviews = renderReviews(programs);
+  template = replaceRegion(template, REGIONS.reviews, reviews.html);
   template = applyTop5Data(template, programs);
 
   fs.writeFileSync(WORK, template, 'utf8');
@@ -738,6 +791,7 @@ function build() {
   );
   console.log(`Секция «По сферам»: сфер ${spheresSection.spheres}`);
   console.log(`Полоса «Ближайшие старты»: программ ${starts.count}`);
+  console.log(`Секция «Отзывы выпускников»: цитат ${reviews.count}`);
   return { spheres, total: programs.length, unassigned };
 }
 

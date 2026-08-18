@@ -266,6 +266,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       '.dpo-explore-grid .explore-card',
       '.dpo-why-card',
       '.dpo-start',
+      '.dpo-review',
     ].join(', ');
     const seen = new Set();
     let i = 0;
