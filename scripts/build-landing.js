@@ -532,11 +532,18 @@ function renderTeachers(programs, photos = {}, pages = {}) {
       // Кнопка «N программ» – единственный фокусируемый вход в окно
       // подробностей; клик по всей карточке делает то же (делегирование в
       // js/team-modal.js), но клавиатуре и диктору нужна настоящая кнопка.
+      // Имя – гиперссылка на личную страницу hse.ru, когда адрес есть в
+      // справочнике teacherPages (просьба заказчика 18.08.2026). Клик по
+      // ссылке НЕ открывает окно карточки: js/team-modal.js пропускает
+      // клики по <a> (target.closest('a')). Без адреса имя остаётся текстом.
+      const nameHtml = t.page
+        ? `<a class="dpo-teacher-link" href="${escapeHtml(t.page)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t.name)}</a>`
+        : escapeHtml(t.name);
       return `        <li class="dpo-teacher" data-dpo-teacher="${escapeHtml(payload)}">
           <span class="dpo-portrait" aria-hidden="true" style="position: relative;">${escapeHtml(
             initials(t.name),
           )}${photo}</span>
-          <h3 class="dpo-teacher-name">${escapeHtml(t.name)}</h3>
+          <h3 class="dpo-teacher-name">${nameHtml}</h3>
           <button type="button" class="dpo-teacher-more" aria-haspopup="dialog" aria-label="${escapeHtml(
             'Подробнее: ' + t.name,
           )}">${escapeHtml(pluralPrograms(t.programs.length))}</button>${about}
@@ -559,16 +566,27 @@ function renderTeachers(programs, photos = {}, pages = {}) {
         .dpo-portrait { position: relative; }
         .dpo-teacher { cursor: pointer; }
         .dpo-teacher-more {
-          background: none; border: 0; padding: 0; align-self: flex-start;
+          background: none; border: 0; padding: 0; align-self: center;
           font: 600 13px/1.4 'HSE Sans', 'IBM Plex Sans', sans-serif;
           color: #6B6459; cursor: pointer;
           text-decoration: underline;
           text-decoration-color: rgba(33, 30, 27, 0.35);
           text-underline-offset: 3px;
         }
+        .dpo-teacher-link {
+          color: inherit;
+          text-decoration: underline;
+          text-decoration-color: rgba(33, 30, 27, 0.28);
+          text-decoration-thickness: 1px;
+          text-underline-offset: 4px;
+        }
         @media (hover: hover) and (pointer: fine) {
           .dpo-teacher-more:hover,
           .dpo-teacher:hover .dpo-teacher-more { color: var(--dpo-accent, #1658DA); }
+          .dpo-teacher-link:hover {
+            color: var(--dpo-accent, #1658DA);
+            text-decoration-color: var(--dpo-accent, #1658DA);
+          }
         }
       </style>
       <ul id="teachersTrack" class="dpo-track" tabindex="0" role="list" aria-label="Преподаватели программ ДПО" style="list-style: none; margin-top: 0; margin-bottom: 0;">

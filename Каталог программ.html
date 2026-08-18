@@ -326,9 +326,11 @@
      (.dpo-tile-cover::after в index.html): тот же градиент печатной туши,
      менять только парой. Гасит светлые фотографии, чтобы карточка читалась
      одинаково при любом кадре. */
+  /* Пара к .dpo-tile-cover::after на лендинге – менять только вместе.
+     Синяя гамма вуали героя по указанию заказчика 18.08.2026. */
   .card-media::after{
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(33, 30, 27, 0.18) 0%, rgba(33, 30, 27, 0.44) 100%);
+    background: linear-gradient(180deg, rgba(11, 42, 105, 0.55) 0%, rgba(6, 23, 57, 0.72) 100%);
   }
   .card .badge{
     align-self: flex-start; font-size: 12.5px; font-weight: 700;
