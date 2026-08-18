@@ -12,13 +12,26 @@
 <meta name="theme-color" content="#0F2D69">
 <link rel="stylesheet" href="fonts/fonts-hse.css">
 <style>
+  :root {
+  /* Цветовые токены: единый словарь всех страниц, описан в DESIGN.md.
+     --surface, --ink и --accent заданы каналами, поэтому одна переменная
+     закрывает и сплошной цвет rgb(var(--ink)), и любую прозрачность
+     rgb(var(--ink) / .1). Новый цвет вводится только новым токеном. */
+  --bg:       #FBF9F5;      /* фон страницы */
+  --bg-tint:  #F2ECE1;      /* секции, плашки */
+  --surface:  255 255 255;  /* карточки, шапка, текст на тёмном */
+  --ink:      33 30 27;     /* основной текст, линии, тени */
+  --ink-soft: #48423A;      /* навигация, факты */
+  --ink-mute: #6B6459;      /* подписи, мета */
+  --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
+}
   /* Палитра НИУ ВШЭ: основной #0F2D69 (PANTONE 287C), акцент #FAB900 */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
     padding: clamp(24px, 6vw, 64px); text-align: center;
     font-family: 'HSE Sans', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-    color: #fff; background: linear-gradient(160deg, #234B9B 0%, #0F2D69 45%, #0A1F49 100%);
+    color: rgb(var(--surface)); background: linear-gradient(160deg, #234B9B 0%, #0F2D69 45%, #0A1F49 100%);
   }
   .box { max-width: 640px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
   .code {
@@ -26,18 +39,18 @@
     font-size: clamp(72px, 18vw, 160px); color: #FAB900;
   }
   h1 { font-family: 'HSE Slab', Georgia, serif; font-weight: 600; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; }
-  p { font-size: 17px; line-height: 1.6; color: rgba(255,255,255,.82); }
+  p { font-size: 17px; line-height: 1.6; color: rgb(var(--surface) / .82); }
   .links { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
   a {
     font-size: 15px; font-weight: 600; text-decoration: none;
     padding: 14px 26px; border-radius: 999px; white-space: nowrap;
   }
-  .primary { color: #0F2D69; background: #fff; }
+  .primary { color: #0F2D69; background: rgb(var(--surface)); }
   .primary:hover { background: #FAB900; color: #1A1A1A; }
-  .ghost { color: #fff; border: 1px solid rgba(255,255,255,.55); }
-  .ghost:hover { background: rgba(255,255,255,.12); }
+  .ghost { color: rgb(var(--surface)); border: 1px solid rgb(var(--surface) / .55); }
+  .ghost:hover { background: rgb(var(--surface) / .12); }
   a:focus-visible { outline: 3px solid #FAB900; outline-offset: 3px; }
-  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:#1658DA;
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
     font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
     box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
   .skip-link:focus{left:0}

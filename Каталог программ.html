@@ -48,24 +48,30 @@
      --ink, --ink-mute, --line теми же названиями, но другими значениями,
      чем privacy и админка. Теперь значения совпадают со всеми остальными
      поверхностями, и вынос общего стиля больше не перекрасит страницу. */
-  :root{
-    --accent: #1658DA;          /* institute-blue */
-    --accent-dark: #1145AA;     /* institute-blue-deep, = darken(accent, 0.22) */
+  :root {
+  /* Цветовые токены: единый словарь всех страниц, описан в DESIGN.md.
+     --surface, --ink и --accent заданы каналами, поэтому одна переменная
+     закрывает и сплошной цвет rgb(var(--ink)), и любую прозрачность
+     rgb(var(--ink) / .1). Новый цвет вводится только новым токеном. */
+  --bg:       #FBF9F5;      /* фон страницы */
+  --bg-tint:  #F2ECE1;      /* секции, плашки */
+  --surface:  255 255 255;  /* карточки, шапка, текст на тёмном */
+  --ink:      33 30 27;     /* основной текст, линии, тени */
+  --ink-soft: #48423A;      /* навигация, факты */
+  --ink-mute: #6B6459;      /* подписи, мета */
+  --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
+/* institute-blue */
+  --accent-dark: #1145AA;     /* institute-blue-deep, = darken(accent, 0.22) */
     /* На этой странице тёплый выделитель нужен только поверх синей заливки,
        где основное золото #F0B86E теряет контраст, поэтому заведён светлый. */
-    --gold-light: #FFD982;    /* practice-gold-light */
-    --ink: #211E1B;           /* print-ink */
-    --ink-mute: #6B6459;      /* ink-muted, 5,4:1 на бумажном креме */
-    --line: rgba(33, 30, 27, 0.1);
-    --bg: #FBF9F5;            /* paper-cream */
-    --bg-tint: #F2ECE1;       /* parchment */
-    --surface: #FFFFFF;
-    --radius-md: 16px;
-    --radius-sm: 999px;
+  --gold-light: #FFD982;    /* practice-gold-light */           /* print-ink */      /* ink-muted, 5,4:1 на бумажном креме */
+  --line:     rgb(var(--ink) / .1);            /* paper-cream */       /* parchment */
+  --radius-md: 16px;
+  --radius-sm: 999px;
     /* Высоту шапки синхронизирует скрипт: раньше здесь было жёстко
        вписанное 61px, которое разъезжалось при любой правке шапки. */
-    --header-h: 61px;
-  }
+  --header-h: 61px;
+}
   *{ box-sizing: border-box; }
   /* Плавную прокрутку включаем только тем, кто не просил её убрать.
      Раньше правило стояло безусловно, хотя лендинг ту же настройку уважает. */
@@ -75,7 +81,7 @@
   body{
     margin: 0;
     background: var(--bg);
-    color: var(--ink);
+    color: rgb(var(--ink));
     font-family: 'HSE Sans', 'IBM Plex Sans', -apple-system, sans-serif;
   }
   a{ color: inherit; text-decoration: none; }
@@ -90,11 +96,11 @@
     border-bottom: 1px solid var(--line);
   }
   .logo{ display: flex; flex-direction: column; gap: 1px; }
-  .logo .name{ font-weight: 700; font-size: 15px; color: var(--accent); }
+  .logo .name{ font-weight: 700; font-size: 15px; color: rgb(var(--accent)); }
   .logo .sub{ font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); }
   /* Кнопка возврата не переносится: на 390px «← На лендинг» разваливалась
      на две строки. На узком экране длинный текст сменяется коротким. */
-  header a.back{ font-size: 14px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  header a.back{ font-size: 14px; font-weight: 600; color: rgb(var(--accent)); white-space: nowrap; }
   header a.back:hover{ text-decoration: underline; }
   header a.back .back-short{ display: none; }
   @media (max-width: 460px){
@@ -103,10 +109,10 @@
   }
 
   /* Герой залит акцентом, как секция «Кто преподаёт» на лендинге: плоская
-     заливка, градиентов в системе нет. Контрасты ниже посчитаны на #1658DA. */
+     заливка, градиентов в системе нет. Контрасты ниже посчитаны на rgb(var(--accent)). */
   .hero{
-    background: var(--accent);
-    color: #fff;
+    background: rgb(var(--accent));
+    color: rgb(var(--surface));
     padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 64px);
   }
   /* На синей заливке основное золото даёт 3,4:1 и для 13px не проходит,
@@ -115,9 +121,9 @@
      акценте они давали 4,3:1 и 3,5:1, то есть тоже ниже нормы. */
   .hero .eyebrow{ font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-light); font-weight: 600; }
   .hero h1{ font-weight: 600; font-size: clamp(28px, 3.2vw, 42px); line-height: 1.15; margin: 14px 0 16px; max-width: 720px; }
-  .hero p{ font-size: clamp(15px, 1.3vw, 17px); line-height: 1.6; color: rgba(255,255,255,0.88); max-width: 620px; margin: 0 0 20px; }
-  .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.14); border-radius: var(--radius-sm); padding: 8px 16px; }
-  .hero .meta b{ color: #fff; }
+  .hero p{ font-size: clamp(15px, 1.3vw, 17px); line-height: 1.6; color: rgb(var(--surface) / 0.88); max-width: 620px; margin: 0 0 20px; }
+  .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--surface) / 0.88); background: rgb(var(--surface) / 0.14); border-radius: var(--radius-sm); padding: 8px 16px; }
+  .hero .meta b{ color: rgb(var(--surface)); }
 
   /* «Ближайшие старты»: пергаментная полоса между героем и фильтрами,
      колонки-месяцы (образец – страница анонсов pravo.hse.ru/dpo). Ряд
@@ -144,15 +150,15 @@
   .starts-month a{
     display: flex; gap: 12px; align-items: baseline;
     padding: 6px 0; border-top: 1px solid var(--line);
-    color: var(--ink); text-decoration: none;
+    color: rgb(var(--ink)); text-decoration: none;
   }
   .starts-day{
     flex: none; width: 96px;
-    font-size: 13px; font-weight: 600; color: var(--accent);
+    font-size: 13px; font-weight: 600; color: rgb(var(--accent));
   }
   .starts-name{ font-size: 14.5px; line-height: 1.4; min-width: 0; }
   @media (hover: hover) and (pointer: fine){
-    .starts-month a:hover .starts-name{ color: var(--accent); }
+    .starts-month a:hover .starts-name{ color: rgb(var(--accent)); }
   }
   html.vi-mode .starts{ border: 2px solid #000 !important; }
 
@@ -171,7 +177,7 @@
      убраны. Отклик на нажатие сохранён: это подтверждение, а не декор. */
   .chip{
     font: inherit; font-size: 13.5px; font-weight: 600; color: var(--accent-dark);
-    background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-sm);
     padding: 8px 16px; cursor: pointer;
     transition:
       background .28s ease,
@@ -181,7 +187,7 @@
   }
   .chip:active{ transform: scale(0.97); }
   .chip.active{
-    background: var(--accent); border-color: var(--accent); color: #fff;
+    background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--surface));
   }
   #filtersFormat .chip{ font-size: 13px; padding: 7px 14px; }
   /* Обе группы фильтров используют один акцент: второй синий существовал
@@ -198,7 +204,7 @@
   .search-wrap input{
     width: 100%; font: inherit; font-size: 14.5px;
     border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 11px 40px 11px 16px; background: #fff; color: var(--ink);
+    padding: 11px 40px 11px 16px; background: rgb(var(--surface)); color: rgb(var(--ink));
     transition: border-color .2s ease, box-shadow .25s ease;
   }
   /* Фокус поля – в общем блоке фокусных колец в конце стилей: у всех
@@ -213,14 +219,14 @@
   .sort-label{ font-size:13.5px; color:var(--ink-mute); }
   .sort-select{
     font:inherit; font-size:13.5px; font-weight:600; color:var(--accent-dark);
-    background:#fff; border:1px solid var(--line); border-radius:var(--radius-sm);
+    background:rgb(var(--surface)); border:1px solid var(--line); border-radius:var(--radius-sm);
     padding:10px 14px; cursor:pointer;
     transition:border-color .2s ease;
   }
-  .sort-select:hover{ border-color:var(--accent); }
+  .sort-select:hover{ border-color:rgb(var(--accent)); }
   .toolbar .reset{
     font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-    color: var(--accent-dark); background: #fff; border: 1px solid var(--line);
+    color: var(--accent-dark); background: rgb(var(--surface)); border: 1px solid var(--line);
     border-radius: var(--radius-sm); padding: 10px 16px;
     transition: border-color .2s ease, background .2s ease, opacity .2s ease,
       transform .14s cubic-bezier(.22,1,.36,1);
@@ -237,19 +243,19 @@
     position: fixed; left: 12px; right: 12px; z-index: 60;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     gap: 8px; padding: 10px;
-    background: rgba(255,255,255,0.94);
+    background: rgb(var(--surface) / 0.94);
     backdrop-filter: blur(12px);
     border: 1px solid var(--line);
     border-radius: 18px;
-    box-shadow: 0 12px 40px rgba(33, 30, 27, 0.16);
+    box-shadow: 0 12px 40px rgb(var(--ink) / 0.16);
   }
   .mobile-cta a{
     flex: 1; text-align: center; font-weight: 600; font-size: 14px;
     padding: 12px 10px; border-radius: 999px; text-decoration: none;
   }
-  .mobile-cta a.primary{ background: var(--accent); color: #fff; }
+  .mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); }
   .mobile-cta a.secondary{
-    background: #fff; color: var(--accent);
+    background: rgb(var(--surface)); color: rgb(var(--accent));
     border: 1px solid var(--line);
   }
   @media (max-width: 760px){
@@ -302,7 +308,7 @@
 
   .card{
     display: flex; flex-direction: column; gap: 12px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md);
+    background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-md);
     padding: 24px;
     transition:
       border-color .2s ease,
@@ -320,8 +326,8 @@
      на тач-экране :hover залипает после тапа. */
   @media (hover: hover) and (pointer: fine){
     .card:hover{
-      border-color: var(--accent);
-      box-shadow: 0 8px 24px rgba(33, 30, 27, 0.12);
+      border-color: rgb(var(--accent));
+      box-shadow: 0 8px 24px rgb(var(--ink) / 0.12);
       transform: translateY(-2px) scale(1);
     }
     .card:hover .go{ transform: translateX(3px); }
@@ -371,7 +377,7 @@
   }
   .card .badge{
     align-self: flex-start; font-size: 12.5px; font-weight: 700;
-    padding: 4px 11px; border-radius: var(--radius-sm); background: var(--bg-tint); color: var(--accent);
+    padding: 4px 11px; border-radius: var(--radius-sm); background: var(--bg-tint); color: rgb(var(--accent));
   }
   /* Метка сферы: тонкая строка между бейджем и названием. Не синяя и не
      прописная – это справка о принадлежности, а не действие и не ярлык. */
@@ -382,11 +388,11 @@
   .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0; }
   .card .meta{ font-size: 13.5px; color: var(--ink-mute); line-height: 1.5; }
   .card .foot{ margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .card .price{ font-size: 15.5px; font-weight: 700; color: var(--ink); }
+  .card .price{ font-size: 15.5px; font-weight: 700; color: rgb(var(--ink)); }
   /* Оранжевый на наведении убран: по правилу одного акцента действие
      несёт только синий. Сдвиг стрелки остался и живёт в блоке hover выше. */
   .card .go{
-    font-size: 13.5px; font-weight: 600; color: var(--accent); white-space: nowrap;
+    font-size: 13.5px; font-weight: 600; color: rgb(var(--accent)); white-space: nowrap;
     transition: transform .25s cubic-bezier(.22,1,.36,1);
   }
 
@@ -412,10 +418,10 @@
 
   .vi-btn{
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-    color: var(--accent-dark); background: #fff; border: 1px solid var(--line);
+    color: var(--accent-dark); background: rgb(var(--surface)); border: 1px solid var(--line);
     border-radius: var(--radius-sm); padding: 7px 13px; white-space: nowrap;
   }
-  .vi-btn:hover{ border-color: var(--accent); }
+  .vi-btn:hover{ border-color: rgb(var(--accent)); }
 
   /* Версия для слабовидящих (ГОСТ Р 52872-2019): белый фон, чёрный текст,
      увеличенный масштаб, без декора и анимаций. */
@@ -423,21 +429,21 @@
   html.vi-mode *{ background: transparent !important; background-image: none !important;
     color: #000 !important; box-shadow: none !important; text-shadow: none !important;
     animation: none !important; transition: none !important; }
-  html.vi-mode body{ background: #fff !important; }
+  html.vi-mode body{ background: rgb(var(--surface)) !important; }
   html.vi-mode a{ text-decoration: underline !important; }
   html.vi-mode svg{ display: none !important; }
   /* Миниатюры – теги img, общее правило background-image их не снимает. */
   html.vi-mode .card-media{ display: none !important; }
   html.vi-mode .card, html.vi-mode .contact-card{ border: 2px solid #000 !important; }
   html.vi-mode .chip, html.vi-mode .vi-btn, html.vi-mode button{ border: 2px solid #000 !important; }
-  html.vi-mode .chip.active{ background: #000 !important; color: #fff !important; }
+  html.vi-mode .chip.active{ background: #000 !important; color: rgb(var(--surface)) !important; }
 
   footer{
     padding: 28px clamp(20px, 5vw, 56px); border-top: 1px solid var(--line);
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
     font-size: 13px; color: var(--ink-mute);
   }
-  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:#fff;color:#1658DA;
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
     font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
     box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
   .skip-link:focus{left:0}
@@ -449,8 +455,8 @@
   .toolbar .reset:focus-visible, .vi-btn:focus-visible, .card:focus-visible,
   header a:focus-visible, footer a:focus-visible, .mobile-cta a:focus-visible{
     outline: none;
-    box-shadow: 0 0 0 3px rgba(22, 88, 218, .18);
-    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgb(var(--accent) / .18);
+    border-color: rgb(var(--accent));
   }
   /* Режим для слабовидящих снимает все box-shadow разом – кольцо в том
      числе. Там фокус держит толстая системная обводка. */
@@ -894,8 +900,8 @@
 <footer>
   <span>Центр дополнительного профессионального образования · Факультет права НИУ ВШЭ</span>
   <span style="display:flex; gap:18px; flex-wrap:wrap;">
-    <a href="privacy.html" style="color:var(--accent);">Политика обработки персональных данных</a>
-    <a href="https://www.hse.ru/sveden/" rel="noopener" style="color:var(--accent);">Сведения об образовательной организации</a>
+    <a href="privacy.html" style="color:rgb(var(--accent));">Политика обработки персональных данных</a>
+    <a href="https://www.hse.ru/sveden/" rel="noopener" style="color:rgb(var(--accent));">Сведения об образовательной организации</a>
     <span>© НИУ ВШЭ, 1993–2026</span>
   </span>
 </footer>

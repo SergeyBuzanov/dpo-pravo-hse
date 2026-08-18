@@ -16,41 +16,44 @@
      важнее выразительности. Палитра та же тёплая, что и на витрине;
      ниже к ней добавлен словарь состояний, которого витрине не нужно. */
   :root {
-    --accent: #1658DA;
-    --accent-dark: #123F9E;
-    --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
-    --bg: #FBF9F5;
-    --bg-tint: #F2ECE1;
-    --ink: #211E1B;
-    --ink-mute: #6B6459;
-    --line: rgba(33, 30, 27, 0.08);
-
+  /* Цветовые токены: единый словарь всех страниц, описан в DESIGN.md.
+     --surface, --ink и --accent заданы каналами, поэтому одна переменная
+     закрывает и сплошной цвет rgb(var(--ink)), и любую прозрачность
+     rgb(var(--ink) / .1). Новый цвет вводится только новым токеном. */
+  --bg:       #FBF9F5;      /* фон страницы */
+  --bg-tint:  #F2ECE1;      /* секции, плашки */
+  --surface:  255 255 255;  /* карточки, шапка, текст на тёмном */
+  --ink:      33 30 27;     /* основной текст, линии, тени */
+  --ink-soft: #48423A;      /* навигация, факты */
+  --ink-mute: #6B6459;      /* подписи, мета */
+  --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
+  --accent-dark: #123F9E;
+  --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
+  --line:     rgb(var(--ink) / .08);  /* границы панелей */
     /* Состояния. Стандартизованы, чтобы одинаковый статус выглядел
        одинаково на всех вкладках. */
-    --ok: #1F6F54;
-    --err: #B00020;
-    --err-bg: #FDECEC;
-    --err-line: #F3B9B9;
-    --err-ink: #7A1414;
-    --info-bg: #E8F0FE;
-    --warn-bg: #FFF4E5;
-    --warn-ink: #9A5B00;
-    --attention: #E6A23C;     /* несохранённая правка */
-
+  --ok: #1F6F54;
+  --err: #B00020;
+  --err-bg: #FDECEC;
+  --err-line: #F3B9B9;
+  --err-ink: #7A1414;
+  --info-bg: #E8F0FE;
+  --warn-bg: #FFF4E5;
+  --warn-ink: #9A5B00;
+  --attention: #E6A23C;     /* несохранённая правка */
     /* Скругления: было восемь разных ступеней на одну поверхность.
        Осталось четыре плюс пилюля и круг. */
-    --r-lg: 16px;             /* панели */
-    --r-md: 12px;             /* контейнеры данных: таблицы, логи, баннеры */
-    --r-sm: 8px;              /* поля ввода и мелкие плашки */
-    --r-xs: 2px;              /* столбики графика */
-
-    --t: 160ms ease;          /* переходы состояний: Operate держит 150–250 мс */
-  }
+  --r-lg: 16px;             /* панели */
+  --r-md: 12px;             /* контейнеры данных: таблицы, логи, баннеры */
+  --r-sm: 8px;              /* поля ввода и мелкие плашки */
+  --r-xs: 2px;              /* столбики графика */
+  --t: 160ms ease;          /* переходы состояний: Operate держит 150–250 мс */
+}
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--bg);
-    color: var(--ink);
+    color: rgb(var(--ink));
     font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;
     min-height: 100vh;
     padding: 36px 16px 64px;
@@ -60,7 +63,7 @@
      здесь три вкладки и панель заголовка. */
   .skip-link {
     position: absolute; left: -9999px; top: 0; z-index: 10001;
-    background: #fff; color: var(--accent);
+    background: rgb(var(--surface)); color: rgb(var(--accent));
     font: 600 15px/1.4 'HSE Sans', 'IBM Plex Sans', sans-serif;
     padding: 12px 20px; border-radius: 0 0 10px 0;
     box-shadow: 0 4px 18px rgba(0, 0, 0, .22); text-decoration: underline;
@@ -72,7 +75,7 @@
     font-size: 22px;
     font-weight: 700;
     margin: 0 0 4px;
-    color: var(--accent);
+    color: rgb(var(--accent));
   }
   .sub { font-size: 13.5px; color: var(--ink-mute); margin: 0 0 20px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -83,20 +86,20 @@
     padding: 10px 16px;
     border-radius: 999px;
     border: 1px solid var(--line);
-    background: #fff;
+    background: rgb(var(--surface));
     color: var(--ink-mute);
     cursor: pointer;
     transition: background var(--t), color var(--t), border-color var(--t), transform 140ms ease;
   }
-  .tab:hover:not(.active) { border-color: var(--accent); color: var(--ink); }
+  .tab:hover:not(.active) { border-color: rgb(var(--accent)); color: rgb(var(--ink)); }
   .tab:active { transform: scale(0.97); }
-  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab.active { background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
   .panel {
-    background: #fff;
+    background: rgb(var(--surface));
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     padding: 28px;
-    box-shadow: 0 1px 3px rgba(33, 30, 27, 0.06);
+    box-shadow: 0 1px 3px rgb(var(--ink) / 0.06);
     margin-bottom: 20px;
   }
   /* Стек был обрезан до 'HSE Slab', serif — при отсутствии фирменного
@@ -114,7 +117,7 @@
   input:focus-visible,
   select:focus-visible,
   [tabindex]:focus-visible {
-    outline: 3px solid var(--accent);
+    outline: 3px solid rgb(var(--accent));
     outline-offset: 2px;
   }
   .hidden { display: none !important; }
@@ -146,14 +149,14 @@
   .value.pending::before { content: "…"; }
   .action-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
   .action-desc { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 14px; line-height: 1.55; }
-  .action-desc a { color: var(--accent); word-break: break-all; }
+  .action-desc a { color: rgb(var(--accent)); word-break: break-all; }
   .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
   button, .btn {
     font: inherit;
     font-weight: 600;
     font-size: 14px;
-    color: #fff;
-    background: var(--accent);
+    color: rgb(var(--surface));
+    background: rgb(var(--accent));
     border: none;
     border-radius: 999px;
     padding: 11px 18px;
@@ -165,9 +168,9 @@
   }
   button.primary { width: 100%; padding: 14px; font-size: 15px; }
   button.secondary, a.btn.secondary {
-    background: #fff;
-    color: var(--accent);
-    border: 1px solid rgba(22, 88, 218, 0.35);
+    background: rgb(var(--surface));
+    color: rgb(var(--accent));
+    border: 1px solid rgb(var(--accent) / 0.35);
   }
   /* Раньше hover был один на всех: filter: brightness(0.95). На синей
      кнопке он давал затемнение, а белую вторичную просто пачкал серым,
@@ -179,7 +182,7 @@
   button:hover:not(:disabled), .btn:hover { background: var(--accent-dark); }
   button.secondary:hover:not(:disabled), a.btn.secondary:hover {
     background: var(--info-bg);
-    border-color: var(--accent);
+    border-color: rgb(var(--accent));
   }
   button:active:not(:disabled), .btn:active { transform: scale(0.97); }
   button:disabled { opacity: 0.6; cursor: default; }
@@ -209,9 +212,9 @@
   @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
   .bars { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; align-items: center; font-size: 12.5px; }
-  .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(var(--ink)); }
   .bar-track { grid-column: 1 / -1; height: 8px; background: var(--bg-tint); border-radius: 999px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-soft)); border-radius: 999px; min-width: 2px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, rgb(var(--accent)), var(--accent-soft)); border-radius: 999px; min-width: 2px; }
   .bar-count { text-align: right; color: var(--ink-mute); font-weight: 600; }
   .hours {
     display: grid;
@@ -222,7 +225,7 @@
     margin-top: 8px;
   }
   .hours span {
-    background: var(--accent);
+    background: rgb(var(--accent));
     border-radius: var(--r-xs) var(--r-xs) 0 0;
     min-height: 2px;
     opacity: 0.85;
@@ -270,7 +273,7 @@
   .programs table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .programs th, .programs td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   .programs th { position: sticky; top: 0; background: var(--bg-tint); }
-  .programs a { color: var(--accent); text-decoration: none; }
+  .programs a { color: rgb(var(--accent)); text-decoration: none; }
   .banner {
     display: none;
     margin-bottom: 16px;
@@ -284,14 +287,14 @@
   }
   .banner.visible { display: block; }
   .banner code, .hint code {
-    background: rgba(33, 30, 27, 0.08);
+    background: rgb(var(--ink) / 0.08);
     padding: 1px 6px;
     border-radius: var(--r-sm);
     font-family: ui-monospace, monospace;
   }
   .hint { margin-top: 12px; font-size: 12.5px; color: var(--ink-mute); line-height: 1.5; }
   .links { margin-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .links a { font-size: 13.5px; color: var(--accent); text-decoration: none; }
+  .links a { font-size: 13.5px; color: rgb(var(--accent)); text-decoration: none; }
   .range { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
   .range label { font-size: 13.5px; color: var(--ink-mute); margin-right: 4px; }
   /* Выбранный период не имел ни одного правила: класс .active вешался в JS,
@@ -299,9 +302,9 @@
      оператор не видел, какой период открыт. Выбор показан заливкой,
      как у вкладок, плюс aria-pressed для скринридера. */
   .range-btn.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
+    background: rgb(var(--accent));
+    color: rgb(var(--surface));
+    border-color: rgb(var(--accent));
   }
   .range-btn.active:hover:not(:disabled) { background: var(--accent-dark); }
   .muted { color: var(--ink-mute); font-size: 12.5px; }
@@ -318,7 +321,7 @@
   .application-facts dt { color: var(--ink-mute); font-size: 12.5px; flex: none; }
   .application-facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
   .application-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .status-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .status-btn.active { background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
   .path-chip {
     display: inline-block;
     background: var(--bg-tint);
@@ -369,11 +372,11 @@
     padding: 6px 10px;
     border: 1px solid var(--line);
     border-radius: var(--r-sm);
-    background: #fff;
-    color: var(--ink);
+    background: rgb(var(--surface));
+    color: rgb(var(--ink));
     transition: border-color var(--t);
   }
-  table.editor input:hover { border-color: rgba(33, 30, 27, 0.25); }
+  table.editor input:hover { border-color: rgb(var(--ink) / 0.25); }
   table.editor input.title-input { min-width: 180px; }
   table.editor input.url-input { min-width: 140px; }
   table.editor .icon-btn {
@@ -383,7 +386,7 @@
     padding: 6px 10px;
     border-radius: 999px;
     border: 1px solid rgba(176, 0, 32, 0.25);
-    background: #fff;
+    background: rgb(var(--surface));
     color: var(--err);
     cursor: pointer;
     white-space: nowrap;
@@ -419,18 +422,18 @@
     padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: var(--r-sm);
-    background: #fff;
-    color: var(--ink);
+    background: rgb(var(--surface));
+    color: rgb(var(--ink));
     transition: border-color var(--t);
   }
-  .field input:hover, .field select:hover { border-color: rgba(33, 30, 27, 0.25); }
+  .field input:hover, .field select:hover { border-color: rgb(var(--ink) / 0.25); }
   .field.checkbox {
     display: flex;
     align-items: center;
     gap: 8px;
     padding-bottom: 8px;
   }
-  .field.checkbox label { margin: 0; font-size: 14px; color: var(--ink); }
+  .field.checkbox label { margin: 0; font-size: 14px; color: rgb(var(--ink)); }
   .dirty-dot {
     display: inline-block;
     width: 8px;

@@ -139,7 +139,7 @@ section#explore a[href]{
     transform .32s cubic-bezier(.22,1,.36,1),
     background .32s ease !important;
   will-change: transform, box-shadow;
-  box-shadow: 0 0 0 rgba(33,30,27,0);
+  box-shadow: 0 0 0 rgb(var(--ink) / 0);
 }
 /* Подъём и тень — только на устройствах с настоящим курсором. На тач-экране
    :hover срабатывает по тапу и залипает: карточка остаётся поднятой, пока
@@ -152,7 +152,7 @@ section#explore a[href]{
        синей при смене темы. */
     border-color: var(--dpo-accent, #1658DA) !important;
     transform: translateY(-3px) !important;
-    box-shadow: 0 12px 28px rgba(33,30,27,0.1) !important;
+    box-shadow: 0 12px 28px rgb(var(--ink) / 0.1) !important;
     background: #FFFEFB !important;
   }
   #explore a:hover .explore-arrow{
@@ -177,16 +177,16 @@ section#explore a[href]{
   gap: 8px; padding: 10px;
   background: rgba(251,249,245,0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(33,30,27,0.1);
+  border: 1px solid rgb(var(--ink) / 0.1);
   border-radius: 18px;
-  box-shadow: 0 12px 40px rgba(33,30,27,0.16);
+  box-shadow: 0 12px 40px rgb(var(--ink) / 0.16);
 }
 .dpo-mobile-cta a{
   flex: 1; text-align: center; font-weight: 600; font-size: 14px;
   padding: 12px 10px; border-radius: 999px; text-decoration: none;
-  color: #1658DA; background: #fff; border: 1px solid rgba(22,88,218,0.3);
+  color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
-.dpo-mobile-cta a.primary{ background: #1658DA; color: #fff; border-color: #1658DA; }
+.dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
 @media (max-width: 760px){
   body.dpo-has-mobile-cta{ padding-bottom: 84px; }
   .dpo-mobile-cta{ display: flex; }
