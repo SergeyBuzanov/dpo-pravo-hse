@@ -1012,7 +1012,7 @@ function renderSloganPicker() {
           observer.disconnect();
         }
       });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+      observer.observe(document, { childList: true, subtree: true });
       window.setTimeout(function () { observer.disconnect(); }, 15000);
     }
   `);
