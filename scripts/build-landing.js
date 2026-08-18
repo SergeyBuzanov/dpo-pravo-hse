@@ -66,6 +66,19 @@ const NOSCRIPT_REGION = {
   end: '<!-- dpo:noscript-programs:end -->',
 };
 
+/**
+ * Регион с выбором девиза. Тоже в статической части index.html, сразу за
+ * элементом девиза на экране загрузки: скрипт обязан отработать до того, как
+ * посетитель успеет прочитать дефолтную фразу, иначе он увидит подмену текста.
+ */
+const SLOGAN_REGION = {
+  start: '<!-- dpo:slogan:start -->',
+  end: '<!-- dpo:slogan:end -->',
+};
+
+const SLOGANS_FILE = path.join(ROOT, 'content', 'slogans.json');
+const SLOGAN_LIB = path.join(ROOT, 'lib', 'slogan-bag.js');
+
 /** Сколько названий показываем в сфере, прежде чем свернуть в «ещё N». */
 const PREVIEW = 3;
 
@@ -829,6 +842,129 @@ function renderNoscriptPrograms(programs) {
   return { html: parts.join('\n'), links, spheres: parts.length };
 }
 
+/**
+ * Снимает комментарии и лишние пробелы. Не минификатор: ужимает ровно то, что
+ * раздувает вшитый в страницу код – блочные комментарии документации и отступы.
+ * Строк в коде мешка нет, поэтому резать по кавычкам ничего не может.
+ */
+function squeeze(js) {
+  return js
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/^[ \t]+/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
+/**
+ * Выбор девиза первого экрана: банк, алгоритм мешка и связка с разметкой,
+ * вшитые в страницу одним куском.
+ *
+ * Почему вшито, а не отдельным файлом. Во-первых, банк – девять строк, ради
+ * них лишний запрос не нужен. Во-вторых, выбор обязан произойти до первой
+ * отрисовки девиза: отложенный файл выполнится позже, и посетитель успеет
+ * увидеть дефолтную фразу, а потом её подмену. Разрешено CSP страницы
+ * ('unsafe-inline' в script-src).
+ *
+ * Почему алгоритм не переписан здесь заново: он лежит в lib/slogan-bag.js,
+ * покрыт юнит-тестами и вставляется тем же исходником. Вторая копия разошлась
+ * бы с первой при первой же правке.
+ *
+ * Девиз живёт в ДВУХ местах: на экране загрузки (.spl-motto, статическая
+ * часть) и в настоящей странице ([data-dpo-motto], собирается рантаймом).
+ * Фраза выбирается один раз и проставляется в оба, иначе на переходе от
+ * заставки к странице текст сменится на глазах.
+ */
+function renderSloganPicker() {
+  const bank = JSON.parse(fs.readFileSync(SLOGANS_FILE, 'utf8'));
+  const slogans = (bank.slogans || []).map((s) => ({ text: s.text, weight: s.weight }));
+  if (!slogans.length) throw new Error('content/slogans.json: банк девизов пуст');
+  const version = Number(bank.version) || 1;
+
+  const algorithm = squeeze(
+    fs.readFileSync(SLOGAN_LIB, 'utf8').replace(/if \(typeof module[\s\S]*$/, ''),
+  );
+
+  const glue = squeeze(`
+    var KEY_BAG = 'dpo.slogan.bag.v${version}';
+    var KEY_LAST = 'dpo.slogan.last.v${version}';
+    var memory = {};
+    function read(key) {
+      try { return window.localStorage.getItem(key); } catch (e) { return memory[key] || null; }
+    }
+    function write(key, value) {
+      memory[key] = value;
+      try { window.localStorage.setItem(key, value); } catch (e) {}
+    }
+    var saved = null;
+    try { saved = JSON.parse(read(KEY_BAG)); } catch (e) { saved = null; }
+    var lastRaw = read(KEY_LAST);
+    var state = { bag: saved, last: lastRaw === null ? null : Number(lastRaw) };
+    var picked = next(SLOGANS, state);
+    var DEFAULT_TEXT = SLOGANS[0].text;
+    var text = picked.index >= 0 ? SLOGANS[picked.index].text : null;
+    if (text) {
+      write(KEY_BAG, JSON.stringify(picked.state.bag));
+      write(KEY_LAST, String(picked.state.last));
+    }
+    function apply(root) {
+      if (!text || !root || !root.querySelectorAll) return;
+      var nodes = root.querySelectorAll('.spl-motto,[data-dpo-motto]');
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].textContent !== text) nodes[i].textContent = text;
+      }
+    }
+    apply(document);
+    // Настоящий девиз строит рантайм из шаблона, где захардкожена дефолтная
+    // фраза. Если ждать и переписывать её после сборки, посетитель увидит
+    // мелькание: сначала дефолт, потом выбранная. Поэтому правим САМ шаблон,
+    // пока рантайм до него не добрался.
+    //
+    // Успеваем по порядку в документе: этот скрипт стоит выше распаковщика,
+    // значит его обработчик DOMContentLoaded зарегистрирован первым и
+    // сработает первым. Шаблон – JSON-строка, замена делается через
+    // JSON.stringify, чтобы кавычки и обратные слэши в фразе не порвали её.
+    function patchTemplate() {
+      if (!text || text === DEFAULT_TEXT) return;
+      var node = document.querySelector('script[type="__bundler/template"]');
+      if (!node) return;
+      var quoted = function (s) { return JSON.stringify(s).slice(1, -1); };
+      var from = quoted(DEFAULT_TEXT);
+      var body = node.textContent;
+      if (body.indexOf(from) < 0) return;
+      node.textContent = body.replace(from, quoted(text));
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', patchTemplate);
+    } else {
+      patchTemplate();
+    }
+    // Страховка на случай, если формат шаблона изменится и правка выше не
+    // сработает: тогда девиз всё равно встанет на место, пусть и с мельканием.
+    // Наблюдатель снимается, как только элемент найден, либо по таймауту.
+    if (window.MutationObserver) {
+      var seen = false;
+      var observer = new MutationObserver(function () {
+        apply(document);
+        if (!seen && document.querySelector('[data-dpo-motto]')) {
+          seen = true;
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      window.setTimeout(function () { observer.disconnect(); }, 15000);
+    }
+  `);
+
+  return (
+    '      <script>\n(function(){\n' +
+    'var SLOGANS=' + JSON.stringify(slogans) + ';\n' +
+    algorithm + '\n' +
+    glue + '\n' +
+    '})();\n      <\/script>'
+  );
+}
+
 /** Замена региона в произвольном файле по тем же маркерам, что и в шаблоне. */
 function replaceRegionIn(source, region, html, where) {
   const from = source.indexOf(region.start);
@@ -878,11 +1014,11 @@ function build() {
   // ПОСЛЕ inject: список программ в <noscript> живёт в статической части
   // index.html, а inject переписывает файл целиком из шаблона.
   const noscript = renderNoscriptPrograms(programs);
-  fs.writeFileSync(
-    INDEX,
-    replaceRegionIn(fs.readFileSync(INDEX, 'utf8'), NOSCRIPT_REGION, noscript.html, 'index.html'),
-    'utf8',
-  );
+  const picker = renderSloganPicker();
+  let indexHtml = fs.readFileSync(INDEX, 'utf8');
+  indexHtml = replaceRegionIn(indexHtml, NOSCRIPT_REGION, noscript.html, 'index.html');
+  indexHtml = replaceRegionIn(indexHtml, SLOGAN_REGION, picker, 'index.html');
+  fs.writeFileSync(INDEX, indexHtml, 'utf8');
 
   const byType = FORMATS.filter((f) => f.type)
     .map((f) => f.type + ' ' + programs.filter((p) => (p.type && (p.type.shortTitle || p.type.title)) === f.type).length)
@@ -902,6 +1038,10 @@ function build() {
   console.log(`Секция «Отзывы выпускников»: цитат ${reviews.count}`);
   console.log(
     `Фолбэк <noscript>: направлений ${noscript.spheres}, ссылок на программы ${noscript.links}`,
+  );
+  console.log(
+    `Девизы первого экрана: ${JSON.parse(fs.readFileSync(SLOGANS_FILE, 'utf8')).slogans.length} фраз, ` +
+      `вшито ${Math.round(Buffer.byteLength(picker, 'utf8') / 102.4) / 10} КБ`,
   );
   return { spheres, total: programs.length, unassigned };
 }

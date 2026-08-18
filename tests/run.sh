@@ -37,5 +37,9 @@ node --test "tests/unit/"*.test.js
 echo "→ смоук-тест (Playwright)"
 python tests/smoke_test.py
 echo ""
+echo "→ ротация девизов первого экрана (Playwright)"
+python tests/slogan_test.py
+
+echo ""
 echo "→ security_test.py (admin + static-server allowlist)"
 python tests/security_test.py
