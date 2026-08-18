@@ -45,6 +45,7 @@ const MARKERS = Object.freeze({
   filtersSphere: Object.freeze(['<!-- CATALOG:FILTERS_SPHERE -->', '<!-- /CATALOG:FILTERS_SPHERE -->']),
   filtersDuration: Object.freeze(['<!-- CATALOG:FILTERS_DURATION -->', '<!-- /CATALOG:FILTERS_DURATION -->']),
   list: Object.freeze(['<!-- CATALOG:LIST -->', '<!-- /CATALOG:LIST -->']),
+  starts: Object.freeze(['<!-- CATALOG:STARTS -->', '<!-- /CATALOG:STARTS -->']),
   jsonld: Object.freeze(['<!-- CATALOG:JSONLD -->', '<!-- /CATALOG:JSONLD -->']),
 });
 
@@ -162,6 +163,70 @@ function renderCard(item) {
         <span class="go">Подробнее →</span>
       </div>
     </a>`;
+}
+
+/**
+ * Блок «Ближайшие старты» на странице каталога (просьба владельца
+ * 18.08.2026) – по образцу страницы анонсов pravo.hse.ru/dpo/announcement:
+ * месяц -> число -> название-ссылка, без цен и прочих метаданных.
+ *
+ * Будущность старта определяет upcomingStartLabel – та же логика, что у
+ * подписи «Старт: …» на карточках, поэтому блок не протухает вместе с
+ * ними. Месяц и число считаются по московскому календарю (Intl с
+ * MOSCOW_TZ): локальные компоненты процесса сдвигали бы полуночный старт
+ * на сутки. Дата с точностью до месяца (isStartDateWithoutDay) попадает
+ * в свой месяц с подписью «в течение месяца» и стоит первой. Год у
+ * месяца пишется только когда он не текущий: «Сентябрь», но «Январь
+ * 2027». Если будущих стартов нет, секция не выводится вовсе – маркеры
+ * обнимают её целиком.
+ */
+function buildStartsBlock(items, now = new Date()) {
+  const upcoming = items
+    .filter((i) => upcomingStartLabel(i, now))
+    .sort((a, b) => {
+      const am = a.isStartDateWithoutDay ? 1 : 0;
+      const bm = b.isStartDateWithoutDay ? 1 : 0;
+      return new Date(a.startDate) - new Date(b.startDate) || bm - am;
+    });
+  if (!upcoming.length) return '';
+
+  const fmt = (opts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MOSCOW_TZ, ...opts });
+  const curYear = fmt({ year: 'numeric' }).format(now);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const groups = new Map();
+  for (const item of upcoming) {
+    const d = new Date(item.startDate);
+    const year = fmt({ year: 'numeric' }).format(d);
+    const month = cap(fmt({ month: 'long' }).format(d));
+    const key = `${year}-${fmt({ month: '2-digit' }).format(d)}`;
+    const title = year === curYear ? month : `${month} ${year}`;
+    if (!groups.has(key)) groups.set(key, { title, rows: [] });
+    const day = item.isStartDateWithoutDay
+      ? 'в течение месяца'
+      : fmt({ day: 'numeric', month: 'long' }).format(d);
+    groups.get(key).rows.push(
+      `        <li><a href="${escapeHtml(programHref(item))}"><span class="starts-day">${escapeHtml(day)}</span><span class="starts-name">${escapeHtml(item.title)}</span></a></li>`,
+    );
+  }
+
+  const cols = [...groups.values()]
+    .map(
+      (g) => `    <div class="starts-month">
+      <h3>${escapeHtml(g.title)}</h3>
+      <ul>
+${g.rows.join('\n')}
+      </ul>
+    </div>`,
+    )
+    .join('\n');
+
+  return `<section class="starts" aria-label="Ближайшие старты программ">
+  <h2>Ближайшие старты</h2>
+  <div class="starts-grid">
+${cols}
+  </div>
+</section>`;
 }
 
 function renderChip(label, value, count, active) {
@@ -383,6 +448,7 @@ async function writeCatalogHtml(items, { updatedLabel } = {}) {
   html = replaceBetween(html, MARKERS.filtersFormat, buildFormatChips(items));
   html = replaceBetween(html, MARKERS.filtersDuration, buildDurationChips(items));
   html = replaceBetween(html, MARKERS.list, items.map(renderCard).join('\n'));
+  html = replaceBetween(html, MARKERS.starts, buildStartsBlock(items));
   html = replaceBetween(html, MARKERS.jsonld, buildJsonLd(items));
   await writeAtomic(CATALOG_FILE, html);
 

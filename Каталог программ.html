@@ -119,6 +119,43 @@
   .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.14); border-radius: var(--radius-sm); padding: 8px 16px; }
   .hero .meta b{ color: #fff; }
 
+  /* «Ближайшие старты»: пергаментная полоса между героем и фильтрами,
+     колонки-месяцы (образец – страница анонсов pravo.hse.ru/dpo). Ряд
+     «число + название» – целиком ссылка: мишень крупнее, чем у одного
+     названия. Типографика по шкале лендинга: подписи 13, мелкий 14.5. */
+  .starts{
+    background: var(--bg-tint);
+    border-bottom: 1px solid var(--line);
+    padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 56px);
+  }
+  .starts h2{
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 600; color: var(--ink-mute); margin: 0 0 16px;
+  }
+  .starts-grid{
+    display: grid; gap: clamp(18px, 3vw, 36px);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .starts-month h3{
+    font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif;
+    font-size: 18px; font-weight: 600; margin: 0 0 10px;
+  }
+  .starts-month ul{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .starts-month a{
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 6px 0; border-top: 1px solid var(--line);
+    color: var(--ink); text-decoration: none;
+  }
+  .starts-day{
+    flex: none; width: 96px;
+    font-size: 13px; font-weight: 600; color: var(--blue);
+  }
+  .starts-name{ font-size: 14.5px; line-height: 1.4; min-width: 0; }
+  @media (hover: hover) and (pointer: fine){
+    .starts-month a:hover .starts-name{ color: var(--blue); }
+  }
+  html.vi-mode .starts{ border: 2px solid #000 !important; }
+
   .filters{
     display: flex; flex-wrap: wrap; gap: 8px;
     padding: 14px clamp(20px, 5vw, 56px) 0;
@@ -446,9 +483,63 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<span class="meta">Обновлено: <b>17 августа 2026 г. в 18:57</b> · 26 актуальных программ</span>
+<span class="meta">Обновлено: <b>18 августа 2026 г. в 13:44</b> · 26 актуальных программ</span>
   <!-- /CATALOG:META -->
 </section>
+
+<!-- Блок «Ближайшие старты» (просьба владельца 18.08.2026) – по образцу
+     страницы анонсов pravo.hse.ru/dpo/announcement: месяц -> число ->
+     название-ссылка. Содержимое (вместе с тегом section) собирает
+     update-catalog.js между маркерами ниже, править руками бессмысленно:
+     пересборка каталога перепишет. Если будущих стартов нет, между
+     маркерами пусто и полосы на странице не остаётся. -->
+<!-- CATALOG:STARTS -->
+<section class="starts" aria-label="Ближайшие старты программ">
+  <h2>Ближайшие старты</h2>
+  <div class="starts-grid">
+    <div class="starts-month">
+      <h3>Сентябрь</h3>
+      <ul>
+        <li><a href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html"><span class="starts-day">1 сентября</span><span class="starts-name">Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span></a></li>
+        <li><a href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html"><span class="starts-day">7 сентября</span><span class="starts-name">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span></a></li>
+        <li><a href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html"><span class="starts-day">10 сентября</span><span class="starts-name">Правовые вопросы банкротства: теории и практики</span></a></li>
+        <li><a href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html"><span class="starts-day">14 сентября</span><span class="starts-name">Французское (европейское) экономическое право / Droit économique français (européen)</span></a></li>
+        <li><a href="programs/kontraktnoe-pravo-gonkonga-1025688553.html"><span class="starts-day">15 сентября</span><span class="starts-name">Контрактное право Гонконга</span></a></li>
+        <li><a href="programs/personalnyy-assistent-pro-829977883.html"><span class="starts-day">19 сентября</span><span class="starts-name">Персональный ассистент PRO</span></a></li>
+        <li><a href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html"><span class="starts-day">21 сентября</span><span class="starts-name">Интеллектуальная собственность: от закона к практике</span></a></li>
+        <li><a href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html"><span class="starts-day">23 сентября</span><span class="starts-name">Цифровое право для бизнеса</span></a></li>
+        <li><a href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html"><span class="starts-day">24 сентября</span><span class="starts-name">Международное частное право: трансграничные операции</span></a></li>
+        <li><a href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html"><span class="starts-day">28 сентября</span><span class="starts-name">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span></a></li>
+        <li><a href="programs/pravo-na-angliyskom-legal-english-474776084.html"><span class="starts-day">30 сентября</span><span class="starts-name">Право на английском / Legal English</span></a></li>
+      </ul>
+    </div>
+    <div class="starts-month">
+      <h3>Октябрь</h3>
+      <ul>
+        <li><a href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html"><span class="starts-day">5 октября</span><span class="starts-name">Авторское право в информационном обществе</span></a></li>
+        <li><a href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html"><span class="starts-day">13 октября</span><span class="starts-name">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span></a></li>
+        <li><a href="programs/biznes-mediatsiya-494685723.html"><span class="starts-day">14 октября</span><span class="starts-name">Бизнес-медиация</span></a></li>
+        <li><a href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html"><span class="starts-day">24 октября</span><span class="starts-name">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span></a></li>
+        <li><a href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html"><span class="starts-day">26 октября</span><span class="starts-name">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span></a></li>
+      </ul>
+    </div>
+    <div class="starts-month">
+      <h3>Ноябрь</h3>
+      <ul>
+        <li><a href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html"><span class="starts-day">2 ноября</span><span class="starts-name">Введение в правовую систему Китая</span></a></li>
+        <li><a href="programs/angliyskoe-kontraktnoe-pravo-856421092.html"><span class="starts-day">9 ноября</span><span class="starts-name">Английское контрактное право</span></a></li>
+        <li><a href="programs/morskoy-arbitrazh-906651510.html"><span class="starts-day">10 ноября</span><span class="starts-name">Морской арбитраж</span></a></li>
+        <li><a href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html"><span class="starts-day">16 ноября</span><span class="starts-name">Корпоративное право: основные проблемы</span></a></li>
+        <li><a href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html"><span class="starts-day">16 ноября</span><span class="starts-name">Техники эффективного анализа юридических документов</span></a></li>
+        <li><a href="programs/delovye-peregovory-pravovye-strategii-589527758.html"><span class="starts-day">17 ноября</span><span class="starts-name">Деловые переговоры: правовые стратегии</span></a></li>
+        <li><a href="programs/transportnoe-pravo-802031223.html"><span class="starts-day">18 ноября</span><span class="starts-name">Транспортное право</span></a></li>
+        <li><a href="programs/obschie-voprosy-dogovornogo-prava-907279244.html"><span class="starts-day">25 ноября</span><span class="starts-name">Общие вопросы договорного права</span></a></li>
+        <li><a href="programs/neyropravo-905186485.html"><span class="starts-day">30 ноября</span><span class="starts-name">Нейроправо</span></a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+  <!-- /CATALOG:STARTS -->
 
 <div class="filters" id="filters" data-group="type">
   <!-- CATALOG:FILTERS_TYPE -->
@@ -510,12 +601,12 @@
   <h2 class="visually-hidden">Список программ</h2>
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->
-    <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1786914000000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный старт: 17 августа 2026 г.">
+    <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1786914000000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/958734693.jpg" alt="" loading="lazy"></span>
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Актуальные вопросы гражданского права</h3>
-      <div class="meta">Онлайн асинхронный · Старт: 17 августа 2026 г.</div>
+      <div class="meta">Онлайн асинхронный</div>
       <div class="foot">
         <span class="price">22 000 ₽</span>
         <span class="go">Подробнее →</span>
