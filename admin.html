@@ -20,7 +20,7 @@
     --accent-dark: #123F9E;
     --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
     --bg: #FBF9F5;
-    --bg-alt: #F2ECE1;
+    --bg-tint: #F2ECE1;
     --ink: #211E1B;
     --ink-mute: #6B6459;
     --line: rgba(33, 30, 27, 0.08);
@@ -190,7 +190,7 @@
     margin-bottom: 18px;
   }
   .kpi {
-    background: var(--bg-alt);
+    background: var(--bg-tint);
     border-radius: var(--r-md);
     padding: 14px 16px;
   }
@@ -210,7 +210,7 @@
   .bars { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; align-items: center; font-size: 12.5px; }
   .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
-  .bar-track { grid-column: 1 / -1; height: 8px; background: var(--bg-alt); border-radius: 999px; overflow: hidden; }
+  .bar-track { grid-column: 1 / -1; height: 8px; background: var(--bg-tint); border-radius: 999px; overflow: hidden; }
   .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-soft)); border-radius: 999px; min-width: 2px; }
   .bar-count { text-align: right; color: var(--ink-mute); font-weight: 600; }
   .hours {
@@ -256,7 +256,7 @@
     font-size: 12.5px;
     font-family: ui-monospace, monospace;
     color: var(--ink-mute);
-    background: var(--bg-alt);
+    background: var(--bg-tint);
     border-radius: var(--r-md);
     padding: 14px;
     white-space: pre-wrap;
@@ -269,7 +269,7 @@
   .programs.visible { display: block; }
   .programs table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .programs th, .programs td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  .programs th { position: sticky; top: 0; background: var(--bg-alt); }
+  .programs th { position: sticky; top: 0; background: var(--bg-tint); }
   .programs a { color: var(--accent); text-decoration: none; }
   .banner {
     display: none;
@@ -321,7 +321,7 @@
   .status-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .path-chip {
     display: inline-block;
-    background: var(--bg-alt);
+    background: var(--bg-tint);
     border-radius: var(--r-sm);
     padding: 1px 6px;
     margin: 1px 2px;
@@ -349,7 +349,7 @@
   table.editor th {
     position: sticky;
     top: 0;
-    background: var(--bg-alt);
+    background: var(--bg-tint);
     font-size: 12.5px;
     color: var(--ink-mute);
     z-index: 1;
@@ -395,7 +395,7 @@
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 999px;
-    background: var(--bg-alt);
+    background: var(--bg-tint);
     color: var(--ink-mute);
   }
   .tag.manual { background: var(--info-bg); color: var(--accent-dark); }

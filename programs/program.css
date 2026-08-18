@@ -3,8 +3,8 @@
 :root{
   --accent:#1658DA; --accent-dark:#1145AA; --gold-light:#FFD982;
   --ink:#211E1B; --ink-soft:#48423A; --ink-mute:#6B6459;
-  --bg:#FBF9F5; --bg-tint:#F2ECE1; --card:#FFFFFF;
-  --line:rgba(33,30,27,0.1);
+  --bg:#FBF9F5; --bg-tint:#F2ECE1; --surface:#FFFFFF;
+  --line: rgba(33, 30, 27, 0.1);
   --gutter:clamp(20px,5vw,56px);
   --ease:cubic-bezier(.22,1,.36,1);
 }
@@ -115,7 +115,7 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .teachers{list-style:none;margin:0;padding:0}
 .teachers li{padding:16px 0;border-top:1px solid var(--line)}
 .reviews{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-.reviews li{background:var(--card);border:1px solid var(--line);border-radius:16px;
+.reviews li{background:var(--surface);border:1px solid var(--line);border-radius:16px;
   padding:20px 22px;max-width:72ch}
 .reviews blockquote{margin:0;font-size:15px;line-height:1.65;color:var(--ink-soft)}
 .reviews blockquote::before{content:"« "}
@@ -140,7 +140,7 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.side{position:static}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px}
 .price{font-size:clamp(22px,2vw,30px);font-weight:700;font-family:'HSE Slab','Source Serif 4',serif;
   margin-bottom:18px}
 .facts{margin:0 0 20px}
