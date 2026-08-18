@@ -123,7 +123,10 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
       ),
     );
     const link = document.createElement('a');
-    link.href = 'privacy.html';
+    // Баннер живёт и на страницах programs/ – оттуда до политики на уровень
+    // выше. Голый 'privacy.html' вёл на несуществующий programs/privacy.html
+    // (тот же приём, что privacyHref в application-form.js).
+    link.href = /\/programs\//.test(location.pathname) ? '../privacy.html' : 'privacy.html';
     link.textContent = 'Политике обработки персональных данных';
     text.append(link, document.createTextNode('.'));
 
