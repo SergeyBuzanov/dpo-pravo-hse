@@ -47,6 +47,11 @@ const FILES = [
   'robots.txt',
   'sitemap.xml',
   'scripts/build-program-pages.js',
+  // SITE отсюда идёт в микроразметку Course каталога. Без этой строки первая
+  // же пересборка каталога вернула бы заглушку в 26 адресов курсов – ровно
+  // та ловушка, о которой предупреждает комментарий выше про
+  // build-program-pages.js.
+  'update-catalog.js',
 ];
 
 /**

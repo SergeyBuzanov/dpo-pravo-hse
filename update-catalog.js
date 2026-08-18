@@ -146,12 +146,31 @@ function renderCard(item) {
     ? `\n      <div class="sphere">${escapeHtml(sphere.title)}</div>`
     : '';
 
-  // Миниатюра декоративна (alt=""): вся суть карточки продублирована текстом.
   // Обёртка .card-media несёт затемняющий слой (::after) – единый приём с
   // тайлами «Топ-5» на главной; сам img на псевдоэлементы не способен.
+  //
+  // Про alt и aria-hidden – связка неочевидная, поэтому объясняем.
+  //
+  // Раньше стоял alt="" с обоснованием «миниатюра декоративна: суть карточки
+  // продублирована текстом». Для скринридера это верно и остаётся верным.
+  // Но пустой alt означал ещё и то, что 25 обложек не существовали для
+  // Яндекс.Картинок и Google Images: поиск по картинкам читает атрибут alt,
+  // и пустой атрибут – это отсутствие подписи, а не «пропусти».
+  //
+  // Поэтому alt теперь описательный, а aria-hidden на обёртке СОХРАНЯЕТСЯ.
+  // Так закрываются обе стороны: скринридер по-прежнему пропускает картинку
+  // и не читает название программы дважды (карточка – это <a>, её доступное
+  // имя собирается из текста внутри, и незакрытый alt попал бы туда вторым
+  // экземпляром заголовка), а поисковый робот получает подпись. Роботы
+  // строят индекс по разметке, а не по дереву доступности, и aria-hidden
+  // для них не помеха.
+  //
+  // Ключи в alt не пишем. Alt описывает изображение; набивка ключей здесь
+  // даёт сигнал переспама на странице, где ключ и так стоит в h1, в title и
+  // в заголовке карточки.
   const thumb = cardImage(item);
   const thumbLine = thumb
-    ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="" loading="lazy"></span>`
+    ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="${escapeHtml(`Обложка программы «${item.title}»`)}" loading="lazy"></span>`
     : '';
 
   return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">${thumbLine}
@@ -307,6 +326,39 @@ function buildFormatChips(items) {
   return chips.join('\n');
 }
 
+/**
+ * Домен для микроразметки. Заглушка меняется на боевой адрес скриптом
+ * scripts/set-domain.js – он же правит SITE в scripts/build-program-pages.js,
+ * canonical на всех страницах, sitemap и robots. Держать здесь отдельную
+ * константу нельзя иначе: адрес курса в разметке обязан совпадать с
+ * canonical его страницы, иначе поисковик считает их разными адресами.
+ */
+const SITE = 'https://example.com';
+
+/**
+ * Описание курса для микроразметки: первое предложение того, что человек
+ * видит на странице программы.
+ *
+ * Раньше здесь у всех 26 курсов стояла одна из двух строк – «ПК – факультет
+ * права НИУ ВШЭ.» либо «ПП – …». Двадцать шесть объектов с двумя описаниями
+ * на всех – это не описание, а заполнитель, и Google такой блок склонен
+ * игнорировать целиком.
+ *
+ * Берём tagline (он же og:description на hse.ru), иначе первое предложение
+ * about. Выдумывать нечего: если оба поля пусты, честно остаётся тип
+ * программы – но уже с названием, а не одинаковый для всех.
+ */
+function courseDescription(item) {
+  const source = String(item.tagline || item.about || '').trim();
+  if (source) {
+    const firstSentence = source.split(/(?<=[.!?])\s+/)[0].trim();
+    const text = firstSentence.length >= 40 ? firstSentence : source;
+    return enDash(text.length > 300 ? text.slice(0, 297).replace(/\s+\S*$/, '') + '…' : text);
+  }
+  const kind = item.type?.shortTitle === 'ПП' ? 'Профессиональная переподготовка' : 'Повышение квалификации';
+  return enDash(`${kind}: ${item.title}. Факультет права НИУ ВШЭ.`);
+}
+
 function buildJsonLd(items) {
   const itemListElement = items.map((item, i) => {
     const price = item.discountPrice ?? item.educationPricing;
@@ -317,14 +369,21 @@ function buildJsonLd(items) {
       // программы приходит с hse.ru и может принести em dash.
       name: enDash(item.title),
       // En dash: em dash в текстах сайта запрещён, микроразметка – тоже текст.
-      description: `${item.type?.title || 'Программа ДПО'} – факультет права НИУ ВШЭ.`,
-      url: item.url,
+      description: courseDescription(item),
+      // url – СВОЙ адрес, а не hse.ru. Раньше здесь стоял item.url, то есть
+      // сайт описывал курс и тут же сообщал поисковику, что настоящая
+      // страница курса на чужом домене: право на расширенный сниппет уходило
+      // маркетплейсу целиком. Ссылка на hse.ru не потеряна – она переехала в
+      // sameAs, поле ровно для этого и предназначено.
+      url: `${SITE}/${programHref(item)}`,
+      inLanguage: 'ru',
       provider: {
-        '@type': 'Organization',
+        '@type': 'CollegeOrUniversity',
         name: 'НИУ ВШЭ, факультет права',
         sameAs: 'https://pravo.hse.ru/',
       },
     };
+    if (item.url) course.sameAs = item.url;
 
     const instance = { '@type': 'CourseInstance' };
     if (mode) instance.courseMode = mode;
