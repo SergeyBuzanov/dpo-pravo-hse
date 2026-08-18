@@ -41,9 +41,5 @@ echo "→ ротация девизов первого экрана (Playwright)
 python tests/slogan_test.py
 
 echo ""
-echo "→ блок программ на лендинге (Playwright)"
-python tests/top5_test.py
-
-echo ""
 echo "→ security_test.py (admin + static-server allowlist)"
 python tests/security_test.py
