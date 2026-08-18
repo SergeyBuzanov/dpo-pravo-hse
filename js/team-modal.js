@@ -22,6 +22,7 @@
 
   var CSS = [
     '.dpo-team-backdrop{position:fixed;inset:0;z-index:9000;display:flex;align-items:flex-start;',
+    "font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;",
     'justify-content:center;padding:max(16px,6vh) 16px;overflow-y:auto;',
     'background:rgb(var(--ink) / .55);opacity:0;transition:opacity .22s cubic-bezier(.22,1,.36,1)}',
     '.dpo-team-backdrop.is-open{opacity:1}',

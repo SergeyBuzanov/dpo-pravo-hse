@@ -84,7 +84,7 @@
   if (existing === 'declined') return;
 
   const CSS = `
-#cookieBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1000;max-width:720px;margin:0 auto;background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.55}
+#cookieBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1000;max-width:720px;margin:0 auto;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.55}
 #cookieBanner p{margin:0;flex:1 1 320px}
 #cookieBanner a{color:rgb(var(--accent));text-decoration:underline}
 #cookieBanner .cb-actions{display:flex;gap:10px;flex:0 0 auto}

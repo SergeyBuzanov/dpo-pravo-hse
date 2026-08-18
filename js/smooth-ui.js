@@ -183,6 +183,9 @@ section#explore a[href]{
 }
 .dpo-mobile-cta a{
   flex: 1; text-align: center; font-weight: 600; font-size: 14px;
+  /* Панель вставляется в body, а не внутрь вёрстки страницы, поэтому
+     фирменный шрифт задаём здесь: наследовать его неоткуда. */
+  font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;
   padding: 12px 10px; border-radius: 999px; text-decoration: none;
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
