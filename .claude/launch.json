@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "static-preview",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "serve", "-l", "6173", "."],
-      "port": 6173
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/static-server.js"],
+      "port": 5180
     }
   ]
 }

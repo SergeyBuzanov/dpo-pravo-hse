@@ -22,7 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
-const { formatPrice, formatDate } = require('../lib/hse-catalog');
+const { formatPrice, formatDate, isoDate } = require('../lib/hse-catalog');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'programs');
@@ -198,6 +198,42 @@ function buildPayUrl(id) {
  * lib/catalog-store.js) и только реально лежащие на диске – битый фон
  * хуже, чем его отсутствие.
  */
+/**
+ * Размеры картинки из заголовка файла, без сторонних библиотек.
+ *
+ * Нужны, чтобы поставить width/height обложке героя: без них браузер не знает
+ * пропорций до загрузки, верстает по нулевой высоте и дёргает страницу вниз,
+ * когда фото приходит (это и есть CLS – сдвиг макета, который меряет Google).
+ *
+ * PNG: ширина и высота лежат фиксированно в чанке IHDR.
+ * JPEG: идём по маркерам сегментов до первого SOF (0xC0–0xCF, кроме 0xC4/C8/CC
+ * – это таблицы Хаффмана и расширения, а не кадр).
+ * Не разобрали – возвращаем null: лучше без атрибутов, чем с выдуманными.
+ */
+function imageSize(file) {
+  let buf;
+  try {
+    buf = fs.readFileSync(file);
+  } catch {
+    return null;
+  }
+  if (buf.length > 24 && buf.toString('ascii', 12, 16) === 'IHDR') {
+    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+  }
+  if (buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < buf.length) {
+      if (buf[i] !== 0xff) { i++; continue; }
+      const marker = buf[i + 1];
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        return { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
+      }
+      i += 2 + buf.readUInt16BE(i + 2);
+    }
+  }
+  return null;
+}
+
 function safeImagePath(p) {
   const image = typeof p.image === 'string' ? p.image.trim() : '';
   if (!/^images\/programs\/[a-z0-9_.-]+$/i.test(image)) return null;
@@ -293,7 +329,7 @@ function renderAudience(p) {
   const intro = a.intro ? `        <p class="block-sub">${esc(a.intro)}</p>\n` : '';
   const items = a.items.map((x) => `          <li>${esc(x)}</li>`).join('\n');
   return `      <section class="block">
-        <h2>Для кого</h2>
+        <h2>Кому подойдёт программа</h2>
 ${intro}        <ul class="pills">
 ${items}
         </ul>
@@ -345,7 +381,7 @@ function pluralModules(n) {
  */
 function renderTeachers(p) {
   if (!p.teachers || !p.teachers.length) {
-    return slot('Преподаватели', 'Состав преподавателей пока не заполнен. Заполняется полем teachers у программы – его подтягивает scripts/fetch-program-descriptions.js.');
+    return slot('Преподаватели-практики', 'Состав преподавателей пока не заполнен. Заполняется полем teachers у программы – его подтягивает scripts/fetch-program-descriptions.js.');
   }
   const items = p.teachers
     .map(
@@ -356,7 +392,7 @@ function renderTeachers(p) {
     )
     .join('\n');
   return `      <section class="block">
-        <h2>${p.teachers.length === 1 ? 'Преподаватель' : 'Преподаватели'}</h2>
+        <h2>${p.teachers.length === 1 ? 'Преподаватель-практик' : 'Преподаватели-практики'}</h2>
         <ul class="teachers">
 ${items}
         </ul>
@@ -367,7 +403,7 @@ function renderResults(p) {
   if (!p.results || !p.results.length) return '';
   const items = p.results.map((x) => `          <li>${esc(x)}</li>`).join('\n');
   return `      <section class="block">
-        <h2>Результаты обучения</h2>
+        <h2>Чему вы научитесь</h2>
         <ul class="results">
 ${items}
         </ul>
@@ -411,12 +447,234 @@ function renderSiblings(sphere, current) {
     )
     .join('\n');
   return `      <section class="block">
-        <h2>Другие программы сферы</h2>
-        <p class="block-sub">${esc(sphere.title)} · ${esc(pluralPrograms(sphere.items.length))}</p>
+        <h2>Другие программы направления «${esc(sphere.title)}»</h2>
+        <p class="block-sub">${esc(pluralPrograms(sphere.items.length))} в направлении</p>
         <ul class="siblings">
 ${links}
         </ul>
       </section>`;
+}
+
+/**
+ * Короткое имя программы для <title>.
+ *
+ * Полное название плюс суффикс « · Центр ДПО факультета права НИУ ВШЭ»
+ * (37 знаков) давало 22 заголовка из 26 длиннее 60 знаков, а самый длинный –
+ * 168. Поисковик обрезает такой заголовок многоточием, и обрезается как раз
+ * хвост с брендом: посетитель видит название без «НИУ ВШЭ», то есть теряется
+ * ровно то, ради чего суффикс и ставился.
+ *
+ * Режем по первому двоеточию, слэшу или скобке: у названий с hse.ru до них
+ * стоит суть, после – уточнение или перевод («Право на английском / Legal
+ * English», «Нейроправо», «Правовые вопросы банкротства: теории и практики»).
+ * Если сути одной не хватило и вышло короче 12 знаков, оставляем как было –
+ * лучше длинный заголовок, чем бессмысленный огрызок.
+ */
+const TITLE_SUFFIX_LEN = ' · ДПО НИУ ВШЭ'.length; // 14
+const TITLE_BUDGET = 64 - TITLE_SUFFIX_LEN;        // 50 знаков на имя
+
+/**
+ * Короткие имена для программ, которые машинно не сокращаются.
+ *
+ * Алгоритм ниже режет по границе слова, и для большинства названий этого
+ * достаточно. Но у четырёх программ смысл стоит в конце названия либо в
+ * скобках, и любой автоматический рез даёт бессмыслицу: «Актуальные вопросы
+ * налогового ·», «Правовые механизмы и стратегии эффективного ·». Поэтому
+ * для них имя задано руками.
+ *
+ * Ключ – id программы. Если программы в карте нет, работает алгоритм; если
+ * программа исчезнет из каталога, лишняя строка здесь ничего не сломает.
+ */
+const TITLE_OVERRIDE = Object.freeze({
+  // «…налогового администрирования и современные подходы в налоговой оптимизации бизнеса»
+  '1129129055': 'Налоговое администрирование и оптимизация',
+  // «Правовые механизмы и стратегии эффективного взаимодействия фармацевтических
+  //  компаний с органами государственной власти (GR в фарме)» – суть в скобках
+  '1163275658': 'GR в фарме: работа с органами власти',
+  // «Техники эффективного анализа юридических документов»
+  '820703080': 'Анализ юридических документов',
+  // «Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования»
+  '1129129056': 'Цифровые инструменты в кадровой работе',
+});
+
+/**
+ * Окончания прилагательных. Заголовок, оборванный на прилагательном, читается
+ * как оборванный сильнее, чем оборванный на существительном: по-русски
+ * определение стоит перед определяемым словом, и без него фраза повисает.
+ */
+const TITLE_ADJ_TAIL = /(ого|его|ых|их|ый|ий|ой|ая|яя|ое|ее|ые|ому|ему|ыми|ими|ую|юю|ов|ев)$/i;
+
+/** Служебные слова: заголовок, оборванный на них, читается как недописанный. */
+const TITLE_STOP_TAIL = new Set([
+  'и', 'а', 'но', 'или', 'в', 'во', 'на', 'с', 'со', 'к', 'ко', 'по', 'о', 'об', 'от',
+  'для', 'при', 'из', 'у', 'за', 'до', 'под', 'над', 'про', 'без', 'через',
+]);
+
+function titleCore(p) {
+  const override = TITLE_OVERRIDE[String(p.id || '')];
+  if (override) return override;
+
+  const full = String(p.title || '').trim();
+
+  // Шаг 1. Режем по первому двоеточию, слэшу или скобке: у названий с hse.ru
+  // до них стоит суть, после – уточнение или перевод.
+  let cut = full.split(/\s*[:\/(]/)[0].trim();
+  if (cut.length < 12) cut = full;
+  if (cut.length <= TITLE_BUDGET) return cut;
+
+  // Шаг 2. Двоеточия не было (или суть сама длинная) – режем по границе слова.
+  // Обрыв на предлоге или союзе выглядит как обрезанный текст, поэтому такие
+  // хвосты снимаем: «Актуальные вопросы налогового администрирования и» ->
+  // «Актуальные вопросы налогового администрирования».
+  const words = cut.split(/\s+/);
+  const kept = [];
+  for (const w of words) {
+    if (kept.length && [...kept, w].join(' ').length > TITLE_BUDGET) break;
+    kept.push(w);
+  }
+  const bare = (w) => w.toLowerCase().replace(/[^а-яёa-z]/gi, '');
+  // Снимаем служебные слова и висящие прилагательные с хвоста.
+  while (kept.length > 1) {
+    const last = bare(kept[kept.length - 1]);
+    if (TITLE_STOP_TAIL.has(last) || (TITLE_ADJ_TAIL.test(last) && last.length > 4)) kept.pop();
+    else break;
+  }
+  // Хвостовая пунктуация: рез по словам оставляет одинокие «/», «-», запятые.
+  const short = kept.join(' ').replace(/[\s,;:.\/–-]+$/, '');
+  // Меньше трёх слов – огрызок теряет смысл, лучше длинный честный заголовок.
+  return kept.length >= 3 ? short : cut;
+}
+
+const DOC_SHORT = Object.freeze({
+  'ПК': 'Удостоверение НИУ ВШЭ',
+  'ПП': 'Диплом о профессиональной переподготовке НИУ ВШЭ',
+});
+
+/**
+ * Описание для сниппета – из фактов программы, а не по общему шаблону.
+ *
+ * Было: «<Название> – <тип> в Центре ДПО факультета права НИУ ВШЭ.» –
+ * одинаково у всех 26 страниц, ни одного факта, и 19 описаний короче 120
+ * знаков. Поисковик такое описание игнорирует и собирает сниппет сам.
+ *
+ * Стало: тип, формат, дата старта, цена, документ. Это ровно те четыре
+ * вопроса, с которыми человек приходит из выдачи. Порядок не случаен: то,
+ * что важнее, стоит раньше, потому что хвост обрезается.
+ *
+ * Обрезка – по границе слова до 158 знаков (Google показывает ~160,
+ * Яндекс меньше; обрыв на середине слова выглядит как ошибка).
+ */
+function metaDescription(p) {
+  const short = p.type?.shortTitle || p.type?.title || '';
+  const kind = short === 'ПК' ? 'повышение квалификации'
+    : short === 'ПП' ? 'профессиональная переподготовка'
+    : 'программа ДПО';
+
+  const tail = [];
+  if (p.studyFormat?.title) tail.push(p.studyFormat.title);
+  const date = formatDate(p);
+  if (date) tail.push(`старт ${date}`);
+  const price = p.discountPrice ?? p.educationPricing;
+  if (price != null && price > 0) tail.push(formatPrice(p));
+
+  let out = `${p.title} – ${kind} в НИУ ВШЭ.`;
+  if (tail.length) out += ` ${tail.join(', ')}.`;
+  const doc = DOC_SHORT[short];
+  if (doc) out += ` ${doc}.`;
+
+  if (out.length <= 158) return out;
+  const clipped = out.slice(0, 158);
+  const lastSpace = clipped.lastIndexOf(' ');
+  return (lastSpace > 100 ? clipped.slice(0, lastSpace) : clipped).replace(/[\s,.–-]+$/, '') + '…';
+}
+
+const COURSE_MODE_BY_FORMAT = Object.freeze({
+  'Онлайн': 'online',
+  'Онлайн синхронный': 'online',
+  'Онлайн асинхронный': 'online',
+  'Очный': 'onsite',
+  'Смешанный': 'blended',
+  'Гибридный': 'blended',
+});
+
+/**
+ * Микроразметка страницы программы: Course + BreadcrumbList.
+ *
+ * До этого на 26 страницах программ не было ld+json вообще, а единственный
+ * Course лежал в каталоге и указывал url на hse.ru – то есть сайт описывал
+ * курсы и тут же сообщал поисковику, что настоящая страница курса на чужом
+ * домене. Здесь url – свой, а ссылка на маркетплейс уходит в sameAs, для
+ * чего это поле и предназначено.
+ *
+ * Пустые поля не выдумываем: нет цены – нет offers, нет даты – нет
+ * hasCourseInstance. Разметка с придуманными данными хуже отсутствующей:
+ * за расхождение с видимым текстом страницы Google снимает сниппет целиком.
+ *
+ * Экранируем «<» как < – тем же приёмом, что update-catalog.js: внутри
+ * <script> опасна только последовательность «</script».
+ */
+function structuredData(p, sphere, official) {
+  const short = p.type?.shortTitle || p.type?.title || '';
+  const href = programHref(p);
+
+  const course = {
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    name: p.title,
+    description: metaDescription(p),
+    url: `${SITE}/${href}`,
+    inLanguage: 'ru',
+    provider: {
+      '@type': 'CollegeOrUniversity',
+      name: 'НИУ ВШЭ, факультет права',
+      sameAs: 'https://pravo.hse.ru/',
+    },
+  };
+  if (official) course.sameAs = official;
+
+  const credential = DOC_BY_TYPE[short];
+  if (credential) {
+    course.educationalCredentialAwarded = credential.name;
+  }
+
+  const instance = { '@type': 'CourseInstance' };
+  const mode = COURSE_MODE_BY_FORMAT[String(p.studyFormat?.title || '').trim()];
+  if (mode) instance.courseMode = mode;
+  const iso = isoDate(p.startDate);
+  if (iso) instance.startDate = iso;
+  if (instance.courseMode || instance.startDate) course.hasCourseInstance = instance;
+
+  const price = p.discountPrice ?? p.educationPricing;
+  if (price != null) {
+    course.offers = {
+      '@type': 'Offer',
+      price: String(price),
+      priceCurrency: 'RUB',
+      category: price === 0 ? 'Free' : 'Paid',
+      url: `${SITE}/${href}`,
+    };
+  }
+
+  const crumbs = [
+    { '@type': 'ListItem', position: 1, name: 'Каталог программ', item: `${SITE}/catalog` },
+  ];
+  if (sphere) {
+    crumbs.push({
+      '@type': 'ListItem', position: 2, name: sphere.title,
+      item: `${SITE}/catalog?sphere=${sphere.id}`,
+    });
+  }
+  crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: p.title });
+
+  const breadcrumbs = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs,
+  };
+
+  const json = (o) => JSON.stringify(o).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json">${json(course)}</script>\n` +
+    `<script type="application/ld+json">${json(breadcrumbs)}</script>`;
 }
 
 function renderPage(rawProgram, sphere) {
@@ -430,23 +688,39 @@ function renderPage(rawProgram, sphere) {
     .map((s) => `<span>${esc(s)}</span>`)
     .join('');
 
-  // Фон героя – обложка программы с маркетплейса (см. fetch-program-media.js)
-  // под синей вуалью по «правилу вуали» DESIGN.md: текст поверх фото лежит
-  // только под слоями darken(accent). Без loading="lazy": это первый экран.
-  // Первым в стопке подключается thumb (если есть) через image-set – на 1x
-  // экранах полноразмерная обложка не нужна. В режиме для слабовидящих оба
-  // слоя снимаются общим правилом background-image: none.
+  // Обложка программы (см. fetch-program-media.js) под синей вуалью по
+  // «правилу вуали» DESIGN.md: текст поверх фото лежит только под слоями
+  // darken(accent). Без loading="lazy": это первый экран.
+  //
+  // Обложка – <img>, а не CSS-фон, как было раньше. Причина: фоновое
+  // изображение не индексируется поиском по картинкам и не может иметь alt,
+  // то есть 25 обложек программ были невидимы и для Яндекс.Картинок, и для
+  // скринридера. Визуально ничего не меняется: object-fit: cover повторяет
+  // background-size: cover, object-position – background-position.
+  //
+  // srcset вместо image-set: миниатюра для 1x, полная обложка для 2x. Явные
+  // width/height берутся у файла и нужны против сдвига макета (CLS).
+  //
+  // ВАЖНО: режим для слабовидящих гасил фон правилом background-image: none,
+  // на <img> оно не действует. Поэтому в programs/program.css добавлено
+  // отдельное правило html.vi-mode .hero-bg{display:none}.
   const image = safeImagePath(p);
   let heroMedia = '';
   if (image) {
     const thumbRel = `images/programs/thumbs/${String(p.id)}.jpg`;
     const hasThumb = fs.existsSync(path.join(ROOT, thumbRel));
-    const bg = hasThumb
-      ? `background-image: url('../${esc(thumbRel)}'); ` +
-        `background-image: image-set(url('../${esc(thumbRel)}') 1x, url('../${esc(image)}') 2x);`
-      : `background-image: url('../${esc(image)}');`;
+    const srcRel = hasThumb ? thumbRel : image;
+    const srcset = hasThumb
+      ? ` srcset="../${esc(thumbRel)} 1x, ../${esc(image)} 2x"`
+      : '';
+    const size = imageSize(path.join(ROOT, srcRel));
+    const dims = size ? ` width="${size.w}" height="${size.h}"` : '';
+    // alt описывает картинку, а не запрос: набивать сюда ключи нельзя –
+    // незрячий человек услышит рекламу вместо подписи, а поисковик получит
+    // сигнал переспама на странице, где ключ и так есть в h1 и в title.
+    const alt = `Обложка программы «${p.title}»`;
     heroMedia =
-      `  <div class="hero-bg" aria-hidden="true" style="${bg}"></div>\n` +
+      `  <img class="hero-bg" src="../${esc(srcRel)}"${srcset}${dims} alt="${esc(alt)}" decoding="async">\n` +
       '  <div class="hero-veil" aria-hidden="true"></div>';
   }
 
@@ -457,6 +731,10 @@ function renderPage(rawProgram, sphere) {
   // персональной корзинной ссылке ЛК – осознанный внешний переход.
   // Для программ без числового id (ручные записи админки) корзины на
   // маркетплейсе нет – остаётся прежняя ссылка на официальную страницу.
+  const description = metaDescription(p);
+  const ogImage = image ? `\n<meta property="og:image" content="${esc(SITE)}/${esc(image)}">` : '';
+  const twImage = image ? `\n<meta name="twitter:image" content="${esc(SITE)}/${esc(image)}">` : '';
+
   const payUrl = /^\d+$/.test(String(p.id || '')) ? buildPayUrl(String(p.id)) : null;
   const secondary = payUrl
     ? `
@@ -477,17 +755,20 @@ function renderPage(rawProgram, sphere) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(p.title)} · Центр ДПО факультета права НИУ ВШЭ</title>
-<meta name="description" content="${esc(
-    `${p.title} – ${typeLabel(p)} в Центре ДПО факультета права НИУ ВШЭ.`,
-  )}">
+<title>${esc(titleCore(p))} · ДПО НИУ ВШЭ</title>
+<meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="${esc(SITE)}/${esc(programHref(p))}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ru_RU">
 <meta property="og:site_name" content="Центр ДПО · Факультет права НИУ ВШЭ">
 <meta property="og:title" content="${esc(p.title)}">
-<meta property="og:url" content="${esc(SITE)}/${esc(programHref(p))}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(SITE)}/${esc(programHref(p))}">${ogImage}
+<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">
+<meta name="twitter:title" content="${esc(p.title)}">
+<meta name="twitter:description" content="${esc(description)}">${twImage}
+${structuredData(p, sphere, official)}
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <meta name="theme-color" content="#1658DA">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
@@ -682,7 +963,8 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
    обложек. Замер по пикселям (см. отчёт сборки): самый светлый пиксель под
    заголовком даёт контраст с #fff не ниже 4.5:1. */
 .hero--photo{position:relative;isolation:isolate}
-.hero-bg{position:absolute;inset:0;z-index:-2;background-size:cover;background-position:center 30%}
+.hero-bg{position:absolute;inset:0;z-index:-2;width:100%;height:100%;
+  object-fit:cover;object-position:center 30%}
 .hero-veil{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,
   rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
 .crumbs{font-size:13px;color:rgba(255,255,255,.88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
@@ -812,6 +1094,12 @@ footer{padding:28px var(--gutter);border-top:1px solid var(--line);display:flex;
 html.vi-mode body{zoom:1.25;background:#fff !important}
 html.vi-mode *{background:transparent !important;background-image:none !important;color:#000 !important;
   box-shadow:none !important;text-shadow:none !important;animation:none !important;transition:none !important}
+/* Обложка героя – <img>, а не фон, поэтому общее правило выше
+   (background-image:none) её не гасит. Без этой строки в режиме для
+   слабовидящих фото осталось бы на месте, а текст поверх него стал бы
+   чёрным по фотографии – ровно та нечитаемость, ради устранения которой
+   режим и включают. */
+html.vi-mode .hero-bg{display:none !important}
 html.vi-mode a{text-decoration:underline !important}
 html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .cta-pay,html.vi-mode .vi-btn{border:2px solid #000 !important}
 `;
