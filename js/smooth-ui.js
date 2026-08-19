@@ -190,9 +190,7 @@ section#explore a[href]{
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
 .dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
-/* Порог совпадает с укрытием меню в шапке (шаблон, max-width: 1000px):
-   как только пункты меню спрятаны, навигацию и заявку отдаёт эта панель. */
-@media (max-width: 1000px){
+@media (max-width: 760px){
   body.dpo-has-mobile-cta{ padding-bottom: 84px; }
   .dpo-mobile-cta{ display: flex; }
 }
