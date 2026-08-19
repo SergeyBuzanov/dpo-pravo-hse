@@ -846,52 +846,83 @@ ${items}
 }
 
 /**
- * Секция «Отзывы выпускников» на лендинге. Отзывы настоящие – поле
- * feedback программ, которое fetch-program-descriptions.js забирает с
- * официальных страниц hse.ru. Правила отбора:
- *  - цитата приводится ДОСЛОВНО И ЦЕЛИКОМ, поэтому на лендинг попадают
+ * Секция «Отзывы выпускников» на лендинге: самодвижущаяся лента (указание
+ * заказчика 19.08.2026 – отзывов больше, двигаются сами, можно остановить
+ * и почитать). Отзывы настоящие – поле feedback программ, которое
+ * fetch-program-descriptions.js забирает с официальных страниц hse.ru.
+ * Правила отбора:
+ *  - цитата приводится ДОСЛОВНО И ЦЕЛИКОМ, поэтому в ленту попадают
  *    только отзывы средней длины (120–520 знаков): гигантские честно
  *    живут на странице программы, обрезать их нельзя;
- *  - по одному отзыву на программу (ближайший к 280 знакам) – подборка
- *    из шести программ разнообразнее, чем шесть голосов об одной;
+ *  - до трёх отзывов на программу, разбор по кругу (по одному с программы
+ *    за проход) – голоса перемежаются, а не идут блоками;
+ *  - потолок 18 карточек: дальше лента не читается, полные подборки – на
+ *    страницах программ;
  *  - порядок программ – порядок каталога, отбор детерминирован: пересборка
  *    без смены данных не перетасовывает карточки.
+ *
+ * Механика движения: карточки лежат в ленте ДВАЖДЫ (вторая копия – с
+ * aria-hidden и tabindex=-1, для диктора и клавиатуры её нет), CSS-анимация
+ * уводит ленту на -50% и бесшовно начинает заново. Длительность считается
+ * от числа карточек (~10 с на карточку ≈ 40 px/с) и передаётся переменной
+ * --dpo-reviews-dur. Пауза: наведение, фокус внутри ленты и явная кнопка
+ * (WCAG 2.2.2; обработчик – js/carousel.js). prefers-reduced-motion и
+ * vi-mode гасят анимацию: копия скрывается, лента складывается в колонки.
  */
 function renderReviews(programs) {
-  const picks = [];
+  const PER_PROGRAM = 3;
+  const CAP = 18;
+  const pools = [];
   for (const p of programs) {
     if (!Array.isArray(p.feedback) || !p.feedback.length) continue;
     const fit = p.feedback
       .filter((f) => f.text && f.author && f.text.length >= 120 && f.text.length <= 520)
-      .sort((a, b) => Math.abs(a.text.length - 280) - Math.abs(b.text.length - 280));
-    if (!fit.length) continue;
-    picks.push({ ...fit[0], program: p });
-    if (picks.length === 6) break;
+      .sort((a, b) => Math.abs(a.text.length - 280) - Math.abs(b.text.length - 280))
+      .slice(0, PER_PROGRAM);
+    if (fit.length) pools.push(fit.map((f) => ({ ...f, program: p })));
+  }
+  const picks = [];
+  for (let round = 0; round < PER_PROGRAM && picks.length < CAP; round++) {
+    for (const pool of pools) {
+      if (round < pool.length) {
+        picks.push(pool[round]);
+        if (picks.length === CAP) break;
+      }
+    }
   }
   if (!picks.length) return { html: '', count: 0 };
 
-  const cards = picks
-    .map(
-      (r) => `      <figure class="dpo-review">
+  const card = (r, dupe) => `      <figure class="dpo-review">
         <blockquote class="dpo-review-text">${escapeHtml(fixTeacherText(r.text))}</blockquote>
         <figcaption class="dpo-review-foot">
           <p class="dpo-review-author">${escapeHtml(r.author)}</p>
-          <a class="dpo-review-program" href="${escapeHtml(programHref(r.program))}">${escapeHtml(r.program.title)}</a>
+          <a class="dpo-review-program" href="${escapeHtml(programHref(r.program))}"${dupe ? ' tabindex="-1"' : ''}>${escapeHtml(r.program.title)}</a>
         </figcaption>
-      </figure>`,
-    )
-    .join('\n');
+      </figure>`;
+  const cards = picks.map((r) => card(r, false)).join('\n');
+  const dupes = picks.map((r) => card(r, true)).join('\n');
+  const duration = picks.length * 10;
 
   const html = `  <section data-screen-label="Reviews" id="reviews" style="padding: clamp(64px, 9vw, 120px) clamp(20px, 6vw, 64px); background: #F2ECE1;">
     <div class="dpo-container">
-    <div class="dpo-section-head">
-      <span class="dpo-eyebrow">Слово выпускникам</span>
-      <h2 class="dpo-h2">Отзывы выпускников</h2>
+    <div class="dpo-section-head dpo-reviews-head">
+      <span>
+        <span class="dpo-eyebrow">Слово выпускникам</span>
+        <h2 class="dpo-h2">Отзывы выпускников</h2>
+      </span>
+      <button type="button" class="dpo-reviews-toggle" data-dpo-reviews-toggle aria-pressed="false">Остановить ленту</button>
     </div>
-    <div class="dpo-reviews-grid">
+    </div>
+    <div class="dpo-reviews-carousel" data-dpo-reviews>
+      <div class="dpo-reviews-track" style="--dpo-reviews-dur: ${duration}s;">
 ${cards}
+      <div class="dpo-reviews-dupe" aria-hidden="true">
+${dupes}
+      </div>
+      </div>
     </div>
-    <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ.</p>
+    <div class="dpo-container">
+    <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ. Лента останавливается кнопкой, наведением или фокусом.</p>
     </div>
   </section>`;
   return { html, count: picks.length };
