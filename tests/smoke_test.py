@@ -99,7 +99,7 @@ def test_index(context):
     page.wait_for_timeout(800)  # добить пост-рендер аддоны (cookie-banner)
 
     check(lbl, "заголовок вкладки",
-          page.title() == "Образование для профессионалов права · Центр ДПО НИУ ВШЭ",
+          page.title() == "Повышение квалификации юристов – Центр ДПО НИУ ВШЭ",
           f"got: {page.title()!r}")
     # CSP is injected into the post-swap document head (and present on the outer shell).
     has_csp = page.evaluate(
