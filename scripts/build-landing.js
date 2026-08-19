@@ -861,13 +861,17 @@ ${items}
  *  - порядок программ – порядок каталога, отбор детерминирован: пересборка
  *    без смены данных не перетасовывает карточки.
  *
- * Механика движения: карточки лежат в ленте ДВАЖДЫ (вторая копия – с
- * aria-hidden и tabindex=-1, для диктора и клавиатуры её нет), CSS-анимация
- * уводит ленту на -50% и бесшовно начинает заново. Длительность считается
- * от числа карточек (~10 с на карточку ≈ 40 px/с) и передаётся переменной
- * --dpo-reviews-dur. Пауза: наведение, фокус внутри ленты и явная кнопка
- * (WCAG 2.2.2; обработчик – js/carousel.js). prefers-reduced-motion и
- * vi-mode гасят анимацию: копия скрывается, лента складывается в колонки.
+ * Механика движения: та же, что была у бегущей ленты «Топ-5», – дорожка со
+ * scrollLeft и атрибутом data-dpo-loop (двигатель в js/carousel.js).
+ * Карточки лежат в ленте ДВАЖДЫ (копия – с aria-hidden и tabindex=-1, для
+ * диктора и клавиатуры её нет), перемотка на половине ширины даёт
+ * бесконечность в обе стороны. Поэтому лента ЛИСТАЕТСЯ: стрелками, колесом
+ * и пальцем (заказчик попросил листание 19.08 вечером). Пауза: наведение,
+ * фокус внутри и явная кнопка data-dpo-pause (WCAG 2.2.2). На тач-экране и
+ * при prefers-reduced-motion автохода нет вовсе – остаётся ручное листание.
+ * ВАЖНО про бесшовность: интервал карточек задан их полем margin-right, а
+ * track без горизонтальных padding – иначе scrollWidth/2 не равен периоду
+ * и на стыке дёргается.
  */
 function renderReviews(programs) {
   const PER_PROGRAM = 3;
@@ -901,7 +905,10 @@ function renderReviews(programs) {
       </figure>`;
   const cards = picks.map((r) => card(r, false)).join('\n');
   const dupes = picks.map((r) => card(r, true)).join('\n');
-  const duration = picks.length * 10;
+
+  const arrow = (dir, label, path) => `        <button type="button" class="dpo-carousel-btn" data-dpo-scroll="${dir}" aria-controls="reviewsTrack" aria-label="${label}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>
+        </button>`;
 
   const html = `  <section data-screen-label="Reviews" id="reviews" style="padding: clamp(64px, 9vw, 120px) clamp(20px, 6vw, 64px); background: #F2ECE1;">
     <div class="dpo-container">
@@ -910,19 +917,19 @@ function renderReviews(programs) {
         <span class="dpo-eyebrow">Слово выпускникам</span>
         <h2 class="dpo-h2">Отзывы выпускников</h2>
       </span>
-      <button type="button" class="dpo-reviews-toggle" data-dpo-reviews-toggle aria-pressed="false">Остановить ленту</button>
+      <div class="dpo-carousel-nav dpo-reviews-nav">
+${arrow('prev', 'Предыдущие отзывы', 'M10 3 5 8l5 5')}
+${arrow('next', 'Следующие отзывы', 'M6 3l5 5-5 5')}
+        <button type="button" class="dpo-reviews-toggle" data-dpo-pause aria-controls="reviewsTrack" aria-pressed="false" aria-label="Остановить ленту"></button>
+      </div>
     </div>
-    </div>
-    <div class="dpo-reviews-carousel" data-dpo-reviews>
-      <div class="dpo-reviews-track" style="--dpo-reviews-dur: ${duration}s;">
+    <div class="dpo-reviews-track" id="reviewsTrack" data-dpo-loop aria-label="Отзывы выпускников">
 ${cards}
       <div class="dpo-reviews-dupe" aria-hidden="true">
 ${dupes}
       </div>
-      </div>
     </div>
-    <div class="dpo-container">
-    <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ. Лента останавливается кнопкой, наведением или фокусом.</p>
+    <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ. Лента листается стрелками, колесом и пальцем; останавливается кнопкой, наведением или фокусом.</p>
     </div>
   </section>`;
   return { html, count: picks.length };

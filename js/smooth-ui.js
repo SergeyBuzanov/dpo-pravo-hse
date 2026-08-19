@@ -190,9 +190,11 @@ section#explore a[href]{
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
 .dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
-/* Порог совпадает с укрытием меню в шапке (шаблон, max-width: 1000px):
-   как только пункты меню спрятаны, быстрые действия отдаёт эта панель. */
-@media (max-width: 1000px){
+/* Порог совпадает с укрытием меню в шапке (шаблон, max-width: 1459px):
+   как только пункты меню спрятаны, навигацию к программам отдаёт эта
+   панель. Кнопка «Подать заявку» в шапке живёт до 1001px – между 1001 и
+   1459 первичный слот панели дублирует её сознательно. */
+@media (max-width: 1459px){
   body.dpo-has-mobile-cta{ padding-bottom: 84px; }
   .dpo-mobile-cta{ display: flex; }
 }
@@ -407,7 +409,10 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       const nearBottom =
         window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 24;
 
-      let current = map[0];
+      // null, а не map[0]: наверху страницы (герой) ни одна секция ещё не
+      // достигнута, и подчёркивать первый пункт («Форматы») нечестно –
+      // посетитель находится не там. Замечание заказчика 19.08.2026.
+      let current = null;
       for (const item of map) {
         if (item.el.offsetTop <= y) current = item;
       }

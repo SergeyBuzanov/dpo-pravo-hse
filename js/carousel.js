@@ -197,18 +197,4 @@
     else if (t.scrollLeft < 0.5) t.scrollLeft += half;
   }, true);
 
-  // Лента отзывов: кнопка «Остановить/Запустить» (WCAG 2.2.2 – у постоянного
-  // движения обязан быть явный стоп, наведения недостаточно: его нет на
-  // тач-экране). Класс .is-paused держит паузу независимо от наведения –
-  // остановленная кнопкой лента не поедет, когда курсор уйдёт.
-  // Слушатель делегированный – переживает пересборку рантаймом.
-  document.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest ? e.target.closest('[data-dpo-reviews-toggle]') : null;
-    if (!btn) return;
-    var carousel = document.querySelector('[data-dpo-reviews]');
-    if (!carousel) return;
-    var paused = carousel.classList.toggle('is-paused');
-    btn.setAttribute('aria-pressed', paused ? 'true' : 'false');
-    btn.textContent = paused ? 'Запустить ленту' : 'Остановить ленту';
-  });
 })();
