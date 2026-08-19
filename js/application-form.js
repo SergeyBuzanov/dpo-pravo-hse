@@ -95,10 +95,14 @@
     '.dpo-app label{font-size:13px;font-weight:600;letter-spacing:.01em}',
     '.dpo-app .req{color:rgb(var(--accent))}',
     '.dpo-app input[type=text],.dpo-app input[type=tel],.dpo-app input[type=email],.dpo-app textarea,.dpo-app select{',
-    'font:inherit;font-size:15px;color:rgb(var(--ink));background:rgb(var(--surface));border:1px solid rgb(var(--ink) / .16);',
+    // Граница поля – единственное, что обозначает поле на белой карточке,
+    // поэтому обязана давать 3:1 (WCAG 1.4.11): альфа .5 = 3,25:1, прежняя
+    // .16 давала 1,4:1. Плейсхолдер без opacity: чистый --ink-mute на белом
+    // даёт 5,85:1, с opacity .75 было 3,38:1 при норме 4,5:1 (WCAG 1.4.3).
+    'font:inherit;font-size:15px;color:rgb(var(--ink));background:rgb(var(--surface));border:1px solid rgb(var(--ink) / .5);',
     'border-radius:10px;padding:11px 13px;width:100%;transition:border-color .15s,box-shadow .15s}',
     '.dpo-app textarea{min-height:88px;resize:vertical;font-family:inherit}',
-    '.dpo-app ::placeholder{color:var(--ink-mute);opacity:.75}',
+    '.dpo-app ::placeholder{color:var(--ink-mute);opacity:1}',
     '.dpo-app input:focus-visible,.dpo-app textarea:focus-visible,.dpo-app select:focus-visible{outline:none;border-color:rgb(var(--accent));',
     'box-shadow:0 0 0 3px rgb(var(--accent) / .18)}',
     '.dpo-app [aria-invalid=true]{border-color:#B00020;background:rgba(176,0,32,.05)}',

@@ -66,6 +66,10 @@
        где основное золото #F0B86E теряет контраст, поэтому заведён светлый. */
   --gold-light: #FFD982;    /* practice-gold-light */           /* print-ink */      /* ink-muted, 5,4:1 на бумажном креме */
   --line:     rgb(var(--ink) / .1);            /* paper-cream */       /* parchment */
+  /* Граница поля ввода: единственный признак поля на белом, поэтому 3:1
+     (WCAG 1.4.11). Альфа .5 даёт 3,25:1; общая --line (1,22:1) – только
+     для декоративных линий. */
+  --border-field: rgb(var(--ink) / .5);
   --radius-md: 16px;
   --radius-sm: 999px;
     /* Высоту шапки синхронизирует скрипт: раньше здесь было жёстко
@@ -203,7 +207,7 @@
   }
   .search-wrap input{
     width: 100%; font: inherit; font-size: 14.5px;
-    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    border: 1px solid var(--border-field); border-radius: var(--radius-sm);
     padding: 11px 40px 11px 16px; background: rgb(var(--surface)); color: rgb(var(--ink));
     transition: border-color .2s ease, box-shadow .25s ease;
   }
@@ -219,7 +223,7 @@
   .sort-label{ font-size:13.5px; color:var(--ink-mute); }
   .sort-select{
     font:inherit; font-size:13.5px; font-weight:600; color:var(--accent-dark);
-    background:rgb(var(--surface)); border:1px solid var(--line); border-radius:var(--radius-sm);
+    background:rgb(var(--surface)); border:1px solid var(--border-field); border-radius:var(--radius-sm);
     padding:10px 14px; cursor:pointer;
     transition:border-color .2s ease;
   }

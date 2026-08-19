@@ -30,6 +30,9 @@
   --accent-dark: #123F9E;
   --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
   --line:     rgb(var(--ink) / .08);  /* границы панелей */
+  /* Граница поля ввода: единственный признак поля, поэтому 3:1 по
+     WCAG 1.4.11 – альфа .5 даёт 3,25:1. Панельные линии остаются на --line. */
+  --border-field: rgb(var(--ink) / .5);
     /* Состояния. Стандартизованы, чтобы одинаковый статус выглядел
        одинаково на всех вкладках. */
   --ok: #1F6F54;
@@ -370,13 +373,13 @@
     font: inherit;
     font-size: 12.5px;
     padding: 6px 10px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--border-field);
     border-radius: var(--r-sm);
     background: rgb(var(--surface));
     color: rgb(var(--ink));
     transition: border-color var(--t);
   }
-  table.editor input:hover { border-color: rgb(var(--ink) / 0.25); }
+  table.editor input:hover { border-color: rgb(var(--ink) / 0.7); }
   table.editor input.title-input { min-width: 180px; }
   table.editor input.url-input { min-width: 140px; }
   table.editor .icon-btn {
@@ -420,13 +423,13 @@
     width: 100%;
     font: inherit;
     padding: 8px 10px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--border-field);
     border-radius: var(--r-sm);
     background: rgb(var(--surface));
     color: rgb(var(--ink));
     transition: border-color var(--t);
   }
-  .field input:hover, .field select:hover { border-color: rgb(var(--ink) / 0.25); }
+  .field input:hover, .field select:hover { border-color: rgb(var(--ink) / 0.7); }
   .field.checkbox {
     display: flex;
     align-items: center;
