@@ -35,7 +35,12 @@
     }
     var items = document.querySelectorAll('[data-dpo-doc-item]');
     for (var j = 0; j < items.length; j++) {
-      items[j].hidden = items[j].getAttribute('data-dpo-doc-item') !== key;
+      var show = items[j].getAttribute('data-dpo-doc-item') === key;
+      // Видимостью управляет класс (правило .dpo-doc-item:not(.is-doc-current)
+      // в шаблоне): атрибут hidden рантайм сборщика срезает при пересборке.
+      // Сам hidden ставится вдогонку ради семантики.
+      items[j].classList.toggle('is-doc-current', show);
+      items[j].hidden = !show;
     }
     var view = document.getElementById('docView');
     var activeTab = document.getElementById('docTab-' + key);
@@ -74,18 +79,16 @@
   // Рантайм может пересобрать разметку в первые секунды загрузки и вернуть
   // состояние по умолчанию (ПК). Возвращаем выбор посетителя — тот же
   // таймер ~10 секунд, что в carousel.js.
-  // Сверять только класс вкладки недостаточно: пересборка теряет голые
-  // булевы атрибуты hidden у самих бланков, вкладка при этом остаётся
-  // «правильной» (ПК активна и в разметке), и до первого клика все четыре
-  // образца стояли столбиком. Поэтому проверяются и items.
+  // Видимость бланков держит класс is-doc-current (пересборку переживает,
+  // в отличие от атрибута hidden), поэтому сверяем и вкладку, и класс.
   var n = 0;
   var timer = setInterval(function () {
     var active = document.querySelector('[data-dpo-doc].is-active');
     var stale = active && active.getAttribute('data-dpo-doc') !== current;
     var items = document.querySelectorAll('[data-dpo-doc-item]');
     for (var i = 0; i < items.length && !stale; i++) {
-      var mustHide = items[i].getAttribute('data-dpo-doc-item') !== current;
-      if (items[i].hidden !== mustHide) stale = true;
+      var mustShow = items[i].getAttribute('data-dpo-doc-item') === current;
+      if (items[i].classList.contains('is-doc-current') !== mustShow) stale = true;
     }
     if (stale) activate(current);
     if (++n > 40) clearInterval(timer);
