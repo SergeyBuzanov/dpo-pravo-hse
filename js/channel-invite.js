@@ -58,7 +58,7 @@
     "font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;",
     'opacity:0;transform:translateY(10px);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1)}',
     '#channelInvite.is-open{opacity:1;transform:none}',
-    '#channelInvite .ci-icon{width:44px;height:44px;flex:none;border-radius:50%;background:var(--bg-tint);color:rgb(var(--accent));',
+    '#channelInvite .ci-icon{width:44px;height:44px;flex:none;border-radius:999px;background:var(--bg-tint);color:rgb(var(--accent));',
     'display:flex;align-items:center;justify-content:center;overflow:hidden}',
     '#channelInvite .ci-icon img{width:100%;height:100%;object-fit:cover}',
     '#channelInvite .ci-title{font:600 15px/1.35 inherit;margin:2px 24px 4px 0;font-family:inherit}',
@@ -68,7 +68,7 @@
     '#channelInvite .ci-join:hover{background:#1145AA}',
     // font:inherit обязателен: кнопки не наследуют шрифт сами, и крестик
     // рисовался системным Arial (замер аудита 18.08).
-    '#channelInvite .ci-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;',
+    '#channelInvite .ci-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:17px;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',

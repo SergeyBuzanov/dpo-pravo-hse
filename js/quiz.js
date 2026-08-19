@@ -84,7 +84,7 @@
     'transition:background .15s}',
     '.dpo-quiz-submit:hover{background:#0F3FA0}',
     '.dpo-quiz-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border:0;',
-    'border-radius:50%;background:var(--bg-tint);color:rgb(var(--ink));font-size:18px;line-height:36px;',
+    'border-radius:999px;background:var(--bg-tint);color:rgb(var(--ink));font-size:18px;line-height:36px;',
     'cursor:pointer;transition:background .15s}',
     '.dpo-quiz-close:hover{background:#E6DccA}',
     '@media (prefers-reduced-motion: reduce){.dpo-quiz-backdrop,.dpo-quiz{transition:none}}',

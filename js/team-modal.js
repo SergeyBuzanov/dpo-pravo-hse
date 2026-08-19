@@ -32,7 +32,7 @@
     '.dpo-team-backdrop.is-open .dpo-team{transform:none}',
     '.dpo-team h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(21px,3.2vw,26px);',
     'line-height:1.2;margin:0 44px 6px 0;font-weight:600}',
-    '.dpo-team-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;',
+    '.dpo-team-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:20px;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
     '.dpo-team-close:hover{background:var(--bg-tint)}',

@@ -81,7 +81,7 @@
     '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(22px,3.4vw,28px);',
     'line-height:1.15;margin:0 8px 6px 0;font-weight:600}',
     '.dpo-app-program{font-size:14px;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
-    '.dpo-app-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;',
+    '.dpo-app-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:20px;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
     '.dpo-app-close:hover{background:var(--bg-tint)}',
