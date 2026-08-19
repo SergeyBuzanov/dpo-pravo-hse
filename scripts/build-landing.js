@@ -830,10 +830,12 @@ function renderStarts(programs) {
     .join('\n');
 
   const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(28px, 4vw, 48px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
+    <div class="dpo-container">
     <div class="dpo-starts">
       <span class="dpo-starts-label">Ближайшие старты</span>
 ${items}
       <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
+    </div>
     </div>
   </section>`;
   return { html, count: upcoming.length };
@@ -877,6 +879,7 @@ function renderReviews(programs) {
     .join('\n');
 
   const html = `  <section data-screen-label="Reviews" id="reviews" style="padding: clamp(64px, 9vw, 120px) clamp(20px, 6vw, 64px); background: #F2ECE1;">
+    <div class="dpo-container">
     <div class="dpo-section-head">
       <span class="dpo-eyebrow">Слово выпускникам</span>
       <h2 class="dpo-h2">Отзывы выпускников</h2>
@@ -885,6 +888,7 @@ function renderReviews(programs) {
 ${cards}
     </div>
     <p class="dpo-marquee-note">Отзывы приводятся дословно с официальных страниц программ ДПО на hse.ru; полные подборки – на страницах программ.</p>
+    </div>
   </section>`;
   return { html, count: picks.length };
 }
