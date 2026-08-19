@@ -839,6 +839,18 @@ ${cta}
   </aside>
 </main>
 
+<!-- Липкая полоса с ценой (аудит 18.08: цена и кнопка лежали в медиане на
+     4,6 экрана вглубь при 375px – карточка цены на телефоне стоит ПОД всем
+     содержимым). Видна только при одноколоночной раскладке (<=900px); кнопка –
+     дубль той же формы через data-application, без правок JS. -->
+<div class="buy-bar" role="region" aria-label="Цена и заявка">
+  <span class="buy-bar-price">${esc(formatPrice(p))}</span>
+  <button type="button" class="cta buy-bar-cta" data-application
+    data-program-id="${esc(String(p.id || ''))}"
+    data-program-title="${esc(p.title)}"
+    data-program-url="${esc(SITE)}/${esc(programHref(p))}">Подать заявку</button>
+</div>
+
 <footer>
   <span>Центр дополнительного профессионального образования · Факультет права НИУ ВШЭ</span>
   <span class="footer-links">
@@ -1091,6 +1103,23 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
   padding:13px 24px;margin:12px 0 0;transition:background .28s var(--ease),color .28s var(--ease)}
 @media (hover:hover) and (pointer:fine){.cta-pay:hover{background:rgb(var(--accent));color:rgb(var(--surface))}}
 .cta-pay-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:8px 0 0;text-align:center}
+/* Липкая полоса с ценой: только при одноколоночной раскладке (<=900px),
+   на десктопе цену показывает липкая боковая карточка. Словарь полосы – тот
+   же, что у мобильной панели лендинга (js/smooth-ui.js). */
+.buy-bar{display:none}
+@media (max-width:900px){
+  .buy-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;
+    display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;
+    background:rgba(251,249,245,.94);backdrop-filter:blur(12px);
+    border:1px solid rgb(var(--ink) / .1);border-radius:18px;
+    box-shadow:0 12px 40px rgb(var(--ink) / .16)}
+  .buy-bar-price{font-family:'HSE Slab','Source Serif 4',serif;font-weight:700;
+    font-size:17px;white-space:nowrap}
+  .buy-bar .cta{flex:1;min-height:44px;padding:12px 18px}
+  body{padding-bottom:84px}
+}
+/* В режиме для слабовидящих фиксированные панели скрываются – как на лендинге. */
+html.vi-mode .buy-bar{display:none !important}
 .doc{background:var(--bg-tint)}
 .doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
   border-radius:999px;padding:4px 11px;margin-bottom:12px}

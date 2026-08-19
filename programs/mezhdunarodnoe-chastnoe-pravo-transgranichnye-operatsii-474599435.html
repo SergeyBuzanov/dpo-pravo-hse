@@ -159,6 +159,18 @@
   </aside>
 </main>
 
+<!-- Липкая полоса с ценой (аудит 18.08: цена и кнопка лежали в медиане на
+     4,6 экрана вглубь при 375px – карточка цены на телефоне стоит ПОД всем
+     содержимым). Видна только при одноколоночной раскладке (<=900px); кнопка –
+     дубль той же формы через data-application, без правок JS. -->
+<div class="buy-bar" role="region" aria-label="Цена и заявка">
+  <span class="buy-bar-price">50 000 ₽</span>
+  <button type="button" class="cta buy-bar-cta" data-application
+    data-program-id="474599435"
+    data-program-title="Международное частное право: трансграничные операции"
+    data-program-url="https://example.com/programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html">Подать заявку</button>
+</div>
+
 <footer>
   <span>Центр дополнительного профессионального образования · Факультет права НИУ ВШЭ</span>
   <span class="footer-links">
