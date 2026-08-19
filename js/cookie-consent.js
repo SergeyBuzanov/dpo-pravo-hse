@@ -159,6 +159,31 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
   };
 
   // Main React landing mounts header asynchronously — wait for it.
+  // Показ – после реальной загрузки HSE Sans: баннер прижат к нижнему краю,
+  // и если вставить его раньше, приезд шрифта перевёрстывает текст, баннер
+  // растёт на строку и «едет» вверх – сдвиг 0.103 в CLS (замер 19.08, 375px).
+  // fonts.ready и fonts.load здесь НЕ работают: баннер успевает вставиться в
+  // документ-оболочку ДО подмены рантаймом, где @font-face ещё не объявлен,
+  // и оба разрешаются мгновенно. fonts.check() врать не может: он говорит
+  // «да» только когда начертание объявлено и загружено, поэтому опрашиваем
+  // его. Предохранитель ~3 с – если шрифт не доехал, показываем как есть.
+  const showWhenFontsReady = () => {
+    let waited = 0;
+    const fontLoaded = () => {
+      try {
+        return document.fonts.check('15px "HSE Sans"') && document.fonts.check('600 15px "HSE Sans"');
+      } catch {
+        return true;
+      }
+    };
+    const poll = setInterval(() => {
+      waited += 150;
+      if (fontLoaded() || waited >= 3000) {
+        clearInterval(poll);
+        showBanner();
+      }
+    }, 150);
+  };
   let tries = 0;
   const timer = setInterval(() => {
     if (!document.body || !document.querySelector('header')) {
@@ -166,6 +191,6 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
       return;
     }
     clearInterval(timer);
-    showBanner();
+    showWhenFontsReady();
   }, 150);
 })();
