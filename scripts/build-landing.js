@@ -40,6 +40,7 @@ const { programHref } = require('../lib/program-slug');
 // upcomingStartLabel – единая подпись «Старт: …» для всех витрин: прошедшая
 // или отсутствующая дата не выводится вовсе.
 const { safeHseUrl, upcomingStartLabel, formatDate } = require('../lib/hse-catalog');
+const { canonicalTeacherName } = require('../lib/teacher-names');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -411,12 +412,15 @@ function mergeTeachers(programs, photos = {}, pages = {}) {
   for (const p of programs) {
     for (const t of p.teachers || []) {
       if (t && t.name) {
+        // Канон написания применяется до склейки: фото, страница и должность
+        // ищутся по каноническому имени (lib/teacher-names.js).
+        const name = canonicalTeacherName(t.name);
         raw.push({
-          name: t.name,
+          name,
           about: t.about ? fixTeacherText(t.about) : null,
           program: { title: p.title, href: programHref(p) },
-          photo: teacherPhoto(photos, t.name),
-          page: teacherPage(pages, t.name),
+          photo: teacherPhoto(photos, name),
+          page: teacherPage(pages, name),
         });
       }
     }

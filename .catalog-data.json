@@ -1013,7 +1013,7 @@
       ],
       "teachers": [
         {
-          "name": "Дмитрий Максимов",
+          "name": "Максимов Дмитрий Михайлович",
           "about": "Старший преподаватель, департамент правового регулирования бизнеса НИУ ВШЭ"
         },
         {
@@ -1363,7 +1363,7 @@
       ],
       "teachers": [
         {
-          "name": "Руслан Будник",
+          "name": "Будник Руслан Александрович",
           "about": "Профессор Факультета права НИУ ВШЭ. Зам. директора Международного научно-образовательного центра «Кафедра ЮНЕСКО по авторскому праву, смежным, культурным и информационным правам» НИУ ВШЭ. Доктор юридических наук"
         },
         {
@@ -2365,7 +2365,7 @@
       ],
       "teachers": [
         {
-          "name": "Дмитрий Максимов",
+          "name": "Максимов Дмитрий Михайлович",
           "about": "Старший преподаватель, заместитель руководителя департамента правового регулирования бизнеса"
         },
         {
@@ -2667,13 +2667,11 @@
     "Лескина Элеонора Игоревна": "images/teachers/leskina-eleonora-igorevna.png",
     "Ошманкевич Ксения Романовна": "images/teachers/oshmankevich-kseniya-romanovna.png",
     "Кривушева Ситора Сергеевна": "images/teachers/krivusheva-sitora-sergeevna.png",
-    "Дмитрий Максимов": "images/teachers/dmitriy-maksimov.jpg",
     "Алексей Клементьев": "images/teachers/aleksey-klementev.png",
     "Анастасия Албух": "images/teachers/anastasiya-albuh.jpg",
     "Соселия Гиорги Анзориевич": "images/teachers/soseliya-giorgi-anzorievich.png",
     "Калимуллина Мадина Эмировна": "images/teachers/kalimullina-madina-emirovna.png",
     "Седова Ольга Константиновна": "images/teachers/sedova-olga-konstantinovna.jpg",
-    "Руслан Будник": "images/teachers/ruslan-budnik.jpg",
     "Юлия Добренко": "images/teachers/yuliya-dobrenko.jpg",
     "Константин Перов": "images/teachers/konstantin-perov.jpg",
     "Валентин Додонов": "images/teachers/valentin-dodonov.jpg",
@@ -2719,7 +2717,6 @@
     "Будник Руслан Александрович": "https://www.hse.ru/org/persons/18923059/",
     "Буримская Диана Валентиновна": "https://www.hse.ru/org/persons/68322",
     "Волос Алексей Александрович": "https://www.hse.ru/org/persons/495190468",
-    "Дмитрий Максимов": "https://www.hse.ru/staff/maksimov/",
     "Жирнова Наталья Александровна": "https://www.hse.ru/org/persons/821965622/",
     "Журавлев Михаил Сергеевич": "https://www.hse.ru/staff/mikhail_zhuravlev/",
     "Изотова Анжелика Николаевна": "https://www.hse.ru/org/persons/218356175",
@@ -2734,7 +2731,6 @@
     "Ошманкевич Ксения Романовна": "https://www.hse.ru/org/persons/959493430/",
     "Панарина Мария Михайловна": "https://www.hse.ru/org/persons/225426396",
     "Парамонова Елена Владимировна": "https://www.hse.ru/org/persons/133858/",
-    "Руслан Будник": "https://www.hse.ru/org/persons/18923059/",
     "Синельникова Валентина Николаевна": "https://www.hse.ru/org/persons/57317070/",
     "Солдаткина Оксана Леонидовна": "https://www.hse.ru/org/persons/856269009/",
     "Текутьев Дмитрий Иванович": "https://www.hse.ru/staff/tekutev/",

@@ -23,6 +23,7 @@ const path = require('node:path');
 const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
 const { formatPrice, formatDate, isoDate } = require('../lib/hse-catalog');
+const { canonicalTeacherName } = require('../lib/teacher-names');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'programs');
@@ -132,7 +133,9 @@ function normalizeProgram(p) {
   if (p.teachers) {
     out.teachers = p.teachers.map((t) => ({
       ...t,
-      name: cleanText(t.name),
+      // Канон написания имени – lib/teacher-names.js: источник пишет одного
+      // человека двояко, и подписи плавали между страницами программ.
+      name: canonicalTeacherName(cleanText(t.name)),
       about: t.about ? cleanText(t.about) : t.about,
     }));
   }
