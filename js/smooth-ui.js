@@ -446,12 +446,16 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     nav.className = 'dpo-mobile-cta';
     nav.setAttribute('aria-label', 'Быстрые действия');
     const catalogHref = encodeURI('Каталог программ.html');
+    // Первичный слот открывает форму заявки (делегированный слушатель
+    // [data-application] в js/application-form.js) – ярлык «Подать заявку»
+    // единый на весь сайт, решение заказчика 19.08.2026.
     nav.innerHTML =
       `<a class="secondary" href="${catalogHref}">Программы</a>` +
-      `<a class="primary" href="#contacts">Контакты</a>`;
+      `<a class="primary" href="#contacts" data-application>Подать заявку</a>`;
     // Fallback if no #contacts
     if (!document.querySelector('#contacts')) {
       nav.querySelector('.primary').href = catalogHref;
+      nav.querySelector('.primary').removeAttribute('data-application');
       nav.querySelector('.primary').textContent = 'Каталог';
     }
     document.body.appendChild(nav);
