@@ -80,7 +80,7 @@
     '.dpo-app-backdrop.is-open .dpo-app{transform:none}',
     '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(22px,3.4vw,28px);',
     'line-height:1.15;margin:0 8px 6px 0;font-weight:600}',
-    '.dpo-app-program{font-size:14px;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
+    '.dpo-app-program{font-size:15px;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
     '.dpo-app-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:20px;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
@@ -111,7 +111,7 @@
     '.dpo-app-sources legend{font-size:13px;font-weight:600;padding:0;margin-bottom:10px}',
     '.dpo-app-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}',
     '@media (max-width:520px){.dpo-app-checks{grid-template-columns:1fr}}',
-    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:14px;line-height:1.4;cursor:pointer}',
+    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.4;cursor:pointer}',
     '.dpo-app-check input{margin:2px 0 0;width:17px;height:17px;accent-color:rgb(var(--accent));flex:none}',
     '.dpo-app-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;',
     'color:var(--ink-soft);margin:6px 0 4px;cursor:pointer}',
@@ -123,7 +123,7 @@
     '.dpo-app-submit:active{transform:scale(.985)}',
     '.dpo-app-submit[disabled]{opacity:.6;cursor:progress}',
     '.dpo-app-note{font-size:12px;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
-    '.dpo-app-status{margin:14px 0 0;font-size:14px;line-height:1.5;border-radius:10px;padding:0}',
+    '.dpo-app-status{margin:14px 0 0;font-size:15px;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
     // Цвет ошибки — системный #B00020; фон и граница выведены из него, а не
     // подобраны глазом (правило производного состояния в DESIGN.md).

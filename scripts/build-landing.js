@@ -245,7 +245,7 @@ function renderSpheres(programs) {
           margin: 0 -24px;
           padding: 14px 24px 18px;
           border-top: 1px solid rgba(33, 30, 27, 0.1);
-          font-size: 14.5px;
+          font-size: 15px;
           font-weight: 600;
           color: var(--dpo-accent, #1658DA);
         }
