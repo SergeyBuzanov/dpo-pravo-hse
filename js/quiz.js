@@ -68,7 +68,7 @@
     '.dpo-quiz-backdrop.is-open .dpo-quiz{transform:none}',
     '.dpo-quiz h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(22px,3.4vw,28px);',
     'font-weight:600;margin:0 0 6px;padding-right:36px}',
-    '.dpo-quiz-sub{font-size:14.5px;line-height:1.55;color:#55503E;margin:0 0 18px}',
+    '.dpo-quiz-sub{font-size:14.5px;line-height:1.55;color:#48423A;margin:0 0 18px}',
     '.dpo-quiz fieldset{border:0;padding:0;margin:0 0 18px}',
     '.dpo-quiz legend{font-size:15px;font-weight:600;margin:0 0 10px;padding:0}',
     '.dpo-quiz-opts{display:flex;flex-wrap:wrap;gap:8px}',

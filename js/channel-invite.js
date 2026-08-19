@@ -62,7 +62,7 @@
     'display:flex;align-items:center;justify-content:center;overflow:hidden}',
     '#channelInvite .ci-icon img{width:100%;height:100%;object-fit:cover}',
     '#channelInvite .ci-title{font:600 15px/1.35 inherit;margin:2px 24px 4px 0;font-family:inherit}',
-    '#channelInvite .ci-desc{font-size:13.5px;line-height:1.5;color:#55503E;margin:0 0 12px}',
+    '#channelInvite .ci-desc{font-size:13.5px;line-height:1.5;color:#48423A;margin:0 0 12px}',
     '#channelInvite .ci-join{display:inline-block;font-size:13.5px;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
     'border-radius:999px;padding:9px 18px;text-decoration:none}',
     '#channelInvite .ci-join:hover{background:#1145AA}',
