@@ -66,8 +66,10 @@
     '#channelInvite .ci-join{display:inline-block;font-size:13.5px;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
     'border-radius:999px;padding:9px 18px;text-decoration:none}',
     '#channelInvite .ci-join:hover{background:#1145AA}',
+    // font:inherit обязателен: кнопки не наследуют шрифт сами, и крестик
+    // рисовался системным Arial (замер аудита 18.08).
     '#channelInvite .ci-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;',
-    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:17px;line-height:1;cursor:pointer}',
+    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:17px;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',
     'html.vi-mode #channelInvite{background:rgb(var(--surface))!important;border:2px solid #000!important}',
