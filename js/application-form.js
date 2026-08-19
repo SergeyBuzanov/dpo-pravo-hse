@@ -138,6 +138,10 @@
     'html.vi-mode .dpo-app{border:2px solid #000}',
     'html.vi-mode .dpo-app input,html.vi-mode .dpo-app textarea,html.vi-mode .dpo-app select{border:2px solid #000}',
     'html.vi-mode .dpo-app-backdrop{background:rgba(0,0,0,.8)}',
+    // Глобальное правило vi-mode гасит box-shadow, которым нарисован фокус
+    // формы, — сфокусированное поле было неотличимо от обычного (WCAG 2.4.7).
+    // Правило то же, что в каталоге и на остальных страницах.
+    'html.vi-mode .dpo-app :focus-visible{outline:3px solid #000 !important;outline-offset:2px}',
   ].join('');
 
   var FOCUSABLE =

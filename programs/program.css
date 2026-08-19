@@ -198,3 +198,6 @@ html.vi-mode *{background:transparent !important;background-image:none !importan
 html.vi-mode .hero-bg{display:none !important}
 html.vi-mode a{text-decoration:underline !important}
 html.vi-mode .card,html.vi-mode .slot,html.vi-mode .cta,html.vi-mode .cta-pay,html.vi-mode .vi-btn{border:2px solid #000 !important}
+/* Правило * выше гасит box-shadow обычного фокуса – возвращаем индикатор
+   (ГОСТ Р 52872-2019, WCAG 2.4.7); правило из каталога, дословно. */
+html.vi-mode :focus-visible{outline:3px solid #000 !important;outline-offset:2px}

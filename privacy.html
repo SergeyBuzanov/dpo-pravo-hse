@@ -69,6 +69,9 @@
   html.vi-mode body{ zoom:1.25; background:rgb(var(--surface)) !important; }
   html.vi-mode *{ background:transparent !important; color:#000 !important; box-shadow:none !important; }
   html.vi-mode a{ text-decoration:underline !important; }
+  /* Правило * выше гасит box-shadow обычного фокуса – возвращаем индикатор
+     (ГОСТ Р 52872-2019, WCAG 2.4.7); правило из каталога, дословно. */
+  html.vi-mode :focus-visible{ outline: 3px solid #000 !important; outline-offset: 2px; }
   .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
     font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
     box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}

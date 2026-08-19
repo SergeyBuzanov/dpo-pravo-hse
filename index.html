@@ -572,7 +572,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     '  color: #000 !important; box-shadow: none !important; text-shadow: none !important;',
     '  animation: none !important; transition: none !important; backdrop-filter: none !important; }',
     'html.vi-mode a{ text-decoration: underline !important; }',
-    'html.vi-mode svg{ display: none !important; }'
+    'html.vi-mode svg{ display: none !important; }',
+    '/* Индикатор фокуса: правило * выше гасит box-shadow, которым нарисован',
+    '   обычный фокус лендинга, — без этой строки режим для слабовидящих',
+    '   оставался без видимого фокуса (ГОСТ Р 52872-2019, WCAG 2.4.7).',
+    '   Правило скопировано из каталога, где оно уже работало. */',
+    'html.vi-mode :focus-visible{ outline: 3px solid #000 !important; outline-offset: 2px; }'
   ].join('\n');
 
   function setVi(on) {
