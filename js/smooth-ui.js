@@ -236,6 +236,13 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
         if (!target) return;
         e.preventDefault();
         smoothScrollTo(target);
+        // preventDefault() отменяет и штатный перенос точки навигации:
+        // без focus() следующий Tab возвращал в шапку, скип-ссылка не
+        // работала (WCAG 2.4.1, 2.4.3).
+        if (!/^(a|button|input|select|textarea)$/i.test(target.tagName) && !target.hasAttribute('tabindex')) {
+          target.tabIndex = -1;
+        }
+        target.focus({ preventScroll: true });
         history.pushState(null, '', id);
       },
       { capture: true },
