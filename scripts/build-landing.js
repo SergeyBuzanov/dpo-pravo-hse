@@ -872,20 +872,15 @@ function renderStarts(programs) {
   const cards = upcoming.map((p) => card(p, false)).join('\n');
   const dupes = upcoming.map((p) => card(p, true)).join('\n');
 
-  const arrow = (dir, label, path) => `        <button type="button" class="dpo-carousel-btn" data-dpo-scroll="${dir}" aria-controls="startsTrack" aria-label="${label}">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>
-        </button>`;
-
+  // Стрелок и кнопки паузы у ленты нет (решение заказчика 20.08:
+  // «листать просто мышкой»). Остановка остаётся: наведение, фокус
+  // внутри дорожки (двигатель) и видимый скроллбар для перемотки;
+  // на таче, при reduced-motion и в vi-mode автохода нет вовсе.
   const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(32px, 5vw, 52px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
     <div class="dpo-container">
     <div class="dpo-starts-head">
       <h2 class="dpo-starts-title">Ближайшие старты программ</h2>
-      <div class="dpo-carousel-nav dpo-starts-nav">
-${arrow('prev', 'Предыдущие старты', 'M10 3 5 8l5 5')}
-${arrow('next', 'Следующие старты', 'M6 3l5 5-5 5')}
-        <button type="button" class="dpo-reviews-toggle" data-dpo-pause aria-controls="startsTrack" aria-pressed="false" aria-label="Остановить ленту"></button>
-        <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
-      </div>
+      <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
     </div>
     <div class="dpo-starts-track" id="startsTrack" data-dpo-loop data-dpo-speed="12" aria-label="Ближайшие старты программ">
 ${cards}
