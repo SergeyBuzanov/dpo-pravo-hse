@@ -129,42 +129,77 @@
   .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--surface) / 0.88); background: rgb(var(--surface) / 0.14); border-radius: var(--radius-sm); padding: 8px 16px; }
   .hero .meta b{ color: rgb(var(--surface)); }
 
-  /* «Ближайшие старты»: пергаментная полоса между героем и фильтрами,
-     колонки-месяцы (образец – страница анонсов pravo.hse.ru/dpo). Ряд
-     «число + название» – целиком ссылка: мишень крупнее, чем у одного
-     названия. Типографика по шкале лендинга: подписи 13, мелкий 14.5. */
+  /* «Ближайшие старты»: стрела времени (выбор владельца 20.08.2026).
+     Одна хронологическая ось со стрелкой на конце, старты – флажки на
+     булавках, чередуются над и под осью. Разметку собирает
+     buildStartsBlock в update-catalog.js. Дорожка прокручивается
+     горизонтально; флажок целиком – ссылка (мишень 44px+). В vi-mode
+     заливки оси и булавок гаснут общим правилом – остаются карточки с
+     границами, порядок чтения не страдает (он хронологический в DOM). */
   .starts{
     background: var(--bg-tint);
     border-bottom: 1px solid var(--line);
-    padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 56px);
+    padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 56px) clamp(16px, 2.5vw, 28px);
   }
   .starts h2{
     font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
-    font-weight: 600; color: var(--ink-mute); margin: 0 0 16px;
+    font-weight: 600; color: var(--ink-mute); margin: 0 0 4px;
   }
-  .starts-grid{
-    display: grid; gap: clamp(18px, 3vw, 36px);
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  .starts-arrow-wrap{
+    overflow-x: auto; padding: 4px 0 10px;
+    scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / .28) transparent;
   }
-  .starts-month h3{
-    font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif;
-    font-size: 18px; font-weight: 600; margin: 0 0 10px;
+  .starts-arrow-wrap::-webkit-scrollbar{ height: 6px; }
+  .starts-arrow-wrap::-webkit-scrollbar-track{ background: rgb(var(--ink) / .08); border-radius: 999px; }
+  .starts-arrow-wrap::-webkit-scrollbar-thumb{ background: rgb(var(--ink) / .28); border-radius: 999px; }
+  .starts-arrow-wrap:focus-visible{ outline: 3px solid rgb(var(--accent)); outline-offset: 2px; }
+  .starts-arrow{
+    display: flex; align-items: center; position: relative;
+    min-width: max-content; height: 330px;
   }
-  .starts-month ul{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-  .starts-month a{
-    display: flex; gap: 12px; align-items: baseline;
-    padding: 12px 0; border-top: 1px solid var(--line); /* мишень 44px, WCAG 2.5.5 */
-    color: rgb(var(--ink)); text-decoration: none;
+  .starts-arrow::before{
+    content: ''; position: absolute; left: 0; right: 30px; top: 50%;
+    height: 5px; margin-top: -2.5px; border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-dark), rgb(var(--accent)));
   }
-  .starts-day{
-    flex: none; width: 96px;
-    font-size: 13px; font-weight: 600; color: rgb(var(--accent));
+  .starts-arrow::after{
+    content: ''; position: absolute; right: 0; top: 50%; margin-top: -14px;
+    border-left: 30px solid rgb(var(--accent));
+    border-top: 14px solid transparent; border-bottom: 14px solid transparent;
   }
-  .starts-name{ font-size: 14.5px; line-height: 1.4; min-width: 0; }
+  .flag{ flex: none; width: 210px; position: relative; height: 100%; }
+  .flag-card{
+    position: absolute; left: 12px; width: 190px;
+    background: rgb(var(--surface)); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 14px; text-decoration: none;
+    box-shadow: 0 6px 18px rgb(var(--ink) / .07);
+    transition: border-color .15s;
+  }
+  .flag-card b{
+    display: block; font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif;
+    font-size: 16px; font-weight: 700; color: rgb(var(--accent)); margin: 0 0 3px;
+  }
+  .flag-card span{
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 13px; line-height: 1.35; color: var(--ink-soft);
+  }
+  .flag-pin{ position: absolute; left: 30px; width: 2px; background: rgb(var(--accent) / .5); }
+  .flag-pin::after{
+    content: ''; position: absolute; left: -4px; width: 10px; height: 10px;
+    border-radius: 999px; background: rgb(var(--accent));
+  }
+  .flag.up .flag-card{ bottom: calc(50% + 40px); }
+  .flag.up .flag-pin{ bottom: 50%; height: 40px; }
+  .flag.up .flag-pin::after{ bottom: -5px; }
+  .flag.down .flag-card{ top: calc(50% + 40px); }
+  .flag.down .flag-pin{ top: 50%; height: 40px; }
+  .flag.down .flag-pin::after{ top: -5px; }
   @media (hover: hover) and (pointer: fine){
-    .starts-month a:hover .starts-name{ color: rgb(var(--accent)); }
+    .flag-card:hover{ border-color: rgb(var(--accent)); }
   }
   html.vi-mode .starts{ border: 2px solid #000 !important; }
+  html.vi-mode .flag-card{ border: 2px solid #000 !important; }
 
   .filters{
     display: flex; flex-wrap: wrap; gap: 8px;
@@ -495,7 +530,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<span class="meta">Обновлено: <b>20 августа 2026 г. в 08:19</b> · 26 актуальных программ</span>
+<span class="meta">Обновлено: <b>20 августа 2026 г. в 09:57</b> · 26 актуальных программ</span>
   <!-- /CATALOG:META -->
 </section>
 
@@ -508,52 +543,190 @@
 <!-- CATALOG:STARTS -->
 <section class="starts" aria-label="Ближайшие старты программ">
   <h2>Ближайшие старты</h2>
-  <div class="starts-grid">
-    <div class="starts-month">
-      <h3>Август</h3>
-      <ul>
-        <li><a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html"><span class="starts-day">31 августа</span><span class="starts-name">Актуальные вопросы гражданского права</span></a></li>
-      </ul>
-    </div>
-    <div class="starts-month">
-      <h3>Сентябрь</h3>
-      <ul>
-        <li><a href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html"><span class="starts-day">1 сентября</span><span class="starts-name">Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span></a></li>
-        <li><a href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html"><span class="starts-day">7 сентября</span><span class="starts-name">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span></a></li>
-        <li><a href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html"><span class="starts-day">10 сентября</span><span class="starts-name">Правовые вопросы банкротства: теории и практики</span></a></li>
-        <li><a href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html"><span class="starts-day">14 сентября</span><span class="starts-name">Французское (европейское) экономическое право / Droit économique français (européen)</span></a></li>
-        <li><a href="programs/kontraktnoe-pravo-gonkonga-1025688553.html"><span class="starts-day">15 сентября</span><span class="starts-name">Контрактное право Гонконга</span></a></li>
-        <li><a href="programs/personalnyy-assistent-pro-829977883.html"><span class="starts-day">19 сентября</span><span class="starts-name">Персональный ассистент PRO</span></a></li>
-        <li><a href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html"><span class="starts-day">21 сентября</span><span class="starts-name">Интеллектуальная собственность: от закона к практике</span></a></li>
-        <li><a href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html"><span class="starts-day">23 сентября</span><span class="starts-name">Цифровое право для бизнеса</span></a></li>
-        <li><a href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html"><span class="starts-day">24 сентября</span><span class="starts-name">Международное частное право: трансграничные операции</span></a></li>
-        <li><a href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html"><span class="starts-day">28 сентября</span><span class="starts-name">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span></a></li>
-        <li><a href="programs/pravo-na-angliyskom-legal-english-474776084.html"><span class="starts-day">30 сентября</span><span class="starts-name">Право на английском / Legal English</span></a></li>
-      </ul>
-    </div>
-    <div class="starts-month">
-      <h3>Октябрь</h3>
-      <ul>
-        <li><a href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html"><span class="starts-day">5 октября</span><span class="starts-name">Авторское право в информационном обществе</span></a></li>
-        <li><a href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html"><span class="starts-day">13 октября</span><span class="starts-name">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span></a></li>
-        <li><a href="programs/biznes-mediatsiya-494685723.html"><span class="starts-day">14 октября</span><span class="starts-name">Бизнес-медиация</span></a></li>
-        <li><a href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html"><span class="starts-day">24 октября</span><span class="starts-name">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span></a></li>
-        <li><a href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html"><span class="starts-day">26 октября</span><span class="starts-name">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span></a></li>
-      </ul>
-    </div>
-    <div class="starts-month">
-      <h3>Ноябрь</h3>
-      <ul>
-        <li><a href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html"><span class="starts-day">2 ноября</span><span class="starts-name">Введение в правовую систему Китая</span></a></li>
-        <li><a href="programs/angliyskoe-kontraktnoe-pravo-856421092.html"><span class="starts-day">9 ноября</span><span class="starts-name">Английское контрактное право</span></a></li>
-        <li><a href="programs/morskoy-arbitrazh-906651510.html"><span class="starts-day">10 ноября</span><span class="starts-name">Морской арбитраж</span></a></li>
-        <li><a href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html"><span class="starts-day">16 ноября</span><span class="starts-name">Корпоративное право: основные проблемы</span></a></li>
-        <li><a href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html"><span class="starts-day">16 ноября</span><span class="starts-name">Техники эффективного анализа юридических документов</span></a></li>
-        <li><a href="programs/delovye-peregovory-pravovye-strategii-589527758.html"><span class="starts-day">17 ноября</span><span class="starts-name">Деловые переговоры: правовые стратегии</span></a></li>
-        <li><a href="programs/transportnoe-pravo-802031223.html"><span class="starts-day">18 ноября</span><span class="starts-name">Транспортное право</span></a></li>
-        <li><a href="programs/obschie-voprosy-dogovornogo-prava-907279244.html"><span class="starts-day">25 ноября</span><span class="starts-name">Общие вопросы договорного права</span></a></li>
-        <li><a href="programs/neyropravo-905186485.html"><span class="starts-day">30 ноября</span><span class="starts-name">Нейроправо</span></a></li>
-      </ul>
+  <div class="starts-arrow-wrap" tabindex="0" role="region" aria-label="Лента ближайших стартов, прокручивается горизонтально">
+    <div class="starts-arrow">
+      <div class="flag up">
+        <a class="flag-card" href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" title="Актуальные вопросы гражданского права">
+          <b>31 августа</b>
+          <span>Актуальные вопросы гражданского права</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" title="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers">
+          <b>1 сентября</b>
+          <span>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса">
+          <b>7 сентября</b>
+          <span>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики">
+          <b>10 сентября</b>
+          <span>Правовые вопросы банкротства: теории и практики</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)">
+          <b>14 сентября</b>
+          <span>Французское (европейское) экономическое право / Droit économique français (européen)</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга">
+          <b>15 сентября</b>
+          <span>Контрактное право Гонконга</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO">
+          <b>19 сентября</b>
+          <span>Персональный ассистент PRO</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике">
+          <b>21 сентября</b>
+          <span>Интеллектуальная собственность: от закона к практике</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса">
+          <b>23 сентября</b>
+          <span>Цифровое право для бизнеса</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции">
+          <b>24 сентября</b>
+          <span>Международное частное право: трансграничные операции</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика">
+          <b>28 сентября</b>
+          <span>Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English">
+          <b>30 сентября</b>
+          <span>Право на английском / Legal English</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе">
+          <b>5 октября</b>
+          <span>Авторское право в информационном обществе</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)">
+          <b>13 октября</b>
+          <span>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация">
+          <b>14 октября</b>
+          <span>Бизнес-медиация</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования">
+          <b>24 октября</b>
+          <span>Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)">
+          <b>26 октября</b>
+          <span>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая">
+          <b>2 ноября</b>
+          <span>Введение в правовую систему Китая</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право">
+          <b>9 ноября</b>
+          <span>Английское контрактное право</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж">
+          <b>10 ноября</b>
+          <span>Морской арбитраж</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы">
+          <b>16 ноября</b>
+          <span>Корпоративное право: основные проблемы</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов">
+          <b>16 ноября</b>
+          <span>Техники эффективного анализа юридических документов</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии">
+          <b>17 ноября</b>
+          <span>Деловые переговоры: правовые стратегии</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право">
+          <b>18 ноября</b>
+          <span>Транспортное право</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag up">
+        <a class="flag-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права">
+          <b>25 ноября</b>
+          <span>Общие вопросы договорного права</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
+      <div class="flag down">
+        <a class="flag-card" href="programs/neyropravo-905186485.html" title="Нейроправо">
+          <b>30 ноября</b>
+          <span>Нейроправо</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>
     </div>
   </div>
 </section>

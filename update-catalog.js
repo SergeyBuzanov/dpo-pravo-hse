@@ -213,37 +213,38 @@ function buildStartsBlock(items, now = new Date()) {
   const curYear = fmt({ year: 'numeric' }).format(now);
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  const groups = new Map();
-  for (const item of upcoming) {
-    const d = new Date(item.startDate);
-    const year = fmt({ year: 'numeric' }).format(d);
-    const month = cap(fmt({ month: 'long' }).format(d));
-    const key = `${year}-${fmt({ month: '2-digit' }).format(d)}`;
-    const title = year === curYear ? month : `${month} ${year}`;
-    if (!groups.has(key)) groups.set(key, { title, rows: [] });
-    const day = item.isStartDateWithoutDay
-      ? 'в течение месяца'
-      : fmt({ day: 'numeric', month: 'long' }).format(d);
-    groups.get(key).rows.push(
-      `        <li><a href="${escapeHtml(programHref(item))}"><span class="starts-day">${escapeHtml(day)}</span><span class="starts-name">${escapeHtml(item.title)}</span></a></li>`,
-    );
-  }
-
-  const cols = [...groups.values()]
-    .map(
-      (g) => `    <div class="starts-month">
-      <h3>${escapeHtml(g.title)}</h3>
-      <ul>
-${g.rows.join('\n')}
-      </ul>
-    </div>`,
-    )
+  // «Стрела времени» (выбор владельца 20.08.2026 из четырёх макетов):
+  // одна хронологическая ось со стрелкой, старты – флажки на булавках,
+  // чередуются над и под осью. Месяц виден в каждой дате, поэтому
+  // группировка по месяцам больше не нужна. Дата с точностью до месяца
+  // подписывается самим месяцем. Дорожка прокручивается горизонтально:
+  // tabindex=0 и role=region – чтобы клавиатура могла прокручивать, а
+  // диктор понимал, что это за область.
+  const flags = upcoming
+    .map((item, i) => {
+      const d = new Date(item.startDate);
+      const year = fmt({ year: 'numeric' }).format(d);
+      const when = item.isStartDateWithoutDay
+        ? cap(fmt({ month: 'long' }).format(d)) + (year === curYear ? '' : ` ${year}`)
+        : fmt({ day: 'numeric', month: 'long' }).format(d) + (year === curYear ? '' : ` ${year} г.`);
+      // title дублирует название: у самых длинных имён видимый текст
+      // обрезается четырьмя строками, подсказка отдаёт его целиком.
+      return `      <div class="flag ${i % 2 ? 'down' : 'up'}">
+        <a class="flag-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}">
+          <b>${escapeHtml(when)}</b>
+          <span>${escapeHtml(item.title)}</span>
+        </a>
+        <span class="flag-pin" aria-hidden="true"></span>
+      </div>`;
+    })
     .join('\n');
 
   return `<section class="starts" aria-label="Ближайшие старты программ">
   <h2>Ближайшие старты</h2>
-  <div class="starts-grid">
-${cols}
+  <div class="starts-arrow-wrap" tabindex="0" role="region" aria-label="Лента ближайших стартов, прокручивается горизонтально">
+    <div class="starts-arrow">
+${flags}
+    </div>
   </div>
 </section>`;
 }
