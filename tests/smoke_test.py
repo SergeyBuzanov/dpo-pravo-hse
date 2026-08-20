@@ -187,7 +187,7 @@ def test_catalog(context):
 
     check(lbl, "favicon подключён",
           page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") == "favicon.svg")
-    check(lbl, "ссылка «← На лендинг» → index.html",
+    check(lbl, "ссылка «← На главную» → index.html",
           page.eval_on_selector('header a.back', "el => el.getAttribute('href')") == "index.html")
     check(lbl, "нет ошибок в консоли", not errors, "; ".join(errors[:3]))
     check(lbl, "нет битых ресурсов (4xx/5xx)", not broken, str(broken))
