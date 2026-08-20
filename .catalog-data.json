@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-18T15:43:11.601Z",
+  "updated": "2026-08-20T05:16:41.211Z",
   "source": "https://www.hse.ru/edu/dpo/?orgUnit=22753",
   "count": 26,
   "programs": [
@@ -15,7 +15,7 @@
         "title": "Онлайн асинхронный"
       },
       "duration": null,
-      "startDate": 1786914000000,
+      "startDate": 1788123600000,
       "isStartDateWithoutDay": false,
       "discountPrice": 22000,
       "educationPricing": 22000,
