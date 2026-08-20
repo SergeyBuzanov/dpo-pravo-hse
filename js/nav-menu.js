@@ -45,8 +45,30 @@
   function closeAll(except, opts) {
     var triggers = document.querySelectorAll(TRIGGER);
     for (var i = 0; i < triggers.length; i++) {
-      if (triggers[i] !== except) close(triggers[i], opts);
+      if (triggers[i] === except) continue;
+      // Вложенный триггер (аккордеон «Направления» внутри мобильного меню):
+      // открытие ребёнка не должно захлопывать родительскую панель.
+      if (except) {
+        var p = panelOf(triggers[i]);
+        if (p && p.contains(except)) continue;
+      }
+      close(triggers[i], opts);
     }
+  }
+
+  /**
+   * Аккордеон «Направления» в мобильном меню наполняется клонами строк из
+   * панели навигации при каждом открытии: содержимое панели генерируется
+   * сборкой, а вторая генерируемая область разъехалась бы с первой.
+   * Клонирование при каждом открытии переживает пересборку рантаймом.
+   */
+  function fillMobileDirs(panel) {
+    var list = panel.querySelector('.dpo-mobile-dirs');
+    if (!list) return;
+    var rows = document.querySelectorAll('#navProgramsPanel .dpo-menu-row');
+    if (!rows.length) return;
+    list.textContent = '';
+    for (var i = 0; i < rows.length; i++) list.appendChild(rows[i].cloneNode(true));
   }
 
   function open(trigger) {
@@ -54,6 +76,7 @@
     if (!panel) return;
     closeAll(trigger);
     syncHeaderHeight();
+    if (panel.id === 'mobileMenuPanel') fillMobileDirs(panel);
     panel.hidden = false;
     // Панель должна оказаться в потоке раньше, чем снимется прозрачность,
     // иначе перехода не будет. Раньше следующий кадр ждали через
@@ -109,17 +132,24 @@
   document.addEventListener('pointerover', function (e) {
     if (e.pointerType !== 'mouse' || !canHover() || !e.target.closest) return;
 
+    // Наведение открывает только выпадающие меню шапки (.dpo-nav-trigger):
+    // бургер и аккордеон мобильного меню работают строго кликом, иначе
+    // «мышиное» наведение на бургер распахивало бы полноэкранное меню.
     var trigger = e.target.closest(TRIGGER);
-    var overTrigger = trigger && panelOf(trigger) ? trigger : null;
+    var overTrigger =
+      trigger && trigger.classList.contains('dpo-nav-trigger') && panelOf(trigger) ? trigger : null;
     var overPanel = triggerOfPanel(e.target.closest('.dpo-menu-panel'));
+    if (overPanel && !overPanel.classList.contains('dpo-nav-trigger')) overPanel = null;
     var hovered = overTrigger || overPanel;
 
     // Курсор ушёл с кнопки – запрет, поставленный кликом, снимается.
     if (clickClosed && clickClosed !== overTrigger) clickClosed = null;
 
     if (!hovered) {
-      // Курсор где угодно ещё: закрываем то, что раскрыто, но с отсрочкой.
-      var openTrigger = document.querySelector(TRIGGER + '[aria-expanded="true"]');
+      // Курсор где угодно ещё: закрываем раскрытое НАВЕДЕНИЕМ меню с
+      // отсрочкой. Открытые кликом бургер и аккордеон не трогаем – их
+      // закрывает клик, Esc или уход фокуса.
+      var openTrigger = document.querySelector('.dpo-nav-trigger[aria-expanded="true"]');
       if (openTrigger && !hoverTimer) {
         hoverTimer = window.setTimeout(function () {
           hoverTimer = null;
@@ -177,6 +207,35 @@
   });
 
   window.addEventListener('resize', syncHeaderHeight);
+
+  /* ── Сжатая шапка при скролле (handoff 20.08.2026, блок 2d) ─────────────
+     Порог 120px, чтение scrollY схлопнуто в один вызов на кадр через rAF.
+     Класс ставится на <html> идемпотентно каждый кадр скролла: рантайм
+     заменяет documentElement при загрузке, и одноразовая установка класса
+     не пережила бы подмену. */
+  var scrollFrame = 0;
+  function syncScrolled() {
+    var on = window.scrollY > 120;
+    var root = document.documentElement;
+    if (root.classList.contains('dpo-scrolled') !== on) {
+      root.classList.toggle('dpo-scrolled', on);
+      // Высота шапки меняется переходом 180мс: панель меню, привязанная к
+      // --dpo-header-h, перемеряется после его окончания.
+      window.setTimeout(syncHeaderHeight, 200);
+    }
+  }
+  window.addEventListener(
+    'scroll',
+    function () {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(function () {
+        scrollFrame = 0;
+        syncScrolled();
+      });
+    },
+    { passive: true },
+  );
+  syncScrolled();
 
   // Рантайм дорисовывает шапку не сразу и может пересобрать её несколько раз.
   var n = 0;

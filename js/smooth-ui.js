@@ -190,7 +190,10 @@ section#explore a[href]{
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
 .dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
-@media (max-width: 760px){
+/* Порог совпадает с мобильной шапкой-капсулой (<900px, handoff 20.08):
+   CTA на телефоне живёт в этой панели, из шапки кнопка на этой ширине
+   убрана. */
+@media (max-width: 899px){
   body.dpo-has-mobile-cta{ padding-bottom: 84px; }
   .dpo-mobile-cta{ display: flex; }
 }
@@ -389,7 +392,11 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       ...document.querySelectorAll(
         'header nav a.link[href^="#"], header nav a[href^="#"]:not(.btn):not([class*="btn-"])',
       ),
-    ].filter((a, i, arr) => arr.indexOf(a) === i);
+    ]
+      .filter((a, i, arr) => arr.indexOf(a) === i)
+      // Мобильное меню дублирует якоря капсулы внутри той же шапки; без
+      // фильтра is-active доставался последнему дублю в DOM – невидимому.
+      .filter((a) => !a.closest('.dpo-mobile-panel'));
 
     if (!links.length) return;
 
