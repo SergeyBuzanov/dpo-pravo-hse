@@ -191,9 +191,15 @@ typography:
     fontSize: "12.5px"
     fontWeight: 400
     lineHeight: 1.3
-  # Подпись лочкапа шапки (с 20.08.2026 – 9px/600/0.1em по handoff
-  # шапки-капсулы; прежде 10px/400/0.14em).
+  # Подписи лочкапов – ДВЕ ступени с 20.08.2026: micro (10px) живёт в
+  # шапках каталога и страниц программ (старый дизайн, не менялся),
+  # lockup-sub (9px/600/0.1em) – лочкап шапки-капсулы лендинга (handoff).
   micro:
+    fontFamily: "'HSE Sans', 'IBM Plex Sans', sans-serif"
+    fontSize: "10px"
+    fontWeight: 400
+    letterSpacing: "0.14em"
+  lockup-sub:
     fontFamily: "'HSE Sans', 'IBM Plex Sans', sans-serif"
     fontSize: "9px"
     fontWeight: 600
