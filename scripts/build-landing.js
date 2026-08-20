@@ -814,34 +814,84 @@ function renderTop5Data(template, programs) {
 }
 
 /**
- * Полоса «Ближайшие старты» под героем (просьба заказчика 18.08.2026).
- * Три ближайших БУДУЩИХ старта: прошедшие и пустые даты отсеивает
- * upcomingStartLabel – та же логика, что у подписи «Старт: …» в витринах,
- * поэтому полоса не протухает при устаревшем каталоге. Если будущих
- * стартов нет вовсе, секция не выводится совсем (между маркерами пусто).
+ * Лента «Ближайшие старты» под героем (просьба заказчика 18.08.2026;
+ * 20.08.2026 полоса из трёх колонок переделана в билеты с очень медленным
+ * автоходом – выбор заказчика из четырёх показанных вариантов).
+ *
+ * Содержимое: ВСЕ будущие старты каталога (потолок 30 – предохранитель
+ * DOM, сейчас их 25). Прошедшие и пустые даты отсеивает upcomingStartLabel,
+ * поэтому лента не протухает. Если будущих стартов нет, секции нет совсем.
+ *
+ * Механика движения – та же, что у ленты отзывов: дорожка data-dpo-loop
+ * (двигатель js/carousel.js), карточки лежат дважды (копия aria-hidden,
+ * tabindex=-1), интервал – margin-right карточки, НЕ gap и НЕ padding
+ * дорожки, иначе scrollWidth/2 не равен периоду и на шве виден скачок.
+ * Скорость своя: data-dpo-speed="12" (отзывы едут 26). Пауза: наведение,
+ * фокус, кнопка (WCAG 2.2.2); на тач-экране, при reduced-motion и в
+ * vi-mode двигатель автоход не запускает.
  */
 function renderStarts(programs) {
   const upcoming = programs
     .filter((p) => upcomingStartLabel(p))
     .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-    .slice(0, 3);
+    .slice(0, 30);
   if (!upcoming.length) return { html: '', count: 0 };
 
-  const items = upcoming
-    .map(
-      (p) => `      <a class="dpo-start" href="${escapeHtml(programHref(p))}">
-        <span class="dpo-start-date">${escapeHtml(formatDate(p) || '')}</span>
-        <span class="dpo-start-title">${escapeHtml(p.title)}</span>
-      </a>`,
-    )
-    .join('\n');
+  // Билету нужны день и месяц по отдельности (день – крупно слабом).
+  // У дат с точностью до месяца (isStartDateWithoutDay) дня нет: крупным
+  // элементом становится сам месяц, подписью – год.
+  const dateParts = (p) => {
+    const d = new Date(p.startDate);
+    if (p.isStartDateWithoutDay) {
+      const mon = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', month: 'long' }).format(d);
+      const year = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(d);
+      return { big: mon, small: year, isMonth: true };
+    }
+    const parts = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: 'numeric',
+      month: 'long',
+    }).formatToParts(d);
+    const get = (type) => parts.find((x) => x.type === type)?.value || '';
+    return { big: get('day'), small: get('month'), isMonth: false };
+  };
 
-  const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(28px, 4vw, 48px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
+  const card = (p, dupe) => {
+    const { big, small, isMonth } = dateParts(p);
+    // formatDate – полная дата для диктора: билет разбирает её на части,
+    // и без подписи скринридер прочёл бы «1 сентября» без года.
+    const full = formatDate(p) || '';
+    return `      <a class="dpo-start" href="${escapeHtml(programHref(p))}"${dupe ? ' tabindex="-1"' : ''} aria-label="${escapeHtml(`${p.title} – старт ${full}`)}">
+        <span class="dpo-start-date" aria-hidden="true">
+          <span class="dpo-start-day${isMonth ? ' is-month' : ''}">${escapeHtml(big)}</span>
+          <span class="dpo-start-mon">${escapeHtml(small)}</span>
+        </span>
+        <span class="dpo-start-title" aria-hidden="true">${escapeHtml(p.title)}</span>
+      </a>`;
+  };
+  const cards = upcoming.map((p) => card(p, false)).join('\n');
+  const dupes = upcoming.map((p) => card(p, true)).join('\n');
+
+  const arrow = (dir, label, path) => `        <button type="button" class="dpo-carousel-btn" data-dpo-scroll="${dir}" aria-controls="startsTrack" aria-label="${label}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>
+        </button>`;
+
+  const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(32px, 5vw, 52px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
     <div class="dpo-container">
-    <div class="dpo-starts">
-      <span class="dpo-starts-label">Ближайшие старты</span>
-${items}
-      <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
+    <div class="dpo-starts-head">
+      <h2 class="dpo-starts-title">Ближайшие старты программ</h2>
+      <div class="dpo-carousel-nav dpo-starts-nav">
+${arrow('prev', 'Предыдущие старты', 'M10 3 5 8l5 5')}
+${arrow('next', 'Следующие старты', 'M6 3l5 5-5 5')}
+        <button type="button" class="dpo-reviews-toggle" data-dpo-pause aria-controls="startsTrack" aria-pressed="false" aria-label="Остановить ленту"></button>
+        <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
+      </div>
+    </div>
+    <div class="dpo-starts-track" id="startsTrack" data-dpo-loop data-dpo-speed="12" aria-label="Ближайшие старты программ">
+${cards}
+      <div class="dpo-starts-dupe" aria-hidden="true">
+${dupes}
+      </div>
     </div>
     </div>
   </section>`;

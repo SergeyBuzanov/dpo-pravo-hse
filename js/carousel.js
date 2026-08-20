@@ -177,7 +177,10 @@
         // Позицию копим сами: прирост за кадр меньше пикселя, а scrollLeft
         // округляется, и дробные доли иначе теряются — лента почти стоит.
         if (t._dpoPos == null || Math.abs(t._dpoPos - t.scrollLeft) > 2) t._dpoPos = t.scrollLeft;
-        t._dpoPos += SPEED_PX_PER_SEC * dt;
+        // Скорость своя у каждой дорожки: data-dpo-speed (px/с). Лента
+        // стартов едет заметно медленнее отзывов (решение заказчика 20.08).
+        var speed = Number(t.getAttribute('data-dpo-speed')) || SPEED_PX_PER_SEC;
+        t._dpoPos += speed * dt;
         if (t._dpoPos >= half) t._dpoPos -= half;
         t.scrollLeft = t._dpoPos;
       }
