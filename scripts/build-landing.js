@@ -97,6 +97,46 @@ const escapeHtml = (s) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+/** «ещё 3 программы» – та же грамматика, что и у счётчика сферы. */
+function moreLabel(n) {
+  return 'ещё ' + pluralPrograms(n);
+}
+
+function renderSphere(sphere) {
+  const total = sphere.items.length;
+  if (!total) return '';
+
+  const shown = sphere.items.slice(0, PREVIEW);
+  const rest = total - shown.length;
+  const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
+
+  const programs = shown
+    .map(
+      (p) =>
+        `            <li><a class="dpo-menu-program" href="${escapeHtml(programHref(p))}">` +
+        `${escapeHtml(p.title)}</a></li>`,
+    )
+    .join('\n');
+
+  // «ещё N» ведёт в каталог с уже применённым фильтром по сфере: это
+  // единственное место, где видны все программы направления сразу.
+  const more = rest
+    ? `\n          <a class="dpo-menu-more" href="${escapeHtml(catalogHref)}">${escapeHtml(
+        moreLabel(rest),
+      )}</a>`
+    : '';
+
+  return `        <div class="dpo-menu-sphere">
+          <a class="dpo-menu-sphere-head" href="${escapeHtml(catalogHref)}">
+            <span class="dpo-menu-sphere-title">${escapeHtml(sphere.title)}</span>
+            <span class="dpo-menu-sphere-count">${escapeHtml(pluralPrograms(total))}</span>
+          </a>
+          <ul class="dpo-menu-programs">
+${programs}
+          </ul>${more}
+        </div>`;
+}
+
 function buildPanel(programs) {
   const { spheres, unassigned } = groupBySphere(programs);
   const filled = spheres.filter((s) => s.items.length);
@@ -109,24 +149,15 @@ function buildPanel(programs) {
     for (const p of unassigned) console.warn('   - ' + p.title);
   }
 
-  // Панель по handoff 20.08.2026: заголовок-счётчик и простые строки
-  // «направление + число программ» без списков курсов; замыкает сетку
-  // «Все программы →». Счётчик числом, полное слово «программ» дало бы
-  // семь повторов в одной панели. Эти же строки js/nav-menu.js клонирует
-  // в аккордеон мобильного меню.
-  const rows = filled
-    .map(
-      (s) => `        <a class="dpo-menu-row" href="Каталог программ.html?sphere=${encodeURIComponent(s.id)}">
-          <span>${escapeHtml(s.title)}</span>
-          <span class="dpo-menu-count" aria-label="${escapeHtml(pluralPrograms(s.items.length))}">${s.items.length}</span>
-        </a>`,
-    )
-    .join('\n');
-
-  const html = `      <div class="dpo-menu-head">${programs.length} программ по направлениям</div>
-      <div class="dpo-menu-grid">
-${rows}
-        <a class="dpo-menu-row dpo-menu-allrow" href="Каталог программ.html">Все программы <span aria-hidden="true">→</span></a>
+  // Подвал генерируется вместе с сеткой: в нём стоит общее число программ,
+  // и написанное руками оно разошлось бы с каталогом ровно так же.
+  const html = `      <div class="dpo-menu-grid">
+${filled.map(renderSphere).join('\n')}
+      </div>
+      <div class="dpo-menu-foot">
+        <a class="dpo-menu-all" href="Каталог программ.html">Все ${programs.length} программ с фильтрами</a>
+        <a class="dpo-menu-side" href="#top5">Топ-5 программ</a>
+        <a class="dpo-menu-side" href="#spheres">Обзор по сферам</a>
       </div>`;
 
   return { html, spheres: filled.length, unassigned: unassigned.length };

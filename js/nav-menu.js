@@ -65,7 +65,9 @@
   function fillMobileDirs(panel) {
     var list = panel.querySelector('.dpo-mobile-dirs');
     if (!list) return;
-    var rows = document.querySelectorAll('#navProgramsPanel .dpo-menu-row');
+    var rows = document.querySelectorAll(
+      '#navProgramsPanel .dpo-menu-sphere-head, #navProgramsPanel .dpo-menu-all',
+    );
     if (!rows.length) return;
     list.textContent = '';
     for (var i = 0; i < rows.length; i++) list.appendChild(rows[i].cloneNode(true));
