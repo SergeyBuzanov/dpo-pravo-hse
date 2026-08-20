@@ -181,6 +181,26 @@ function makeThumb(srcFile, destFile) {
   }
 }
 
+/** PNG-фото человека -> JPEG q82: hse.ru отдаёт портреты PNG-кругом с
+ *  альфой, но альфа не нужна – и CSS, и сам вырез круглые, а PNG весит
+ *  вдесятеро дороже (аудит 2026-08, находка 9). sips плющит альфу на белое.
+ *  Возвращает новое расширение файла. */
+function toJpegInPlace(fileBase, ext) {
+  if (ext !== 'png') return ext;
+  try {
+    execFileSync(
+      '/usr/bin/sips',
+      ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', fileBase + '.png', '--out', fileBase + '.jpg'],
+      { stdio: 'ignore' },
+    );
+    if (!fs.existsSync(fileBase + '.jpg')) return ext;
+    fs.unlinkSync(fileBase + '.png');
+    return 'jpg';
+  } catch {
+    return ext;
+  }
+}
+
 /** Ужимает файл по ширине на месте, если он шире порога. */
 function shrinkInPlace(file, width) {
   try {
@@ -277,8 +297,11 @@ async function main() {
         continue;
       }
       try {
-        const ext = await downloadImage(person.src, base);
-        if (sips) shrinkInPlace(base + '.' + ext, TEACHER_WIDTH);
+        let ext = await downloadImage(person.src, base);
+        if (sips) {
+          shrinkInPlace(base + '.' + ext, TEACHER_WIDTH);
+          ext = toJpegInPlace(base, ext);
+        }
         photos[person.name] = `images/teachers/${slug}.${ext}`;
         teacherFiles++;
         await sleep(250);
