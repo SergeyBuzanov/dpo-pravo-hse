@@ -186,7 +186,7 @@ section#explore a[href]{
   /* Панель вставляется в body, а не внутрь вёрстки страницы, поэтому
      фирменный шрифт задаём здесь: наследовать его неоткуда. */
   font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;
-  padding: 12px 10px; border-radius: 999px; text-decoration: none;
+  padding: 13px 10px; border-radius: 999px; text-decoration: none; /* мишень 44px+, WCAG 2.5.5 */
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
 .dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }

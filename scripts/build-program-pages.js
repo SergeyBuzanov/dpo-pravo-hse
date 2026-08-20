@@ -975,6 +975,7 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 .nav-link:hover{text-decoration:underline}
 .vi-btn{font:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft);
   background:transparent;border:1px solid rgb(var(--ink) / .25);border-radius:999px;padding:8px 14px;
+  min-height:44px; /* мишень касания, WCAG 2.5.5 */
   white-space:nowrap;transition:color .28s var(--ease),border-color .28s var(--ease)}
 .vi-btn:hover{border-color:rgb(var(--accent));color:rgb(var(--accent))}
 

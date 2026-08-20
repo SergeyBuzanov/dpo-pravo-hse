@@ -153,7 +153,7 @@
   .starts-month ul{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .starts-month a{
     display: flex; gap: 12px; align-items: baseline;
-    padding: 6px 0; border-top: 1px solid var(--line);
+    padding: 12px 0; border-top: 1px solid var(--line); /* мишень 44px, WCAG 2.5.5 */
     color: rgb(var(--ink)); text-decoration: none;
   }
   .starts-day{
@@ -183,6 +183,7 @@
     font: inherit; font-size: 13.5px; font-weight: 600; color: var(--accent-dark);
     background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-sm);
     padding: 8px 16px; cursor: pointer;
+    min-height: 44px; /* мишень касания, WCAG 2.5.5; полоса фильтров подрастает осознанно */
     transition:
       background .28s ease,
       color .28s ease,
@@ -424,6 +425,7 @@
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
     color: var(--accent-dark); background: rgb(var(--surface)); border: 1px solid var(--line);
     border-radius: var(--radius-sm); padding: 7px 13px; white-space: nowrap;
+    min-height: 44px; /* мишень касания, WCAG 2.5.5 */
   }
   .vi-btn:hover{ border-color: rgb(var(--accent)); }
 

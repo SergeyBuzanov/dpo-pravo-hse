@@ -81,7 +81,7 @@
     '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(22px,3.4vw,28px);',
     'line-height:1.15;margin:0 8px 6px 0;font-weight:600}',
     '.dpo-app-program{font-size:15px;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
-    '.dpo-app-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:999px;',
+    '.dpo-app-close{position:absolute;top:11px;right:11px;width:44px;height:44px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:20px;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
     '.dpo-app-close:hover{background:var(--bg-tint)}',
@@ -111,7 +111,9 @@
     '.dpo-app-sources legend{font-size:13px;font-weight:600;padding:0;margin-bottom:10px}',
     '.dpo-app-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}',
     '@media (max-width:520px){.dpo-app-checks{grid-template-columns:1fr}}',
-    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.4;cursor:pointer}',
+    // padding растит мишень строки до 24px+ (WCAG 2.5.8); 44px здесь
+    // раздули бы и без того длинную форму на 9 строк по 25px.
+    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.4;cursor:pointer;padding:4px 0}',
     '.dpo-app-check input{margin:2px 0 0;width:17px;height:17px;accent-color:rgb(var(--accent));flex:none}',
     '.dpo-app-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;',
     'color:var(--ink-soft);margin:6px 0 4px;cursor:pointer}',

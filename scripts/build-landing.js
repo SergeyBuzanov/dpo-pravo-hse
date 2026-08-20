@@ -660,7 +660,10 @@ function renderTeachers(programs, photos = {}, pages = {}) {
         .dpo-portrait { position: relative; }
         .dpo-teacher { cursor: pointer; }
         .dpo-teacher-more {
-          background: none; border: 0; padding: 0; align-self: center;
+          background: none; border: 0; align-self: center;
+          /* Мишень 44px без сдвига макета: паддинг растит зону касания,
+             отрицательный маргин возвращает место (WCAG 2.5.5). */
+          padding: 13px 10px; margin: -13px -10px;
           font: 600 13px/1.4 'HSE Sans', 'IBM Plex Sans', sans-serif;
           color: #6B6459; cursor: pointer;
           text-decoration: underline;

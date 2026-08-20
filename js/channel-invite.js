@@ -61,14 +61,15 @@
     '#channelInvite .ci-icon{width:44px;height:44px;flex:none;border-radius:999px;background:var(--bg-tint);color:rgb(var(--accent));',
     'display:flex;align-items:center;justify-content:center;overflow:hidden}',
     '#channelInvite .ci-icon img{width:100%;height:100%;object-fit:cover}',
-    '#channelInvite .ci-title{font:600 15px/1.35 inherit;margin:2px 24px 4px 0;font-family:inherit}',
+    '#channelInvite .ci-title{font:600 15px/1.35 inherit;margin:2px 44px 4px 0;font-family:inherit}',
     '#channelInvite .ci-desc{font-size:13px;line-height:1.5;color:#48423A;margin:0 0 12px}',
-    '#channelInvite .ci-join{display:inline-block;font-size:13px;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
-    'border-radius:999px;padding:9px 18px;text-decoration:none}',
+    // Мишени 44px (WCAG 2.5.5): кнопка-действие и крестик.
+    '#channelInvite .ci-join{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
+    'border-radius:999px;padding:0 18px;text-decoration:none}',
     '#channelInvite .ci-join:hover{background:#1145AA}',
     // font:inherit обязателен: кнопки не наследуют шрифт сами, и крестик
     // рисовался системным Arial (замер аудита 18.08).
-    '#channelInvite .ci-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:999px;',
+    '#channelInvite .ci-close{position:absolute;top:4px;right:4px;width:44px;height:44px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:17px;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',
