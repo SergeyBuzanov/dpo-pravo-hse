@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Позиции НИУ ВШЭ в рейтингах по праву · Центр ДПО НИУ ВШЭ</title>
+<meta name="description" content="Полная таблица позиций НИУ ВШЭ в предметных рейтингах по праву за 2021-2026 годы: QS, THE, RAEX, Forbes, SuperJob, hh.ru, национальный рейтинг по трудоустройству.">
+<meta name="robots" content="index, follow">
+<!-- SEO. Замените https://example.com на реальный домен после публикации сайта. -->
+<link rel="canonical" href="https://example.com/ratings">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:site_name" content="Центр ДПО · Факультет права НИУ ВШЭ">
+<meta property="og:title" content="Позиции НИУ ВШЭ в рейтингах по праву · Центр ДПО НИУ ВШЭ">
+<meta property="og:description" content="Полная таблица позиций НИУ ВШЭ в предметных рейтингах по праву, 2021-2026.">
+<meta property="og:url" content="https://example.com/ratings">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Абсолютный адрес показного зеркала, а не домен-заглушка: заглушка
+     не резолвится и превью приходило без картинки. set-domain.js эти ссылки
+     не тронет – при переезде на боевой домен править руками. -->
+<meta property="og:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
+<meta property="og:image:width" content="2226">
+<meta property="og:image:height" content="1298">
+<meta property="og:image:alt" content="Статуя Фемиды с весами на фоне здания факультета права НИУ ВШЭ">
+<meta name="twitter:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1658DA">
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<link rel="stylesheet" href="fonts/fonts-main.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>
+  :root {
+  /* Цветовые токены: единый словарь всех страниц, описан в DESIGN.md.
+     --surface, --ink и --accent заданы каналами, поэтому одна переменная
+     закрывает и сплошной цвет rgb(var(--ink)), и любую прозрачность
+     rgb(var(--ink) / .1). Новый цвет вводится только новым токеном. */
+  --bg:       #FBF9F5;      /* фон страницы */
+  --bg-tint:  #F2ECE1;      /* секции, плашки */
+  --surface:  255 255 255;  /* карточки, шапка, текст на тёмном */
+  --ink:      33 30 27;     /* основной текст, линии, тени */
+  --ink-soft: #48423A;      /* навигация, факты */
+  --ink-mute: #6B6459;      /* подписи, мета */
+  --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
+  --line:     rgb(var(--ink) / .1);
+}
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:rgb(var(--ink)); font-family:'HSE Sans', 'IBM Plex Sans', sans-serif; line-height:1.7; }
+  a{ color:rgb(var(--accent)); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+  /* Шапка держится на экране при прокрутке, как на остальных страницах. */
+  header{ position:sticky; top:0; z-index:20; padding:16px clamp(20px,6vw,64px); border-bottom:1px solid rgb(var(--ink) / 0.08); background:rgba(251,249,245,0.9); backdrop-filter:blur(10px); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .logo{ font-family:'HSE Slab', 'Source Serif 4', serif; font-weight:700; font-size:20px; color:rgb(var(--accent)); }
+  main{ max-width:1080px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,40px) 80px; }
+  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size:clamp(28px, 3.2vw, 42px); line-height:1.15; margin:0 0 8px; }
+  .updated{ font-size:13.5px; color:var(--ink-mute); margin-bottom:12px; }
+  p{ font-size:16px; color:var(--ink-soft); max-width:75ch; }
+  /* Таблица шире экрана телефона: прокрутка внутри собственной обёртки,
+     страница горизонтально не ездит. */
+  .table-wrap{ margin-top:28px; overflow-x:auto; border:1px solid var(--line); border-radius:16px; background:rgb(var(--surface)); }
+  table{ border-collapse:collapse; width:100%; min-width:760px; font-size:14.5px; }
+  caption{ text-align:left; padding:16px 18px 4px; font-family:'HSE Slab','Source Serif 4',serif; font-size:17px; font-weight:600; }
+  th{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); text-align:left; padding:14px 18px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td{ padding:10px 18px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-soft); }
+  td.rating{ font-weight:600; color:rgb(var(--ink)); }
+  td.place{ font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:600; color:rgb(var(--ink)); }
+  td.none{ color:var(--ink-mute); font-weight:400; }
+  tr:last-child td{ border-bottom:0; }
+  footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgb(var(--ink) / 0.1); font-size:13px; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .vi-btn{ font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+    background:transparent; border:1px solid rgb(var(--ink) / 0.25); border-radius:999px;
+    padding:8px 14px; white-space:nowrap; }
+  .vi-btn:hover{ border-color:rgb(var(--accent)); color:rgb(var(--accent)); }
+  a:focus-visible, button:focus-visible{ outline:none; box-shadow:0 0 0 3px rgb(var(--accent) / .18), 0 0 0 1px rgb(var(--accent)); border-radius:4px; }
+  /* Версия для слабовидящих (ГОСТ Р 52872-2019) */
+  html.vi-mode body{ zoom:1.25; background:rgb(var(--surface)) !important; }
+  html.vi-mode *{ background:transparent !important; color:#000 !important; box-shadow:none !important; }
+  html.vi-mode a{ text-decoration:underline !important; }
+  html.vi-mode .table-wrap, html.vi-mode td, html.vi-mode th{ border-color:#000 !important; }
+  html.vi-mode .vi-btn{ border:2px solid #000 !important; }
+  /* Правило * выше гасит box-shadow обычного фокуса – возвращаем индикатор
+     (ГОСТ Р 52872-2019, WCAG 2.4.7); правило из каталога, дословно. */
+  html.vi-mode :focus-visible{ outline: 3px solid #000 !important; outline-offset: 2px; }
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
+    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
+  .skip-link:focus{left:0}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Перейти к содержанию</a>
+
+<header>
+  <a href="index.html" class="logo">Право · Центр ДПО</a>
+  <span style="display:flex; align-items:center; gap:14px;">
+    <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
+    <a href="index.html">← На главную</a>
+  </span>
+</header>
+
+<main id="main">
+  <h1>Позиции НИУ ВШЭ в рейтингах</h1>
+  <p class="updated">Предметные рейтинги по праву и общеуниверситетские рейтинги, 2021-2026</p>
+  <p>Таблица приводится полностью, включая годы, когда рейтинг не публиковался: отсутствие данных – это отсутствие данных, а не пропуск. Каждая строка ведёт на официальную страницу соответствующего рейтинга.</p>
+
+  <div class="table-wrap" role="region" aria-label="Таблица позиций НИУ ВШЭ в рейтингах" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Рейтинг</th>
+          <th scope="col">Год</th>
+          <th scope="col">Направление</th>
+          <th scope="col">Место</th>
+          <th scope="col">Источник</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="rating" rowspan="6">QS World University Rankings by Subject</td>
+          <td>2021</td><td>Law &amp; Legal Studies</td><td class="place">101-150</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies/2021" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2022</td><td>Law &amp; Legal Studies</td><td class="place">101-150</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies/2022" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Law &amp; Legal Studies</td><td class="place">101-150</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies/2023" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2024</td><td>Law &amp; Legal Studies</td><td class="place">101-150</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies/2024" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2025</td><td>Law &amp; Legal Studies</td><td class="place">151-200</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies/2025" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2026</td><td>Law &amp; Legal Studies</td><td class="place">251-300</td><td><a href="https://www.topuniversities.com/university-subject-rankings/law-legal-studies" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="5">Times Higher Education by Subject</td>
+          <td>2021</td><td>Law</td><td class="place">85</td><td><a href="https://www.timeshighereducation.com/world-university-rankings/2021/subject-ranking/law" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2022</td><td>Law</td><td class="place">126-150</td><td><a href="https://www.timeshighereducation.com/world-university-rankings/2022/subject-ranking/law" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Law</td><td class="place">126-150</td><td><a href="https://www.timeshighereducation.com/world-university-rankings/2023/subject-ranking/law" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2024</td><td>Law</td><td class="place">101-125</td><td><a href="https://www.timeshighereducation.com/world-university-rankings/2024/subject-ranking/law" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2025</td><td>Law</td><td class="place">96</td><td><a href="https://www.timeshighereducation.com/world-university-rankings/2025/subject-ranking/law" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="6">RAEX, предметный рейтинг вузов России</td>
+          <td>2021</td><td>Право / юриспруденция</td><td class="place none">Не публиковался</td><td class="none">–</td></tr>
+        <tr><td>2022</td><td>Право</td><td class="place">2</td><td><a href="https://raex-rr.com/education/subject_ranking/law/2022/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Право</td><td class="place">2</td><td><a href="https://raex-rr.com/education/subject_ranking/law/2023/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2024</td><td>Право</td><td class="place">3</td><td><a href="https://raex-rr.com/education/subject_ranking/law/2024/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2025</td><td>Право</td><td class="place">3</td><td><a href="https://raex-rr.com/education/subject_ranking/law/2025/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2026</td><td>Право</td><td class="place">3</td><td><a href="https://raex-rr.com/education/subject_ranking/law/2026/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="2">Национальный рейтинг по трудоустройству, бакалавриат (магистратура)</td>
+          <td>2025</td><td>Науки об обществе</td><td class="place">4 (6)</td><td><a href="https://trudvsem.ru/ratings_education_organizations-2025/universities" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2026</td><td>Юриспруденция</td><td class="place">5 (1)</td><td><a href="https://trudvsem.ru/ratings_education_organizations-2026" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="3">Рейтинг факультетов московских вузов hh.ru</td>
+          <td>2021</td><td>Юриспруденция</td><td class="place">1</td><td><a href="https://hh.ru/facultyRating" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2022</td><td>Юриспруденция</td><td class="place">1</td><td><a href="https://hh.ru/facultyRating" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Юриспруденция</td><td class="place">1</td><td><a href="https://hh.ru/facultyRating" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="6">Forbes, лучшие университеты России</td>
+          <td>2021</td><td>Университет</td><td class="place">1</td><td><a href="https://www.forbes.ru/obshchestvo-photogallery/432783-luchshie-rossiyskie-vuzy-2021-reyting-forbes" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2022</td><td>Университет</td><td class="place">1</td><td><a href="https://www.forbes.ru/society/482914-lucsie-rossijskie-vuzy-2022-rejting-forbes" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Университет</td><td class="place none">Не публиковался</td><td class="none">–</td></tr>
+        <tr><td>2024</td><td>Университет</td><td class="place">2</td><td><a href="https://www.forbes.ru/education/515318-lucsie-rossijskie-vuzy-2024-rejting-forbes" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2025</td><td>Университет</td><td class="place">2</td><td><a href="https://www.forbes.ru/education/537757-lucsie-rossijskie-vuzy-2025-rejting-forbes" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2026</td><td>Университет</td><td class="place">1</td><td><a href="https://www.forbes.ru/education/558183-forbes-opublikoval-rejting-lucsih-universitetov-rossii-2026" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+
+        <tr><td class="rating" rowspan="6">SuperJob, рейтинг юридических вузов России</td>
+          <td>2021</td><td>Юриспруденция</td><td class="place">4</td><td><a href="https://students.superjob.ru/reiting-vuzov-2021/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2022</td><td>Юриспруденция</td><td class="place">4</td><td><a href="https://students.superjob.ru/reiting-vuzov-2022/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2023</td><td>Юриспруденция</td><td class="place">4</td><td><a href="https://students.superjob.ru/reiting-vuzov-2023/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2024</td><td>Юриспруденция</td><td class="place">3</td><td><a href="https://students.superjob.ru/reiting-vuzov-2024/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2025</td><td>Юриспруденция</td><td class="place">3</td><td><a href="https://students.superjob.ru/reiting-vuzov-2025/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+        <tr><td>2026</td><td>Юриспруденция</td><td class="place">3</td><td><a href="https://students.superjob.ru/reiting-vuzov/juridicheskie/" target="_blank" rel="noopener noreferrer">официальная страница</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="font-size:13.5px; color:var(--ink-mute); margin-top:16px;">Данные – сводка факультета права «Позиции НИУ ВШЭ в предметных рейтингах по праву, 2021-2026». В скобках у национального рейтинга по трудоустройству указана позиция магистратуры.</p>
+</main>
+
+<footer>
+  <span>Центр ДПО · Факультет права НИУ ВШЭ</span>
+  <span style="display:flex; gap:18px; flex-wrap:wrap;">
+    <a href="privacy.html">Политика обработки персональных данных</a>
+    <a href="https://www.hse.ru/sveden/" rel="noopener">Сведения об образовательной организации</a>
+  </span>
+</footer>
+
+<script>
+  // Версия для слабовидящих – та же логика, что на privacy.html.
+  var viBtn = document.getElementById('viToggle');
+  if (viBtn) {
+    var setVi = function (on) {
+      document.documentElement.classList.toggle('vi-mode', on);
+      viBtn.setAttribute('aria-pressed', String(on));
+      try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
+    };
+    viBtn.addEventListener('click', function () {
+      setVi(!document.documentElement.classList.contains('vi-mode'));
+    });
+    try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+  }
+</script>
+<script src="js/site-analytics.js" defer></script>
+<script src="js/cookie-consent.js" defer></script>
+</body>
+</html>

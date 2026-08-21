@@ -1,0 +1,39 @@
+/* Фирменные шрифты НИУ ВШЭ (HSE Sans / HSE Slab), файлы взяты с hse.ru и
+   размещены локально — данные посетителей не уходят на внешние серверы.
+   Вес 500 отдаётся Regular, 600 — SemiBold; заголовки 700+ — HSE Slab Black. */
+
+@font-face {
+  font-family: 'HSE Sans';
+  src: url("HSESans-Regular.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HSE Sans';
+  src: url("HSESans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HSE Sans';
+  src: url("HSESans-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HSE Slab';
+  src: url("HSESlab-Regular.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HSE Slab';
+  src: url("HSESlab-Black.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}

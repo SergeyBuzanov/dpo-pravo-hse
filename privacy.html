@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Политика обработки персональных данных · Центр ДПО НИУ ВШЭ</title>
+<meta name="description" content="Политика обработки персональных данных сайта Центра ДПО факультета права НИУ ВШЭ (152-ФЗ).">
+<meta name="robots" content="index, follow">
+<!-- SEO. Замените https://example.com на реальный домен после публикации сайта. -->
+<link rel="canonical" href="https://example.com/privacy">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:site_name" content="Центр ДПО · Факультет права НИУ ВШЭ">
+<meta property="og:title" content="Политика обработки персональных данных · Центр ДПО НИУ ВШЭ">
+<meta property="og:description" content="Как сайт Центра ДПО факультета права НИУ ВШЭ обрабатывает персональные данные (152-ФЗ).">
+<meta property="og:url" content="https://example.com/privacy">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Абсолютный адрес показного зеркала, а не домен-заглушка: заглушка
+     не резолвится и превью приходило без картинки. Расхождение с og:url выше
+     намеренное, см. пояснение в index.html. set-domain.js эти ссылки не
+     тронет – при переезде на боевой домен править руками. -->
+<meta property="og:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
+<meta property="og:image:width" content="2226">
+<meta property="og:image:height" content="1298">
+<meta property="og:image:alt" content="Статуя Фемиды с весами на фоне здания факультета права НИУ ВШЭ">
+<meta name="twitter:image" content="https://sergeybuzanov.github.io/dpo-pravo-hse/images/hero-composite.jpg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1658DA">
+<link rel="stylesheet" href="fonts/fonts-hse.css">
+<link rel="stylesheet" href="fonts/fonts-main.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>
+  :root {
+  /* Цветовые токены: единый словарь всех страниц, описан в DESIGN.md.
+     --surface, --ink и --accent заданы каналами, поэтому одна переменная
+     закрывает и сплошной цвет rgb(var(--ink)), и любую прозрачность
+     rgb(var(--ink) / .1). Новый цвет вводится только новым токеном. */
+  --bg:       #FBF9F5;      /* фон страницы */
+  --bg-tint:  #F2ECE1;      /* секции, плашки */
+  --surface:  255 255 255;  /* карточки, шапка, текст на тёмном */
+  --ink:      33 30 27;     /* основной текст, линии, тени */
+  --ink-soft: #48423A;      /* навигация, факты */
+  --ink-mute: #6B6459;      /* подписи, мета */
+  --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
+}
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:rgb(var(--ink)); font-family:'HSE Sans', 'IBM Plex Sans', sans-serif; line-height:1.7; }
+  a{ color:rgb(var(--accent)); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+  /* Шапка держится на экране при прокрутке, как на остальных страницах:
+     политика длинная, и уход шапки лишал бы выхода обратно. */
+  header{ position:sticky; top:0; z-index:20; padding:16px clamp(20px,6vw,64px); border-bottom:1px solid rgb(var(--ink) / 0.08); background:rgba(251,249,245,0.9); backdrop-filter:blur(10px); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .logo{ font-family:'HSE Slab', 'Source Serif 4', serif; font-weight:700; font-size:20px; color:rgb(var(--accent)); }
+  main{ max-width:860px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,40px) 80px; }
+  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size:clamp(28px, 3.2vw, 42px); line-height:1.15; margin:0 0 8px; }
+  .updated{ font-size:13.5px; color:var(--ink-mute); margin-bottom:36px; }
+  h2{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size:21px; margin:36px 0 12px; }
+  /* Мера строки: около 75 знаков, чтобы длинные абзацы политики читались. */
+  p, li{ font-size:16px; color:var(--ink-soft); max-width:75ch; }
+  ul{ padding-left:22px; }
+  footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgb(var(--ink) / 0.1); font-size:13px; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .vi-btn{ font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+    background:transparent; border:1px solid rgb(var(--ink) / 0.25); border-radius:999px;
+    padding:8px 14px; white-space:nowrap; }
+  .vi-btn:hover{ border-color:rgb(var(--accent)); color:rgb(var(--accent)); }
+  /* Версия для слабовидящих (ГОСТ Р 52872-2019) */
+  html.vi-mode body{ zoom:1.25; background:rgb(var(--surface)) !important; }
+  html.vi-mode *{ background:transparent !important; color:#000 !important; box-shadow:none !important; }
+  html.vi-mode a{ text-decoration:underline !important; }
+  /* Правило * выше гасит box-shadow обычного фокуса – возвращаем индикатор
+     (ГОСТ Р 52872-2019, WCAG 2.4.7); правило из каталога, дословно. */
+  html.vi-mode :focus-visible{ outline: 3px solid #000 !important; outline-offset: 2px; }
+  .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
+    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
+  .skip-link:focus{left:0}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Перейти к содержанию</a>
+
+<header>
+  <a href="index.html" class="logo">Право · Центр ДПО</a>
+  <span style="display:flex; align-items:center; gap:14px;">
+    <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
+    <a href="index.html">← На главную</a>
+  </span>
+</header>
+
+<main id="main">
+  <h1>Политика обработки персональных данных</h1>
+  <p class="updated">Редакция от 16 августа 2026 г.</p>
+
+  <h2>1. Общие положения</h2>
+  <p>Настоящая политика определяет порядок обработки персональных данных посетителей сайта Центра дополнительного профессионального образования факультета права НИУ ВШЭ (далее – Сайт) и составлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p>
+  <p>Оператор персональных данных – Национальный исследовательский университет «Высшая школа экономики» (Центр ДПО факультета права), адрес: г. Москва, Большой Трёхсвятительский переулок, д. 3.</p>
+
+  <h2>2. Какие данные обрабатывает Сайт</h2>
+  <p>Сайт спроектирован по принципу минимизации данных:</p>
+  <ul>
+    <li><b>Аналитика посещений включается только с вашего согласия</b> («Принять» в баннере). При отказе трекинг не запускается. Собираются обезличенные сведения: просмотренные страницы, время на сайте, переходы, клики по карточкам программ, тип устройства, источник перехода (домен referrer). <b>IP-адреса и ФИО не сохраняются</b>. Данные обрабатываются на стороне оператора сайта (first-party) для менеджерской статистики и не передаются третьим лицам;</li>
+    <li><b>Яндекс.Метрика</b> (при настроенном счётчике) также подключается только после согласия; обрабатывается ООО «Яндекс» (РФ);</li>
+    <li><b>Форма заявки на программу</b> – единственная форма Сайта, собирающая персональные данные. Что именно в неё вводится и как это обрабатывается, описано в разделе 3;</li>
+    <li>шрифты и ресурсы Сайта размещены локально – при вашем согласии данные first-party аналитики остаются у оператора; Метрика (если включена) работает отдельно;</li>
+    <li>настройка «версия для слабовидящих» и ваш выбор по cookies хранятся только в браузере (localStorage) и не содержат персональных данных.</li>
+  </ul>
+  <p>Изменить своё решение по cookies можно в любой момент: <a href="#" onclick="window.resetCookieConsent(); return false;">сбросить выбор и показать баннер заново</a>.</p>
+
+  <h2>3. Заявка на программу</h2>
+  <p>Форму заявки заполняет только тот, кто сам решил записаться на программу. Отправка возможна лишь после того, как вы поставите отметку о согласии на обработку персональных данных; отметка не проставлена заранее.</p>
+
+  <p><b>Какие данные собираются.</b> Обязательные: фамилия, имя, телефон, адрес электронной почты. По желанию: должность, место работы, сведения о том, откуда вы узнали о Центре, и ваш комментарий. Вместе с заявкой сохраняются название выбранной программы и время получения. Иные сведения не собираются: IP-адрес заявителя, данные браузера и устройства к заявке не прикладываются.</p>
+
+  <p><b>Зачем.</b> Единственная цель – рассмотреть заявку: связаться с вами, ответить на вопросы о программе, сообщить об условиях и сроках набора. Для рекламных рассылок данные используются, только если вы не отказались от анонсов в самой форме; отказаться можно и позже – письмом на адрес из раздела «Контакты».</p>
+
+  <p><b>Где хранятся и кто их видит.</b> Заявка сохраняется на сервере Сайта и дублируется письмом в учебный офис Центра ДПО. Доступ к списку заявок есть только у сотрудников учебного офиса. Третьим лицам данные не передаются и за пределы Российской Федерации не вывозятся; исключение – случаи, прямо предусмотренные законодательством.</p>
+
+  <p><b>Сколько хранятся.</b> Не более одного года с момента получения заявки, после чего записи уничтожаются. Если вы поступили на программу, ваши данные обрабатываются уже в рамках договора об обучении и по правилам НИУ ВШЭ, а не по настоящей политике.</p>
+
+  <p><b>Отзыв согласия.</b> Согласие можно отозвать в любой момент письмом на адрес из раздела «Контакты». Мы уничтожим данные заявки в течение 30 дней с момента получения обращения, если к этому времени не заключён договор об обучении.</p>
+
+  <h2>4. Данные, предоставляемые добровольно</h2>
+  <p>Если вы обращаетесь к нам по электронной почте или телефону, указанным на Сайте, вы добровольно предоставляете персональные данные (имя, адрес электронной почты, иные сведения из обращения). Такие данные используются исключительно для ответа на обращение и не передаются третьим лицам, за исключением случаев, предусмотренных законодательством.</p>
+
+  <h2>5. Права субъекта персональных данных</h2>
+  <p>В соответствии со ст. 14 152-ФЗ вы вправе запросить сведения об обработке ваших персональных данных, требовать их уточнения, блокирования или уничтожения, а также отозвать согласие на обработку. Для этого направьте запрос на адрес электронной почты, указанный в разделе «Контакты».</p>
+
+  <h2>6. Контакты</h2>
+  <p>По вопросам обработки персональных данных: <a href="#" class="email-protect" data-u="dpo-pravo" data-d="hse.ru">dpo-pravo [собака] hse.ru</a>, +7 (495) 772-95-90, доб. 22112.</p>
+
+  <!-- ПРИМЕЧАНИЕ ДЛЯ АДМИНИСТРАТОРА: документ типовой. Перед публичным
+       использованием его должен утвердить оператор (юридическая служба НИУ ВШЭ):
+       уточнить наименование оператора, ответственного за обработку ПДн
+       и реквизиты локальных актов.
+
+       ОСОБО, с 16.08.2026: раздел 3 описывает форму заявки – первую и
+       единственную форму Сайта, собирающую персональные данные. До
+       согласования этого раздела юридической службой позиция «форм сбора
+       данных нет» больше не действует, и утверждение политики из
+       желательного стало обязательным. Проверить в разделе 3: срок
+       хранения (сейчас год, задаётся APPLICATION_RETENTION_DAYS), срок
+       уничтожения по отзыву согласия (30 дней) и то, что учебный офис
+       действительно единственный получатель. -->
+</main>
+
+<footer>
+  <span>Центр ДПО · Факультет права НИУ ВШЭ</span>
+  <span><a href="https://www.hse.ru/sveden/" rel="noopener">Сведения об образовательной организации</a></span>
+</footer>
+
+<script>
+  // Защита email от спам-ботов: адрес собирается только в браузере (JS),
+  // в HTML-исходнике его нет – харвестеры получают "[собака]" вместо адреса.
+  document.querySelectorAll('.email-protect').forEach(function (a) {
+    var addr = a.dataset.u + '@' + a.dataset.d;
+    a.href = 'mailto:' + addr;
+    a.textContent = addr;
+  });
+
+  // Версия для слабовидящих
+  var viBtn = document.getElementById('viToggle');
+  if (viBtn) {
+    var setVi = function (on) {
+      document.documentElement.classList.toggle('vi-mode', on);
+      viBtn.setAttribute('aria-pressed', String(on));
+      try { localStorage.setItem('vi-mode', on ? '1' : '0'); } catch (e) {}
+    };
+    viBtn.addEventListener('click', function () {
+      setVi(!document.documentElement.classList.contains('vi-mode'));
+    });
+    try { if (localStorage.getItem('vi-mode') === '1') setVi(true); } catch (e) {}
+  }
+</script>
+<script src="js/site-analytics.js" defer></script>
+<script src="js/cookie-consent.js" defer></script>
+</body>
+</html>
