@@ -124,3 +124,19 @@ test('сводка считает новые заявки', async () => {
   assert.ok(s.total >= s.new);
   assert.equal(s.retentionDays, 365);
 });
+
+test('вместе с заявкой уходит её статус: сирот в status.json не остаётся', async () => {
+  const older = path.join(DIR, '2019-03.jsonl');
+  fs.writeFileSync(older, `${JSON.stringify({ id: 'сирота', receivedAt: '2019-03-05T00:00:00.000Z' })}\n`);
+  await store.setStatus('сирота', 'done');
+
+  const { id } = await store.save(make({ email: 'living@example.org' }));
+  await store.setStatus(id, 'in-progress');
+
+  const removed = await store.purgeOld(365);
+  assert.ok(removed.includes('2019-03'));
+
+  const statuses = JSON.parse(fs.readFileSync(path.join(DIR, 'status.json'), 'utf8'));
+  assert.equal(statuses['сирота'], undefined, 'статус удалённой заявки остался в файле');
+  assert.equal(statuses[id].status, 'in-progress', 'статус живой заявки потерян');
+});

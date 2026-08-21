@@ -1181,6 +1181,27 @@ process.on('unhandledRejection', (err) => {
     console.warn('analytics purge on boot skipped:', err.message);
   }
 
+  // Срок хранения заявок (год по умолчанию, APPLICATION_RETENTION_DAYS).
+  // Это не гигиена диска, а исполнение обещания из privacy.html: «через
+  // год записи уничтожаются». Уборка была написана и покрыта тестом ещё
+  // 16.08.2026, но её никто не вызывал – заявки с ФИО, телефоном и почтой
+  // не удалялись никогда (найдено критикой 21.08.2026).
+  try {
+    const applications = require('./lib/application-store');
+    const first = await applications.purgeOld();
+    if (first.length) console.log(`заявки: удалены месяцы вне срока хранения: ${first.join(', ')}`);
+    setInterval(() => {
+      applications
+        .purgeOld()
+        .then((months) => {
+          if (months.length) console.log(`заявки: удалены месяцы: ${months.join(', ')}`);
+        })
+        .catch((e) => console.warn('applications purge:', e.message));
+    }, 24 * 60 * 60 * 1000).unref();
+  } catch (err) {
+    console.warn('applications purge on boot skipped:', err.message);
+  }
+
   const credentials = await loadOrCreateCredentials(CREDENTIALS_FILE);
   const server = await createServer(credentials);
 

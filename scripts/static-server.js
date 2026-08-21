@@ -253,6 +253,19 @@ if (require.main === module) {
     /* analytics optional for pure static serve */
   }
 
+  // Срок хранения заявок. Этот сервер тоже принимает POST /api/application,
+  // значит и уничтожать записи через год обязан он же: обещание в
+  // privacy.html дано посетителю, а не конкретному процессу.
+  try {
+    const { purgeOld } = require(path.join(ROOT, 'lib', 'application-store'));
+    purgeOld().catch((err) => console.warn('applications purge:', err.message));
+    setInterval(() => {
+      purgeOld().catch((err) => console.warn('applications purge:', err.message));
+    }, 24 * 60 * 60 * 1000).unref();
+  } catch {
+    /* приём заявок необязателен для чистой статики */
+  }
+
   server.listen(PORT, HOST, 8191, () => {
     console.log(`Static site: http://${HOST}:${PORT}/`);
     console.log(`Catalog:     http://${HOST}:${PORT}/${encodeURIComponent('Каталог программ.html')}`);
