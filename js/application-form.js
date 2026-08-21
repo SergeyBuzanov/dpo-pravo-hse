@@ -20,8 +20,16 @@
  *
  * Доступность здесь не украшение: заявку подают в том числе с клавиатуры и
  * через экранный диктор. Реализованы ловушка фокуса, возврат фокуса на
- * кнопку при закрытии, Esc, aria-invalid с привязкой сообщений к полям и
- * живая область для итога отправки.
+ * кнопку при закрытии, Esc, aria-invalid с привязкой сообщений к полям,
+ * живая область для итога отправки и изоляция фона (inert + aria-hidden):
+ * ловушка Tab держала фокус, но диктор до 21.08.2026 читал страницу под
+ * окном насквозь.
+ *
+ * Предмет заявки. Программа приходит атрибутами data-program-* с кнопки,
+ * а если окно открыли из шапки или мобильной панели – её выбирают списком
+ * «Программа». Список собирается из `content/programs-index.json`
+ * (генератор `scripts/build-program-pages.js`) и подгружается при первом
+ * открытии окна. Без него форма работает как раньше, просто без выбора.
  */
 
 (function () {
@@ -56,6 +64,20 @@
     feedback: 'Поделитесь в комментарии, что стоит улучшить в работе центра или на сайте.',
   };
 
+  /**
+   * Справочник программ для списка «Программа». Собирается генератором
+   * (`scripts/build-program-pages.js` → `content/programs-index.json`) и
+   * тянется ОДИН раз, при первом открытии окна: 26 записей нужны только
+   * тому, кто открыл форму, и грузить их вместе со страницей незачем.
+   *
+   * Если файла нет (открыли через file://, зеркало без него, старый кеш),
+   * список не рисуется вовсе и форма работает как раньше: программа тогда
+   * известна только из атрибутов кнопки, с которой окно открыли.
+   */
+  var PROGRAMS_URL = 'content/programs-index.json';
+  var programIndex = null;
+  var programsTried = false;
+
   var SOURCES = [
     ['hse-site', 'Сайт НИУ ВШЭ'],
     ['telegram', 'Телеграм-канал'],
@@ -87,7 +109,18 @@
     '.dpo-app-close:hover{background:var(--bg-tint)}',
     '.dpo-app-row{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-bottom:14px}',
     '@media (max-width:520px){.dpo-app-row{grid-template-columns:1fr}}',
-    '.dpo-app-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}',
+    '.dpo-app-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}',
+    // Раскрывающийся блок необязательного. Мишень строки 44px (WCAG 2.5.5),
+    // маркер списка убран – его рисует стрелка из того же штриха 1.6, что
+    // у иконок контактов.
+    '.dpo-app-more{margin:2px 0 14px;border-top:1px solid rgb(var(--ink) / .1);border-bottom:1px solid rgb(var(--ink) / .1)}',
+    '.dpo-app-more summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;',
+    'font-size:14px;font-weight:600;color:rgb(var(--accent));list-style:none}',
+    '.dpo-app-more summary::-webkit-details-marker{display:none}',
+    '.dpo-app-more summary::after{content:"";width:8px;height:8px;border-right:1.6px solid currentColor;',
+    'border-bottom:1.6px solid currentColor;transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}',
+    '.dpo-app-more[open] summary::after{transform:rotate(-135deg) translate(-3px,-3px)}',
+    '.dpo-app-more-body{padding:4px 0 6px}',
     // Класс с display:flex перебивает встроенное правило [hidden]{display:none}:
     // без этой строки поле «уточните, откуда узнали» видно всегда.
     '.dpo-app [hidden]{display:none}',
@@ -106,13 +139,14 @@
     '.dpo-app input:focus-visible,.dpo-app textarea:focus-visible,.dpo-app select:focus-visible{outline:none;border-color:rgb(var(--accent));',
     'box-shadow:0 0 0 3px rgb(var(--accent) / .18)}',
     '.dpo-app [aria-invalid=true]{border-color:#B00020;background:rgba(176,0,32,.05)}',
-    '.dpo-app-err{font-size:13px;line-height:1.4;color:#B00020;min-height:0}',
-    '.dpo-app-sources{border:0;padding:0;margin:4px 0 16px}',
-    '.dpo-app-sources legend{font-size:13px;font-weight:600;padding:0;margin-bottom:10px}',
-    '.dpo-app-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}',
-    '@media (max-width:520px){.dpo-app-checks{grid-template-columns:1fr}}',
+    // margin:0 обязателен: у <p> есть браузерный отступ 1em, и в колонке
+    // flex он не схлопывается – шесть пустых слотов ошибки давали форме
+    // лишние ~230px, из-за которых кнопка отправки уезжала под сгиб
+    // (замер 21.08.2026). :empty гасит слот, пока ошибки нет.
+    '.dpo-app-err{font-size:13px;line-height:1.4;color:#B00020;margin:0}',
+    '.dpo-app-err:empty{display:none}',
     // padding растит мишень строки до 24px+ (WCAG 2.5.8); 44px здесь
-    // раздули бы и без того длинную форму на 9 строк по 25px.
+    // раздули бы форму, а это не отдельная кнопка, а строка с галочкой.
     '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.4;cursor:pointer;padding:4px 0}',
     '.dpo-app-check input{margin:2px 0 0;width:17px;height:17px;accent-color:rgb(var(--accent));flex:none}',
     '.dpo-app-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;',
@@ -131,9 +165,24 @@
     // подобраны глазом (правило производного состояния в DESIGN.md).
     '.dpo-app-status.is-error{background:rgba(176,0,32,.06);color:#B00020;',
     'border:1px solid rgba(176,0,32,.22)}',
-    '.dpo-app-done{text-align:center;padding:14px 0 4px}',
+    // Выключка левая, как на всей витрине: центрированный абзац был
+    // единственным на сайте (аудит 21.08.2026).
+    '.dpo-app-done{padding:4px 0}',
     '.dpo-app-done h2{margin-bottom:10px}',
-    '.dpo-app-done p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0 0 8px}',
+    '.dpo-app-done p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
+    // Строка «что дальше»: пергаментная плашка с названием программы –
+    // человек видит, ЧТО именно приняли, а не только что приняли.
+    '.dpo-app-done-program{background:var(--bg-tint);border:1px solid rgb(var(--ink) / .1);',
+    // Радиус 10px – тот же, что у полей формы: плашка живёт внутри окна и
+    // не заводит собственную ступень шкалы.
+    'border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.5;color:rgb(var(--ink));margin:0 0 14px}',
+    '.dpo-app-done-program b{font-weight:600}',
+    '.dpo-app-next{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}',
+    '.dpo-app-next a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;',
+    'font-size:14px;font-weight:600;text-decoration:none;color:rgb(var(--accent));background:rgb(var(--surface));',
+    'border:1px solid rgb(var(--accent) / .3);transition:background .15s,border-color .15s}',
+    '.dpo-app-next a:hover{background:rgb(var(--accent));border-color:rgb(var(--accent));color:rgb(var(--surface))}',
+    'html.vi-mode .dpo-app-next a{border:2px solid #000}',
     // Ловушка для роботов. `display:none` роботы распознают, поэтому поле
     // уводится за пределы экрана и снимается с обхода Tab и диктора.
     '.dpo-app-trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}',
@@ -150,8 +199,10 @@
     'html.vi-mode .dpo-app :focus-visible{outline:3px solid #000 !important;outline-offset:2px}',
   ].join('');
 
+  // summary попадает в обход Tab наравне с кнопками: без него раскрывающийся
+  // блок «Ещё о себе» выпадал бы из расчёта границ ловушки фокуса.
   var FOCUSABLE =
-    'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select,[tabindex]:not([tabindex="-1"])';
+    'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select,summary,[tabindex]:not([tabindex="-1"])';
 
   var backdrop = null;
   var lastTrigger = null;
@@ -188,6 +239,73 @@
     return /\/programs\//.test(location.pathname) ? '../' + PRIVACY_URL : PRIVACY_URL;
   }
 
+  /** Тот же приём, что у privacyHref: страницы программ лежат уровнем ниже. */
+  function programsHref() {
+    return /\/programs\//.test(location.pathname) ? '../' + PROGRAMS_URL : PROGRAMS_URL;
+  }
+
+  /** Адрес программы абсолютным: в журнале и письме относительный путь бесполезен. */
+  function absoluteUrl(href) {
+    if (!href) return location.href;
+    try {
+      return new URL(href, location.href).href;
+    } catch (e) {
+      return href;
+    }
+  }
+
+  /**
+   * Наполняет список программ. Группы <optgroup> – сферы каталога: 26
+   * названий сплошным списком человек не читает, а по сферам находит своё.
+   */
+  function fillPrograms(select, items) {
+    if (!select || !items || !items.length) return;
+    if (select.dataset.filled === '1') return;
+    var groups = {};
+    var order = [];
+    items.forEach(function (item) {
+      var key = item.sphere || 'Другие программы';
+      if (!groups[key]) {
+        groups[key] = [];
+        order.push(key);
+      }
+      groups[key].push(item);
+    });
+    order.forEach(function (key) {
+      var group = el('optgroup', { label: key });
+      groups[key].forEach(function (item) {
+        var option = el('option', { value: item.id, text: item.title });
+        option.dataset.url = item.url || '';
+        group.appendChild(option);
+      });
+      select.appendChild(group);
+    });
+    select.dataset.filled = '1';
+  }
+
+  function loadPrograms(done) {
+    if (programIndex || programsTried) {
+      done(programIndex);
+      return;
+    }
+    programsTried = true;
+    if (typeof fetch !== 'function') {
+      done(null);
+      return;
+    }
+    fetch(programsHref(), { credentials: 'omit' })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (body) {
+        programIndex = body && Array.isArray(body.programs) && body.programs.length ? body.programs : null;
+        done(programIndex);
+      })
+      .catch(function () {
+        done(null);
+      });
+  }
+
   function field(name, label, type, required, autocomplete) {
     var input = el('input', {
       type: type,
@@ -205,20 +323,39 @@
   }
 
   function buildForm() {
+    // Один список вместо девяти чекбоксов (21.08.2026). Девять строк с
+    // галочками занимали ~250px и стояли ПЕРЕД кнопкой отправки: человек
+    // открывал форму и не видел ни кнопки, ни строки о неразглашении.
+    // Формат данных не изменился – на сервер по-прежнему уходит массив
+    // sources, просто в нём один ключ.
     var sources = el(
-      'div',
-      { class: 'dpo-app-checks' },
-      SOURCES.map(function (pair) {
-        return el('label', { class: 'dpo-app-check' }, [
-          el('input', { type: 'checkbox', name: 'sources', value: pair[0] }),
-          el('span', { text: pair[1] }),
-        ]);
-      }),
+      'select',
+      { id: 'dpo-app-sources', name: 'sources' },
+      [el('option', { value: '', text: 'Не выбрано' })].concat(
+        SOURCES.map(function (pair) {
+          return el('option', { value: pair[0], text: pair[1] });
+        }),
+      ),
     );
 
     var otherField = el('div', { class: 'dpo-app-field', hidden: 'hidden', id: 'dpo-app-other-wrap' }, [
       el('label', { for: 'dpo-app-sourceOther', text: 'Уточните, откуда узнали' }),
       el('input', { type: 'text', id: 'dpo-app-sourceOther', name: 'sourceOther', autocomplete: 'off' }),
+    ]);
+
+    // Программа, на которую подаётся заявка. Кнопки в тайлах, в блоке сфер
+    // и на страницах программ приносят её атрибутами data-program-*; тот,
+    // кто открыл форму из шапки, выбирает сам. Раньше выбора не было вовсе,
+    // и учебный офис получал заявку без предмета.
+    var programSelect = el('select', {
+      id: 'dpo-app-program',
+      name: 'program',
+      'aria-describedby': 'dpo-app-program-err',
+    }, [el('option', { value: '', text: 'Ещё не выбрал(а) – помогите подобрать' })]);
+    var programField = el('div', { class: 'dpo-app-field', id: 'dpo-app-program-wrap', hidden: 'hidden' }, [
+      el('label', { for: 'dpo-app-program', text: 'Программа' }),
+      programSelect,
+      el('p', { class: 'dpo-app-err', id: 'dpo-app-program-err' }),
     ]);
 
     // Выбор темы обращения: одна форма на все каналы, карточки «Куда пойти
@@ -240,6 +377,7 @@
         el('label', { for: 'dpo-app-topic', text: 'Тема обращения' }),
         topicSelect,
       ]),
+      programField,
       el('div', { class: 'dpo-app-row' }, [
         field('lastName', 'Фамилия', 'text', true, 'family-name'),
         field('firstName', 'Имя', 'text', true, 'given-name'),
@@ -248,15 +386,30 @@
         field('phone', 'Телефон', 'tel', true, 'tel'),
         field('email', 'Электронная почта', 'email', true, 'email'),
       ]),
-      el('div', { class: 'dpo-app-row' }, [
-        field('position', 'Должность', 'text', false, 'organization-title'),
-        field('company', 'Место работы', 'text', false, 'organization'),
+      // Необязательное – под раскрывающейся строкой (21.08.2026). Эти
+      // четыре поля не нужны ни для приёма заявки, ни для звонка, но
+      // отодвигали кнопку отправки и согласие под сгиб: человек открывал
+      // форму и видел бесконечную анкету вместо ясного действия.
+      // Комментарий оставлен НА ВИДУ: это единственный человеческий канал,
+      // прятать его – значит не услышать вопрос.
+      el('details', { class: 'dpo-app-more' }, [
+        el('summary', { text: 'Ещё о себе: должность, место работы, откуда узнали' }),
+        el('div', { class: 'dpo-app-more-body' }, [
+          el('div', { class: 'dpo-app-row' }, [
+            field('position', 'Должность', 'text', false, 'organization-title'),
+            field('company', 'Место работы', 'text', false, 'organization'),
+          ]),
+          el('div', { class: 'dpo-app-field' }, [
+            el('label', { for: 'dpo-app-sources', text: 'Как вы узнали о нас?' }),
+            sources,
+          ]),
+          otherField,
+          el('label', { class: 'dpo-app-check' }, [
+            el('input', { type: 'checkbox', name: 'noAnnouncements' }),
+            el('span', { text: 'Не присылать анонсы новых программ и мероприятий Центра ДПО' }),
+          ]),
+        ]),
       ]),
-      el('fieldset', { class: 'dpo-app-sources' }, [
-        el('legend', { text: 'Как вы узнали о нас?' }),
-        sources,
-      ]),
-      otherField,
       el('div', { class: 'dpo-app-field' }, [
         el('label', { for: 'dpo-app-comment', text: 'Комментарий или вопрос' }),
         el('textarea', {
@@ -265,10 +418,6 @@
           rows: '3',
           placeholder: 'Например: интересует корпоративный формат для группы из восьми юристов',
         }),
-      ]),
-      el('label', { class: 'dpo-app-check', style: 'margin-bottom:12px' }, [
-        el('input', { type: 'checkbox', name: 'noAnnouncements' }),
-        el('span', { text: 'Не присылать анонсы новых программ и мероприятий Центра ДПО' }),
       ]),
       el('label', { class: 'dpo-app-consent' }, [
         el('input', { type: 'checkbox', name: 'consent', id: 'dpo-app-consent', 'aria-describedby': 'dpo-app-consent-err' }),
@@ -295,10 +444,10 @@
     ]);
 
     // «Другое» открывает поле для свободного ввода — и только оно.
-    sources.addEventListener('change', function (event) {
-      if (event.target.value !== 'other') return;
-      otherField.hidden = !event.target.checked;
-      if (event.target.checked) otherField.querySelector('input').focus();
+    sources.addEventListener('change', function () {
+      var other = sources.value === 'other';
+      otherField.hidden = !other;
+      if (other) otherField.querySelector('input').focus();
     });
 
     return form;
@@ -372,15 +521,52 @@
     context.topic = topic;
     var title = backdrop.querySelector('h2');
     if (title) title.textContent = TOPIC_TITLES[topic] || TOPIC_TITLES.program;
+    // Список программ нужен только заявке на программу: у «идеи курса» и
+    // «отзыва» предмета нет, и лишний выбор там ничего не уточняет.
+    var wrap = backdrop.querySelector('#dpo-app-program-wrap');
+    var select = backdrop.querySelector('#dpo-app-program');
+    var hasList = select && select.options.length > 1;
+    if (wrap) wrap.hidden = !(topic === 'program' && hasList);
+
     var caption = backdrop.querySelector('.dpo-app-program');
     if (!caption) return;
     if (topic === 'program') {
-      caption.textContent = context.programTitle
-        ? 'Программа: ' + context.programTitle
-        : 'Расскажите о себе – учебный офис свяжется с вами и подберёт программу.';
+      // Со списком подпись не нужна вовсе: он сам называет программу, а
+      // лишний абзац над формой отодвигал кнопку отправки под сгиб.
+      caption.textContent = hasList
+        ? ''
+        : context.programTitle
+          ? 'Программа: ' + context.programTitle
+          : 'Расскажите о себе – учебный офис свяжется с вами и подберёт программу.';
+      caption.hidden = hasList;
     } else {
+      caption.hidden = false;
       caption.textContent = TOPIC_HINTS[topic] || '';
     }
+  }
+
+  /**
+   * Ставит в списке программу, с которой открыли окно. Если её в
+   * справочнике нет (кеш старого каталога, ручная карточка), опция
+   * добавляется из атрибутов самой кнопки: терять выбор человека нельзя.
+   */
+  function preselectProgram() {
+    if (!backdrop) return;
+    var select = backdrop.querySelector('#dpo-app-program');
+    if (!select) return;
+    if (!context.programId) {
+      select.value = '';
+      applyTopic(context.topic);
+      return;
+    }
+    var known = select.querySelector('option[value="' + String(context.programId).replace(/"/g, '') + '"]');
+    if (!known && context.programTitle) {
+      known = el('option', { value: context.programId, text: context.programTitle });
+      known.dataset.url = context.programUrl || '';
+      select.appendChild(known);
+    }
+    if (known) select.value = context.programId;
+    applyTopic(context.topic);
   }
 
   function openDialog(trigger) {
@@ -402,8 +588,17 @@
     if (topicSelect) topicSelect.value = context.topic;
     applyTopic(context.topic);
 
+    // Список программ подгружается при первом открытии. Пока он едет, окно
+    // уже работает: поле «Программа» просто появляется, когда список готов.
+    loadPrograms(function (items) {
+      if (!backdrop) return;
+      fillPrograms(backdrop.querySelector('#dpo-app-program'), items);
+      preselectProgram();
+    });
+
     document.addEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = 'hidden';
+    hideBackground(true);
     // Перерисовка до снятия начального состояния — иначе переход не
     // проигрывается: браузер склеит добавление элемента и смену класса.
     requestAnimationFrame(function () {
@@ -414,8 +609,30 @@
     if (firstInput) firstInput.focus();
   }
 
+  /**
+   * Прячет страницу под окном от диктора и от указателя. Ловушка Tab
+   * держала фокус и раньше, но скринридер обходил фон свободно: у окна
+   * стоит aria-modal, а он работает не во всех связках браузер+диктор.
+   * inert снимает и фокус, и чтение, и клики разом; aria-hidden оставлен
+   * для браузеров без inert.
+   */
+  function hideBackground(on) {
+    if (!backdrop) return;
+    Array.prototype.forEach.call(document.body.children, function (node) {
+      if (node === backdrop) return;
+      if (on) {
+        node.setAttribute('aria-hidden', 'true');
+        if ('inert' in node) node.inert = true;
+      } else {
+        node.removeAttribute('aria-hidden');
+        if ('inert' in node) node.inert = false;
+      }
+    });
+  }
+
   function closeDialog() {
     if (!backdrop) return;
+    hideBackground(false);
     backdrop.classList.remove('is-open');
     document.removeEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = '';
@@ -439,21 +656,44 @@
   }
 
   function showErrors(form, fields) {
-    var firstNode = null;
     fields.forEach(function (item) {
       var box = form.querySelector('#dpo-app-' + item.field + '-err');
       var input = form.querySelector('#dpo-app-' + item.field);
       if (box) box.textContent = item.message;
-      if (input) {
-        input.setAttribute('aria-invalid', 'true');
-        if (!firstNode) firstNode = input;
-      }
+      if (input) input.setAttribute('aria-invalid', 'true');
     });
-    if (firstNode) firstNode.focus();
+    // Фокус – на первое невалидное поле СВЕРХУ ФОРМЫ, а не первое в ответе
+    // сервера: сервер проверяет имя раньше фамилии, и человек, отправивший
+    // пустую форму, оказывался во второй колонке первой строки.
+    var first = form.querySelector('[aria-invalid="true"]');
+    if (first) first.focus();
+  }
+
+  /**
+   * Выбранная программа: сперва список в форме, затем контекст кнопки.
+   * Список побеждает намеренно – человек мог передумать прямо в окне.
+   */
+  function chosenProgram(form) {
+    var select = form.querySelector('#dpo-app-program');
+    var wrap = form.querySelector('#dpo-app-program-wrap');
+    if (select && wrap && !wrap.hidden && select.value) {
+      var option = select.options[select.selectedIndex];
+      return {
+        id: select.value,
+        title: option ? option.textContent : '',
+        url: absoluteUrl((option && option.dataset.url) || ''),
+      };
+    }
+    return {
+      id: context.programId || '',
+      title: context.programTitle || '',
+      url: context.programId ? absoluteUrl(context.programUrl) : context.programUrl || location.href,
+    };
   }
 
   function collect(form) {
     var data = new FormData(form);
+    var program = chosenProgram(form);
     return {
       topic: data.get('topic') || 'program',
       firstName: data.get('firstName') || '',
@@ -462,24 +702,42 @@
       email: data.get('email') || '',
       position: data.get('position') || '',
       company: data.get('company') || '',
-      sources: data.getAll('sources'),
+      // Формат прежний – массив: сервер и журнал знают его таким, а список
+      // просто всегда даёт не больше одного ключа. Пустой отбрасываем здесь,
+      // чтобы в журнал не попадала пустая строка.
+      sources: data.getAll('sources').filter(Boolean),
       sourceOther: data.get('sourceOther') || '',
       noAnnouncements: Boolean(data.get('noAnnouncements')),
       consent: Boolean(data.get('consent')),
       website: data.get('website') || '',
-      programId: context.programId,
-      programTitle: context.programTitle,
-      programUrl: context.programUrl,
+      programId: program.id,
+      programTitle: program.title,
+      programUrl: program.url,
     };
   }
 
-  function showDone(dialog) {
+  function showDone(dialog, program) {
     var form = dialog.querySelector('form');
     if (form) form.remove();
     // Текст итога зависит от темы: «подтвердить участие» уместно только
     // у заявки на программу, обращению обещается ответ при необходимости.
     var isProgram = (context.topic || 'program') === 'program';
+    var catalogHref = /\/programs\//.test(location.pathname)
+      ? '../Каталог программ.html'
+      : 'Каталог программ.html';
+
+    // Экран «Спасибо!» называет принятое и даёт следующий шаг: раньше
+    // человек, отдавший фамилию, телефон и почту, получал абзац и крестик.
+    var named =
+      isProgram && program && program.title
+        ? el('p', {
+            class: 'dpo-app-done-program',
+            html: 'Заявка на программу <b>' + escapeText(program.title) + '</b>',
+          })
+        : null;
+
     var done = el('div', { class: 'dpo-app-done' }, [
+      named,
       el('p', {
         text: isProgram
           ? 'Заявка принята. Учебный офис Центра ДПО свяжется с вами по указанному телефону ' +
@@ -487,13 +745,23 @@
           : 'Обращение принято и записано. Учебный офис Центра ДПО прочитает его и свяжется ' +
             'с вами, если потребуется уточнение.',
       }),
-      isProgram ? el('p', { text: 'Обычно это занимает один рабочий день.' }) : null,
+      isProgram ? el('p', { text: 'Обычно это занимает один рабочий день. Оплата проходит на стороне НИУ ВШЭ – её реквизиты пришлёт учебный офис.' }) : null,
+      el('div', { class: 'dpo-app-next' }, [
+        el('a', { href: catalogHref, text: 'Посмотреть другие программы' }),
+      ]),
     ]);
     dialog.querySelector('h2').textContent = 'Спасибо!';
     var caption = dialog.querySelector('.dpo-app-program');
     if (caption) caption.remove();
     dialog.appendChild(done);
     dialog.querySelector('.dpo-app-close').focus();
+  }
+
+  /** Название программы приходит из каталога – в разметку идёт экранированным. */
+  function escapeText(value) {
+    var box = document.createElement('span');
+    box.textContent = String(value == null ? '' : value);
+    return box.innerHTML;
   }
 
   function onSubmit(event) {
@@ -508,6 +776,9 @@
     status.classList.remove('is-error');
     button.disabled = true;
     button.textContent = 'Отправляем…';
+    // Программу запоминаем ДО отправки: экран «Спасибо!» строится уже
+    // после того, как форма удалена из окна.
+    var program = chosenProgram(form);
 
     var restore = function () {
       button.disabled = false;
@@ -531,7 +802,7 @@
       })
       .then(function (result) {
         if (result.status === 200) {
-          showDone(dialog);
+          showDone(dialog, program);
           return;
         }
         restore();

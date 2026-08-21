@@ -64,6 +64,49 @@ function writeSitemap(programs) {
   return true;
 }
 
+/**
+ * Справочник программ для формы заявки (`content/programs-index.json`).
+ *
+ * Форма (`js/application-form.js`) читает его при первом открытии окна и
+ * строит из него список «Программа». До 21.08.2026 списка не было вовсе:
+ * человек, открывший форму из шапки или мобильной панели, не мог назвать
+ * программу иначе как пересказом в свободном комментарии, и в учебный офис
+ * уходила заявка без предмета.
+ *
+ * Файл намеренно узкий – id, название, адрес и сфера, ничего больше:
+ * его тянет браузер, и лишние поля здесь оплачивает посетитель. Порядок –
+ * по сферам, внутри сферы как в каталоге: в выпадающем списке это даёт
+ * готовые группы <optgroup>.
+ */
+function writeProgramIndex(programs, spheres) {
+  const sphereOfId = new Map();
+  for (const s of spheres) for (const p of s.items) sphereOfId.set(String(p.id), s.title);
+
+  const ordered = [];
+  for (const s of spheres) {
+    for (const p of s.items) ordered.push(p);
+  }
+  // Программа без сферы всё равно должна быть в списке: иначе заявку на
+  // неё нельзя подать из общей формы.
+  const seen = new Set(ordered.map((p) => String(p.id)));
+  for (const p of programs) if (!seen.has(String(p.id))) ordered.push(p);
+
+  const items = ordered.map((p) => ({
+    id: String(p.id || ''),
+    title: String(p.title || ''),
+    url: programHref(p),
+    sphere: sphereOfId.get(String(p.id)) || 'Другие программы',
+  }));
+
+  fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
+  fs.writeFileSync(
+    path.join(ROOT, 'content', 'programs-index.json'),
+    JSON.stringify({ programs: items }, null, 2) + '\n',
+    'utf8',
+  );
+  return items.length;
+}
+
 const ESCAPE_MAP = Object.freeze({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 });
@@ -913,10 +956,12 @@ function build() {
   }
 
   const mapped = writeSitemap(programs);
+  const indexed = writeProgramIndex(programs, spheres);
 
   console.log(
     `Страниц программ: ${programs.length}, удалено устаревших: ${removed}, ` +
-      `карта сайта: ${mapped ? 'обновлена' : 'маркеры не найдены'}`,
+      `карта сайта: ${mapped ? 'обновлена' : 'маркеры не найдены'}, ` +
+      `справочник для формы: ${indexed} записей`,
   );
   if (unassigned.length) {
     console.warn(

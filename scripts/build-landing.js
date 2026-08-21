@@ -203,11 +203,20 @@ function renderSphereCard(sphere) {
         ? `\n              <span class="dpo-prog-price">${escapeHtml(formatPrice(price))}</span>`
         : '';
     const meta = [kindLabel(p), shortFormat(p), upcomingStartLabel(p)].filter(Boolean).join(' · ');
-    return `          <li>
+    // Кнопка лежит РЯДОМ со ссылкой, а не внутри неё: кнопка внутри <a> –
+    // невалидная разметка и ломает обход с клавиатуры. Место под неё
+    // резервирует padding-right у самой ссылки, поэтому строка не растёт
+    // в высоту и меню сфер не удлиняется.
+    return `          <li class="dpo-prog-row">
             <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
               <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
               <span class="dpo-prog-meta">${escapeHtml(meta)}</span>
             </a>
+            <button type="button" class="dpo-prog-apply" data-application
+              data-program-id="${escapeHtml(String(p.id || ''))}"
+              data-program-title="${escapeHtml(p.title)}"
+              data-program-url="${escapeHtml(programHref(p))}"
+              aria-label="Подать заявку: ${escapeHtml(p.title)}">Заявка</button>
           </li>`;
   });
 
@@ -254,6 +263,43 @@ function renderSpheres(programs) {
         @media (hover: hover) and (pointer: fine) {
           .dpo-sphere-all:hover { text-decoration: underline; }
         }
+        /* Заявка прямо из строки программы (21.08.2026): выбранная
+           программа уходит в форму атрибутами data-program-*, а не
+           пересказывается человеком в комментарии. Кнопка стоит в правом
+           верхнем углу строки, место под неё вычтено из ссылки. */
+        .dpo-prog-row { position: relative; }
+        .dpo-prog-row .dpo-prog { padding-right: 86px; }
+        .dpo-prog-apply {
+          position: absolute;
+          top: 9px;
+          right: 0;
+          min-height: 34px;
+          padding: 0 14px;
+          font: 600 13px/1.2 'HSE Sans', 'IBM Plex Sans', sans-serif;
+          color: var(--dpo-accent, #1658DA);
+          background: #fff;
+          border: 1px solid rgba(22, 88, 218, 0.3);
+          border-radius: 999px;
+          cursor: pointer;
+          transition: background .28s ease, border-color .28s ease, color .28s ease;
+        }
+        /* Мишень 44px без роста строки: невидимое поле вокруг кнопки
+           (WCAG 2.5.5, тот же приём, что у строчных ссылок лендинга). */
+        .dpo-prog-apply::before {
+          content: '';
+          position: absolute;
+          inset: -5px -4px;
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .dpo-prog-apply:hover {
+            background: var(--dpo-accent, #1658DA);
+            border-color: var(--dpo-accent, #1658DA);
+            color: #fff;
+          }
+        }
+        .dpo-prog-apply:active { transform: scale(0.97); }
+        @media (prefers-reduced-motion: reduce) { .dpo-prog-apply:active { transform: none; } }
+        html.vi-mode .dpo-prog-apply { border: 2px solid #000 !important; }
       </style>`;
 
   const html = `${style}
@@ -792,6 +838,9 @@ function renderTop5Data(template, programs) {
     const tagline = enDash(source.split(/(?<=[.!?])\s+/)[0] || '');
     const fields = [
       image ? `image: '${q(image)}'` : null,
+      // id уходит в data-program-id кнопки заявки: без него учебный офис
+      // получал заявку без названия программы (аудит 21.08.2026).
+      `id: '${q(String(p.id || ''))}'`,
       `start: '${q(upcomingStartLabel(p) || '')}'`,
       `rank: '${i + 1}'`,
       `title: '${q(enDash(p.title))}'`,
