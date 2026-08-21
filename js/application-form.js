@@ -190,9 +190,20 @@
     '.dpo-app-submit:active{transform:none}}',
     // Режим для слабовидящих: та же логика, что у остальных страниц —
     // жирные границы, никакой полупрозрачности.
-    'html.vi-mode .dpo-app{border:2px solid #000}',
-    'html.vi-mode .dpo-app input,html.vi-mode .dpo-app textarea,html.vi-mode .dpo-app select{border:2px solid #000}',
-    'html.vi-mode .dpo-app-backdrop{background:rgba(0,0,0,.8)}',
+    // !important здесь ОБЯЗАТЕЛЕН, и это не перестраховка. Глобальное
+    // правило витрины `html.vi-mode *{ background: transparent !important }`
+    // перебивает любое обычное объявление фона, и до 21.08.2026 окно заявки
+    // в режиме для слабовидящих было ПРОЗРАЧНЫМ: сквозь поля просвечивали
+    // карточки программ, подписи ложились на чужие цены. Единственный
+    // собственный канал приёма заявки не работал ровно для той аудитории,
+    // ради которой режим существует (Приказ Рособрнадзора № 831,
+    // ГОСТ Р 52872-2019). Ширина рамки – тоже: без !important она
+    // наследовала 1.6px вместо 2px.
+    'html.vi-mode .dpo-app{background:#fff !important;border:2px solid #000 !important}',
+    'html.vi-mode .dpo-app input,html.vi-mode .dpo-app textarea,html.vi-mode .dpo-app select{',
+    'background:#fff !important;border:2px solid #000 !important}',
+    'html.vi-mode .dpo-app-done-program{background:#fff !important;border:2px solid #000 !important}',
+    'html.vi-mode .dpo-app-backdrop{background:rgba(0,0,0,.8) !important}',
     // Глобальное правило vi-mode гасит box-shadow, которым нарисован фокус
     // формы, — сфокусированное поле было неотличимо от обычного (WCAG 2.4.7).
     // Правило то же, что в каталоге и на остальных страницах.

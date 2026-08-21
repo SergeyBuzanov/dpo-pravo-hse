@@ -88,6 +88,14 @@
     'cursor:pointer;transition:background .15s}',
     '.dpo-quiz-close:hover{background:#E6DccA}',
     '@media (prefers-reduced-motion: reduce){.dpo-quiz-backdrop,.dpo-quiz{transition:none}}',
+    // Режим для слабовидящих. Правил не было вовсе, и окно опроса в нём
+    // оказывалось прозрачным: глобальное html.vi-mode *{background:
+    // transparent !important} гасит и подложку, и саму карточку. Тот же
+    // дефект, что у формы заявки и карточки преподавателя (21.08.2026).
+    'html.vi-mode .dpo-quiz{background:#fff !important;border:2px solid #000 !important}',
+    'html.vi-mode .dpo-quiz-backdrop{background:rgba(0,0,0,.8) !important}',
+    'html.vi-mode .dpo-quiz input,html.vi-mode .dpo-quiz label{border-color:#000 !important}',
+    'html.vi-mode .dpo-quiz :focus-visible{outline:3px solid #000 !important;outline-offset:2px}',
   ].join('');
 
   var backdrop = null;

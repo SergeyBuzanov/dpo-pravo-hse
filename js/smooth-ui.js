@@ -41,15 +41,23 @@ a, button, .btn, [role="button"]{
 a[href]:active, button:not(:disabled):active, [role="button"]:active{
   transform: scale(0.97);
 }
+/* nav:not(.dpo-mobile-nav) – не косметика. Правило весит (0,3,3) и
+   перебивало раскладку строк мобильного меню: у .dpo-mobile-apply
+   оставался display: inline-block с padding 0, и подпись «Подать заявку»
+   стояла в левом верхнем углу синей пилюли, вылезая за кромку. Заодно
+   четыре строки меню из шести прижимались к верху своей 56px строки, а
+   две были отцентрованы. Найдено контрольной критикой 21.08.2026 – первая
+   попытка починки в тот же день подняла вес селектора кнопки, но не
+   победила этот. Подчёркивание-индикатор мобильному меню и не нужно. */
 header nav a.link,
 header a.link,
-header nav a[href^="#"]:not(.btn):not([class*="btn-"]){
+header nav:not(.dpo-mobile-nav) a[href^="#"]:not(.btn):not([class*="btn-"]){
   position: relative;
   display: inline-block;
 }
 header nav a.link::after,
 header a.link::after,
-header nav a[href^="#"]:not(.btn):not([class*="btn-"])::after{
+header nav:not(.dpo-mobile-nav) a[href^="#"]:not(.btn):not([class*="btn-"])::after{
   content: '';
   position: absolute;
   left: 0; right: 0; bottom: -4px;
@@ -67,13 +75,13 @@ header nav a[href^="#"]:not(.btn):not([class*="btn-"])::after{
    живёт только там, где есть настоящий курсор. */
 header nav a.link.is-active::after,
 header a.link.is-active::after,
-header nav a.is-active[href^="#"]:not(.btn):not([class*="btn-"])::after{
+header nav:not(.dpo-mobile-nav) a.is-active[href^="#"]:not(.btn):not([class*="btn-"])::after{
   transform: scaleX(1);
 }
 @media (hover: hover) and (pointer: fine){
   header nav a.link:hover::after,
   header a.link:hover::after,
-  header nav a[href^="#"]:not(.btn):not([class*="btn-"]):hover::after{
+  header nav:not(.dpo-mobile-nav) a[href^="#"]:not(.btn):not([class*="btn-"]):hover::after{
     transform: scaleX(1);
   }
 }
@@ -196,10 +204,12 @@ section#explore a[href]{
   color: rgb(var(--accent)); background: rgb(var(--surface)); border: 1px solid rgb(var(--accent) / 0.3);
 }
 .dpo-mobile-cta a.primary{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
-/* Порог совпадает с мобильной шапкой-капсулой (<900px, handoff 20.08):
-   CTA на телефоне живёт в этой панели, из шапки кнопка на этой ширине
-   убрана. */
-@media (max-width: 899px){
+/* Порог совпадает с мобильной шапкой-капсулой. С 21.08.2026 это <1024px,
+   а не <900: строка шапки требует 1047px и на 900–1075 обрезала кнопку
+   «Подать заявку» кромкой окна. Ниже порога CTA живёт в этой панели, из
+   шапки кнопка убрана – значения обязаны совпадать, иначе на промежуточной
+   ширине заявку подать негде. */
+@media (max-width: 1023px){
   body.dpo-has-mobile-cta{ padding-bottom: 84px; }
   .dpo-mobile-cta{ display: flex; }
 }
@@ -396,7 +406,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     // so active underline lands on «Контакты», not the pill button.
     const links = [
       ...document.querySelectorAll(
-        'header nav a.link[href^="#"], header nav a[href^="#"]:not(.btn):not([class*="btn-"])',
+        'header nav a.link[href^="#"], header nav:not(.dpo-mobile-nav) a[href^="#"]:not(.btn):not([class*="btn-"])',
       ),
     ]
       .filter((a, i, arr) => arr.indexOf(a) === i)

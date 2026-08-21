@@ -48,8 +48,12 @@
     '.dpo-team-hse{display:inline-block;margin-top:14px;font-size:15px;font-weight:600;color:rgb(var(--accent));',
     'text-decoration:underline;text-underline-offset:3px}',
     '@media (prefers-reduced-motion:reduce){.dpo-team-backdrop,.dpo-team{transition:none}}',
-    'html.vi-mode .dpo-team{border:2px solid #000}',
-    'html.vi-mode .dpo-team-backdrop{background:rgba(0,0,0,.8)}',
+    // !important обязателен: глобальное html.vi-mode *{background:transparent
+    // !important} перебивает обычное объявление, и окно было прозрачным –
+    // текст карточки ложился на страницу под ней (найдено 21.08.2026 на
+    // форме заявки, здесь та же болезнь).
+    'html.vi-mode .dpo-team{background:#fff !important;border:2px solid #000 !important}',
+    'html.vi-mode .dpo-team-backdrop{background:rgba(0,0,0,.8) !important}',
   ].join('');
 
   var FOCUSABLE =

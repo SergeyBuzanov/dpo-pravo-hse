@@ -73,8 +73,37 @@
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:17px;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',
+    // На телефоне карточка сворачивается в одну строку (решение владельца
+    // 21.08.2026). Развёрнутая занимала 181px из 844 и вместе с панелью
+    // действий съедала 33% экрана, закрывая обе кнопки героя и всю секцию
+    // «Ближайшие старты». Описание канала на телефоне не нужно: то же
+    // самое написано в секции контактов.
+    '@media (max-width: 899px){',
+    '#channelInvite{padding:10px 52px 10px 12px;gap:10px;align-items:center;',
+    'width:min(340px,calc(100vw - 24px))}',
+    // Тело карточки на телефоне – та же строка, что иконка: название и
+    // ссылка в ряд, а не столбиком.
+    '#channelInvite > div{display:flex;align-items:center;gap:10px;flex:1;min-width:0}',
+    '#channelInvite .ci-icon{width:32px;height:32px}',
+    '#channelInvite .ci-title{font-size:14px;margin:0;flex:1;min-width:0;',
+    'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '#channelInvite .ci-desc{display:none}',
+    // Ссылкой, а не пилюлей: в одной строке две заливки (она и кнопка
+    // панели действий под ней) спорили бы за внимание.
+    // Мишень остаётся 44px (WCAG 2.5.5) – меняется только вид: заливка
+    // уходит, остаётся подчёркнутая ссылка. Две заливные кнопки в одной
+    // полосе (эта и «Подать заявку» в панели под ней) спорили бы.
+    '#channelInvite .ci-join{min-height:44px;padding:0 4px;background:none;color:rgb(var(--accent));',
+    'text-decoration:underline;text-underline-offset:3px}',
+    '#channelInvite .ci-join:hover{background:none}',
+    '#channelInvite .ci-close{top:6px;right:6px;font-size:16px}',
+    '}',
     'html.vi-mode #channelInvite{background:rgb(var(--surface))!important;border:2px solid #000!important}',
     'html.vi-mode #channelInvite .ci-close,html.vi-mode #channelInvite .ci-join{border:2px solid #000!important}',
+    // Аватар канала – растр, и правило html.vi-mode *{background-image:none}
+    // его не берёт: он остаётся единственным цветным пятном на чёрно-белой
+    // странице (замер 21.08.2026: 3 768 цветных пикселей из 1,3 млн).
+    'html.vi-mode #channelInvite .ci-icon img{filter:grayscale(1) contrast(1.2)!important}',
   ].join('');
 
   function remember() {
@@ -158,7 +187,7 @@
    * верхней из тех, что сейчас на экране.
    *
    * Баннер временный – после ответа он исчезает, и карточка опускается.
-   * Панель действий постоянна и живёт на ширине до 899px: она несёт
+   * Панель действий постоянна и живёт на ширине до 1023px: она несёт
    * ЕДИНСТВЕННУЮ кнопку заявки на телефоне, и накрывать её нельзя
    * (аудит 21.08.2026: на 390×844 перекрытие было полным). Поэтому опрос
    * не останавливается, пока карточка на экране: панель появляется и
