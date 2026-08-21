@@ -491,12 +491,46 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
    * в placeholder-фазе рантайм отдаёт шаблонную строку буквально, и браузер
    * ходил за «/%7B%7B p.image %7D%7D» — 404 в консоли на каждой загрузке.
    */
+  const paintCover = (el) => {
+    const src = el.getAttribute('data-dpo-cover') || '';
+    if (!src || src.indexOf('{{') !== -1) return;
+    const want = `url("${src}")`;
+    if (el.style.backgroundImage !== want) el.style.backgroundImage = want;
+  };
+
+  /**
+   * Обложки ставятся фоном, а фон нативная ленивость (loading="lazy") не
+   * берёт: она работает только у тега картинки. Поэтому свой наблюдатель с
+   * запасом в 400px – картинка успевает приехать до того, как тайл войдёт
+   * в кадр. Без IntersectionObserver (старый браузер) красим сразу: лучше
+   * лишний трафик, чем пустые карточки.
+   */
+  let coverObserver = null;
   const applyCovers = () => {
-    document.querySelectorAll('[data-dpo-cover]').forEach((el) => {
-      const src = el.getAttribute('data-dpo-cover') || '';
-      if (!src || src.indexOf('{{') !== -1) return;
-      const want = `url("${src}")`;
-      if (el.style.backgroundImage !== want) el.style.backgroundImage = want;
+    const nodes = document.querySelectorAll('[data-dpo-cover]:not([data-cover-watched])');
+    if (!nodes.length) return;
+    if (!('IntersectionObserver' in window)) {
+      nodes.forEach((el) => {
+        el.setAttribute('data-cover-watched', '1');
+        paintCover(el);
+      });
+      return;
+    }
+    if (!coverObserver) {
+      coverObserver = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            paintCover(entry.target);
+            obs.unobserve(entry.target);
+          });
+        },
+        { rootMargin: '400px 0px' },
+      );
+    }
+    nodes.forEach((el) => {
+      el.setAttribute('data-cover-watched', '1');
+      coverObserver.observe(el);
     });
   };
 

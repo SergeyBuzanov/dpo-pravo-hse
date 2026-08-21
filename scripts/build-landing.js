@@ -666,8 +666,14 @@ function renderTeachers(programs, photos = {}, pages = {}) {
         const full = post ? `${t.name}, ${post.charAt(0).toLowerCase()}${post.slice(1)}` : t.name;
         return full.length <= 125 ? full : t.name;
       })();
+      // ПОРЯДОК АТРИБУТОВ ЗДЕСЬ – НЕ КОСМЕТИКА. loading и decoding обязаны
+      // стоять ДО src: рантайм лендинга – React, он присваивает пропсы по
+      // порядку, а браузер учитывает loading="lazy" только если оно
+      // выставлено РАНЬШЕ src. При прежнем порядке (src первым) все 64
+      // портрета скачивались сразу, на 6339px ниже сгиба – 438 КБ
+      // впустую на каждой загрузке (замер 21.08.2026).
       const photo = t.photo
-        ? `<img src="${escapeHtml(t.photo)}" alt="${escapeHtml(photoAlt)}" loading="lazy" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; border-radius: 999px;">`
+        ? `<img loading="lazy" decoding="async" alt="${escapeHtml(photoAlt)}" src="${escapeHtml(t.photo)}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; border-radius: 999px;">`
         : '';
       // Кнопка «N программ» – единственный фокусируемый вход в окно
       // подробностей; клик по всей карточке делает то же (делегирование в

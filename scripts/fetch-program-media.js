@@ -167,6 +167,37 @@ function hasSips() {
   }
 }
 
+function hasCwebp() {
+  try {
+    execFileSync('cwebp', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * WebP-спутник скана бланка. Сканы – единственные тяжёлые картинки сайта
+ * (палитровый PNG 1200×848 весит 220–253 КБ), и WebP срезает их втрое:
+ * 220 → 70 КБ на том же качестве. Разметка показывает их через <picture>,
+ * где WebP – <source>, а исходный файл остаётся запасным.
+ *
+ * ВАЖНО: спутник обязан обновляться ВМЕСТЕ с оригиналом. Если <source>
+ * укажет на исчезнувший файл, браузер не откатится на <img> – он уже выбрал
+ * источник и покажет битую картинку. Поэтому webp пересоздаётся всякий раз,
+ * когда скан скачан заново.
+ */
+function makeWebp(srcFile) {
+  const dest = srcFile.replace(/\.(png|jpe?g)$/i, '.webp');
+  if (dest === srcFile) return false;
+  try {
+    execFileSync('cwebp', ['-quiet', '-q', '80', srcFile, '-o', dest], { stdio: 'ignore' });
+    return fs.existsSync(dest);
+  } catch {
+    return false;
+  }
+}
+
 /** Миниатюра обложки: jpg шириной THUMB_WIDTH. Ошибка sips – не фатальна. */
 function makeThumb(srcFile, destFile) {
   try {
@@ -353,6 +384,25 @@ async function main() {
     if (!got) failed.push('document-pp: не найден ни на странице ПП, ни по адресу по аналогии');
   } else docs.push('document-pp (уже был)');
 
+  // WebP-спутники сканов: разметка блока «Документ» показывает их через
+  // <picture>, и отсутствующий спутник даст битую картинку, а не откат на
+  // оригинал. Поэтому проходим по ВСЕМ сканам, а не только по свежим.
+  let webps = 0;
+  if (hasCwebp()) {
+    for (const base of ['document-pk', 'document-pp', 'document-vo', 'document-cert']) {
+      const stem = path.join(ROOT, 'images', base);
+      // existingFile отдаёт РАСШИРЕНИЕ, а не путь.
+      const ext = existingFile(stem);
+      if (!ext || ext === 'webp') continue;
+      const file = `${stem}.${ext}`;
+      const webp = `${stem}.webp`;
+      if (!force && fs.existsSync(webp) && fs.statSync(webp).mtimeMs >= fs.statSync(file).mtimeMs) continue;
+      if (makeWebp(file)) webps++;
+    }
+  } else {
+    console.warn('cwebp не найден: WebP-спутники сканов не обновлены – проверьте блок «Документ».');
+  }
+
   // Миниатюры обложек для карточек.
   let thumbs = 0;
   if (sips) {
@@ -373,7 +423,8 @@ async function main() {
   console.log(
     `\nГотово. Обложек скачано: ${covers} (всего с обложкой ${withImage}/${programs.length}), ` +
       `миниатюр создано: ${thumbs}, фото людей скачано: ${teacherFiles} ` +
-      `(в справочнике ${Object.keys(photos).length}), документы: ${docs.join(', ') || 'нет'}.`,
+      `(в справочнике ${Object.keys(photos).length}), документы: ${docs.join(', ') || 'нет'}, ` +
+      `WebP-спутников обновлено: ${webps}.`,
   );
   if (noCover.length) {
     console.warn(`Без обложки (${noCover.length}):`);
