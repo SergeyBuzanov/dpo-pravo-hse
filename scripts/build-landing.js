@@ -405,9 +405,16 @@ function renderFormats(programs) {
       }
     }
 
-    // Пустой правый столбик не рисуется вовсе: у «Дополнительного образования
-    // для взрослых» нет ни цены (его нет в каталоге), ни адреса страницы.
-    const side = price || cta ? `\n          <div class="dpo-format-side">${price}${cta}\n          </div>` : '';
+    // Формат без цены и без адреса страницы («Дополнительное образование для
+    // взрослых») раньше оставался строкой-тупиком: человек дочитывал описание,
+    // и идти ему было некуда (аудит 21.08.2026). Теперь у него есть действие –
+    // та же форма заявки, что у остальных кнопок сайта; href на контакты
+    // остаётся фолбэком без JavaScript.
+    const ask = price || cta
+      ? ''
+      : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Спросить про этот формат</a>`;
+    const sideBody = `${price}${cta}${ask}`;
+    const side = sideBody ? `\n          <div class="dpo-format-side">${sideBody}\n          </div>` : '';
 
     return `        <li class="dpo-format">
           <div class="dpo-format-body">
@@ -428,12 +435,23 @@ function renderFormats(programs) {
   return `      <style>
         .dpo-format-side { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
         @media (min-width: 980px) {
-          .dpo-format { grid-template-columns: minmax(0, 1fr) minmax(240px, 0.42fr); }
-          .dpo-format-side { grid-column: 2; align-items: flex-end; text-align: right; }
+          /* Правый столбик прижат к тексту, а не к краю секции. Прежние
+             minmax(0,1fr) + выключка вправо разносили цену и её описание на
+             630–690px пустого пергамента при 1440px: читателю приходилось
+             удерживать абзац в голове, пока глаз шёл через пустоту
+             (замер 21.08.2026). Ширина текстовой колонки – те же 62ch, что
+             у .dpo-format-desc, поэтому у всех строк блока цена начинается
+             на одной вертикали. */
+          .dpo-format {
+            grid-template-columns: minmax(0, 62ch) minmax(200px, max-content);
+            justify-content: start;
+            column-gap: 48px;
+          }
+          .dpo-format-side { grid-column: 2; align-items: flex-start; text-align: left; }
           /* Точка-разделитель в столбике осталась бы одна в начале строки. */
-          .dpo-format-side .dpo-format-facts { flex-direction: column; gap: 4px; align-items: flex-end; }
+          .dpo-format-side .dpo-format-facts { flex-direction: column; gap: 4px; align-items: flex-start; }
           .dpo-format-side .dpo-format-facts span + span::before { content: none; }
-          .dpo-format-side .dpo-format-cta { align-self: flex-end; }
+          .dpo-format-side .dpo-format-cta { align-self: flex-start; }
         }
       </style>
       <ul class="dpo-formats">
