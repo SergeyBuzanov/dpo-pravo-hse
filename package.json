@@ -20,6 +20,8 @@
     "template:inject": "node scripts/landing-template.js inject",
     "template:verify": "node scripts/landing-template.js verify",
     "unbundle": "node scripts/unbundle-assets.js",
-    "set-domain": "node scripts/set-domain.js"
+    "set-domain": "node scripts/set-domain.js",
+    "build-public": "node scripts/build-public.js",
+    "publish-mirror": "node scripts/build-public.js --publish"
   }
 }

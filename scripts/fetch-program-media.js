@@ -198,6 +198,28 @@ function makeWebp(srcFile) {
   }
 }
 
+/**
+ * PNG-обложка программы -> WebP. Маркетплейс отдаёт часть обложек
+ * палитровым PNG (8-bit colormap): это фотография, сохранённая в формате
+ * для схем, и весит она 196–708 КБ против 63–131 КБ в WebP. Страница
+ * программы отдаёт полноразмерную обложку через srcset как 2x, то есть на
+ * ретине посетитель качал именно её (находка 10 аудита 08.2026, закрыта
+ * 21.08.2026). Возвращает новое расширение.
+ */
+function toWebpInPlace(fileBase, ext) {
+  if (ext !== 'png' || !hasCwebp()) return ext;
+  try {
+    execFileSync('cwebp', ['-quiet', '-q', '80', fileBase + '.png', '-o', fileBase + '.webp'], {
+      stdio: 'ignore',
+    });
+    if (!fs.existsSync(fileBase + '.webp')) return ext;
+    fs.unlinkSync(fileBase + '.png');
+    return 'webp';
+  } catch {
+    return ext;
+  }
+}
+
 /** Миниатюра обложки: jpg шириной THUMB_WIDTH. Ошибка sips – не фатальна. */
 function makeThumb(srcFile, destFile) {
   try {
@@ -303,7 +325,7 @@ async function main() {
         noCover.push(p.title);
       } else {
         try {
-          const ext = await downloadImage(og, coverBase);
+          const ext = toWebpInPlace(coverBase, await downloadImage(og, coverBase));
           p.image = `images/programs/${id}.${ext}`;
           covers++;
         } catch (err) {
