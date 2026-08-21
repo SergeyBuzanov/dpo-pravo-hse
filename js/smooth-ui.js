@@ -173,7 +173,13 @@ section#explore a[href]{
 /* Sticky mobile CTA (injected if page has no .mobile-cta) */
 .dpo-mobile-cta{
   display: none;
-  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60;
+  /* Слои нижнего края: модальные окна 9000 > баннер cookies 1000 > эта
+     панель > приглашение в канал 900 (js/channel-invite.js). Панель обязана
+     лежать ВЫШЕ приглашения: на 390×844 карточка канала накрывала её
+     целиком, и телефон оставался без единственной кнопки заявки. Само
+     приглашение при этом приподнимается над панелью, см. keepAboveBottomBars
+     там же. */
+  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 940;
   gap: 8px; padding: 10px;
   background: rgba(251,249,245,0.94);
   backdrop-filter: blur(12px);

@@ -148,38 +148,54 @@
     requestAnimationFrame(function () {
       box.classList.add('is-open');
     });
-    keepAboveCookieBanner(box);
+    keepAboveBottomBars(box);
   }
 
   /**
-   * Окно показывается с первой секунды, одновременно с баннером cookies
-   * (#cookieBanner, js/cookie-consent.js). На узком экране оба живут у
-   * нижнего края, и баннер накрывал карточку целиком. Пока баннер на
-   * экране, карточка приподнимается над ним; после ответа на баннер
-   * опускается на место. Опрос раз в полсекунды и конечный: баннер
-   * исчезает после первого же ответа.
+   * У нижнего края экрана живут три вещи: баннер cookies (#cookieBanner,
+   * js/cookie-consent.js), мобильная панель действий (.dpo-mobile-cta,
+   * js/smooth-ui.js) и это приглашение. Карточка приподнимается над самой
+   * верхней из тех, что сейчас на экране.
+   *
+   * Баннер временный – после ответа он исчезает, и карточка опускается.
+   * Панель действий постоянна и живёт на ширине до 899px: она несёт
+   * ЕДИНСТВЕННУЮ кнопку заявки на телефоне, и накрывать её нельзя
+   * (аудит 21.08.2026: на 390×844 перекрытие было полным). Поэтому опрос
+   * не останавливается, пока карточка на экране: панель появляется и
+   * исчезает при смене ширины окна и в режиме для слабовидящих.
    */
-  function keepAboveCookieBanner(box) {
+  function keepAboveBottomBars(box) {
+    var topOf = function (node) {
+      if (!node || !node.offsetHeight) return null;
+      var rect = node.getBoundingClientRect();
+      // display:none даёт нулевой прямоугольник – такой сосед не мешает.
+      if (!rect.height) return null;
+      return rect.top;
+    };
     var place = function () {
-      var banner = document.getElementById('cookieBanner');
-      if (banner && banner.offsetHeight) {
-        var overlap = window.innerHeight - banner.getBoundingClientRect().top;
-        box.style.bottom = Math.max(16, overlap + 12) + 'px';
-        return true;
+      var tops = [
+        topOf(document.getElementById('cookieBanner')),
+        topOf(document.querySelector('.dpo-mobile-cta')),
+      ].filter(function (value) {
+        return value != null;
+      });
+      if (!tops.length) {
+        box.style.bottom = '16px';
+        return false;
       }
-      box.style.bottom = '16px';
-      return false;
+      var overlap = window.innerHeight - Math.min.apply(null, tops);
+      box.style.bottom = Math.max(16, overlap + 12) + 'px';
+      return true;
     };
     place();
-    var n = 0;
     var timer = setInterval(function () {
       if (!document.body.contains(box)) {
         clearInterval(timer);
         return;
       }
-      if (!place() && n > 2) clearInterval(timer);
-      n++;
+      place();
     }, 500);
+    window.addEventListener('resize', place);
   }
 
   /**
