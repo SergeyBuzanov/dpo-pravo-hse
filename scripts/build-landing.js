@@ -284,11 +284,15 @@ function renderSpheres(programs) {
           transition: background .28s ease, border-color .28s ease, color .28s ease;
         }
         /* Мишень 44px без роста строки: невидимое поле вокруг кнопки
-           (WCAG 2.5.5, тот же приём, что у строчных ссылок лендинга). */
+           (WCAG 2.5.5, тот же приём, что у строчных ссылок лендинга).
+           Было -5px: 34 + 5 + 5 = 44 «на бумаге», но замер области попадания
+           на 390px давал 42-43px – высота кнопки не ровно 34px, и округление
+           съедало последний пиксель. Запас увеличен до -7px (48px), чтобы
+           порог держался без ставки на округление. */
         .dpo-prog-apply::before {
           content: '';
           position: absolute;
-          inset: -5px -4px;
+          inset: -7px -4px;
         }
         @media (hover: hover) and (pointer: fine) {
           .dpo-prog-apply:hover {

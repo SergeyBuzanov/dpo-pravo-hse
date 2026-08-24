@@ -517,7 +517,21 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
    */
   let coverObserver = null;
   const applyCovers = () => {
-    const nodes = document.querySelectorAll('[data-dpo-cover]:not([data-cover-watched])');
+    // Узлы с ещё не подставленным путём ПРОПУСКАЕМ, не отмечая.
+    // Иначе так: в placeholder-фазе <sc-for> держит один узел-образец,
+    // ему ставится data-cover-watched, а рантайм строит 15 тайлов
+    // КЛОНИРОВАНИЕМ образца – и отметка едет в каждый клон. Дальше селектор
+    // :not([data-cover-watched]) не видит ни одного настоящего тайла,
+    // наблюдатель к ним не привязывается, и обложки не появляются никогда:
+    // краска шла только на образец, у которого путь был «{{ p.image }}»
+    // и paintCover честно отказывался её ставить.
+    const nodes = Array.prototype.filter.call(
+      document.querySelectorAll('[data-dpo-cover]:not([data-cover-watched])'),
+      (el) => {
+        const src = el.getAttribute('data-dpo-cover') || '';
+        return src && src.indexOf('{{') === -1;
+      },
+    );
     if (!nodes.length) return;
     if (!('IntersectionObserver' in window)) {
       nodes.forEach((el) => {
@@ -532,15 +546,71 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
           entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
             paintCover(entry.target);
+            // Лента въехала в кадр – сразу берём и соседей за её краем,
+            // не дожидаясь первой прокрутки вбок: иначе человек, доехавший
+            // до «Топ-5» и нажавший стрелку, успевал увидеть пустой тайл.
+            const track = entry.target.closest('.dpo-top5-track');
+            if (track) paintTrackAhead(track);
             obs.unobserve(entry.target);
           });
         },
+        // Поля только по вертикали. Расширять их вбок бессмысленно:
+        // наблюдатель обрезает область видимости по overflow предка, а
+        // rootMargin растягивает лишь корень, поэтому тайл, уехавший за
+        // край ленты, не станет «видимым» ни при каком запасе. Боковую
+        // догрузку делает bindTrackCovers ниже.
         { rootMargin: '400px 0px' },
       );
     }
     nodes.forEach((el) => {
       el.setAttribute('data-cover-watched', '1');
       coverObserver.observe(el);
+    });
+  };
+
+  /**
+   * Боковая догрузка обложек в горизонтальных лентах. Наблюдатель их не
+   * берёт (см. комментарий к rootMargin), а грузить все 15 сразу нельзя:
+   * тайловые обложки весят ~69 КБ штука, это лишний мегабайт на первый
+   * заход. Поэтому красим тайлы, попавшие в видимую часть ленты плюс
+   * запас, по её собственной прокрутке – её же двигают стрелки «влево»
+   * и «вправо».
+   */
+  const TRACK_LOOKAHEAD = 600;
+  const paintTrackAhead = (track) => {
+    const box = track.getBoundingClientRect();
+    track.querySelectorAll('[data-dpo-cover]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.right > box.left - TRACK_LOOKAHEAD && r.left < box.right + TRACK_LOOKAHEAD) {
+        paintCover(el);
+      }
+    });
+  };
+
+  const bindTrackCovers = () => {
+    document.querySelectorAll('.dpo-top5-track').forEach((track) => {
+      // Отметку ставим только когда в ленте есть тайлы с настоящими путями:
+      // иначе повторится ловушка placeholder-фазы, из-за которой обложек
+      // не было вовсе.
+      const ready = Array.prototype.some.call(
+        track.querySelectorAll('[data-dpo-cover]'),
+        (el) => (el.getAttribute('data-dpo-cover') || '').indexOf('{{') === -1,
+      );
+      if (!ready || track.hasAttribute('data-cover-track')) return;
+      track.setAttribute('data-cover-track', '1');
+      let ticking = false;
+      track.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => {
+            ticking = false;
+            paintTrackAhead(track);
+          });
+        },
+        { passive: true },
+      );
     });
   };
 
@@ -552,6 +622,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     bindActiveNav();
     ensureMobileCta();
     applyCovers();
+    bindTrackCovers();
   };
 
   // React / bundler shell may mount late — retry a few times
@@ -564,6 +635,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       // Bundler replaces <html> — re-inject CSS whenever head is new.
       injectCss();
       applyCovers();
+      bindTrackCovers();
       const hasHeader = document.querySelector('header');
       const hasSection = document.querySelector('section, main, #explore');
       const htmlNow = document.documentElement;
