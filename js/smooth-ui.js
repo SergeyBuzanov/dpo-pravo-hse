@@ -353,6 +353,20 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       nodes.forEach((el) => el.classList.add('dpo-in'));
       return;
     }
+    // Наблюдатель пересобирается только когда появились НОВЫЕ цели. Раньше
+    // boot-цикл дёргал эту функцию каждые 250 мс, и каждый раз наблюдатель
+    // сносился и строился заново – около 40 пересборок за десять секунд,
+    // на каждой все нераскрытые узлы переподписывались заново. Утечки не
+    // было (disconnect вызывался), но работа делалась вхолостую.
+    //
+    // Отметка живёт СВОЙСТВОМ узла, а не атрибутом, и это принципиально:
+    // атрибут переживает cloneNode, и рантайм, строящий список из узла-
+    // образца, разнёс бы отметку по всем клонам. Ровно так когда-то
+    // погибли обложки «Топ-5». Свойство клонирование не переживает, поэтому
+    // узлы, построенные рантаймом заново, честно считаются новыми.
+    const fresh = Array.prototype.filter.call(nodes, (el) => !el.__dpoRevealWatched);
+    if (revealObserver && !fresh.length) return;
+
     if (revealObserver) revealObserver.disconnect();
     if (revealFailsafe) window.clearInterval(revealFailsafe);
     revealObserver = null;
@@ -370,7 +384,10 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       },
       { root: null, rootMargin: '0px 0px -6% 0px', threshold: 0.08 },
     );
-    nodes.forEach((el) => io.observe(el));
+    nodes.forEach((el) => {
+      el.__dpoRevealWatched = true;
+      io.observe(el);
+    });
     revealObserver = io;
     // Failsafe: never leave content invisible if IO misses a frame after
     // the Design bundler swaps documentElement.
