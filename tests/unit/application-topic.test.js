@@ -35,3 +35,24 @@ test('письмо заявки на программу не изменилос�
   const letter = formatLetter(r.application, 'X-2');
   assert.match(letter, /^Заявка на программу: Транспортное право/);
 });
+
+test('корпоративная заявка видна менеджеру в письме: организация, люди, сроки', () => {
+  const r = parseApplication({
+    ...valid,
+    applicantType: 'corporate',
+    company: 'ООО «Ромашка»',
+    employeesCount: '12',
+    timeframe: 'октябрь – декабрь',
+  });
+  const letter = formatLetter(r.application, 'X-3');
+  assert.ok(letter.includes('Заявка ОТ ОРГАНИЗАЦИИ'));
+  assert.ok(letter.includes('Сотрудников к обучению: 12'));
+  assert.ok(letter.includes('Желаемые сроки: октябрь – декабрь'));
+});
+
+test('в личной заявке корпоративных строк нет', () => {
+  const r = parseApplication(valid);
+  const letter = formatLetter(r.application, 'X-4');
+  assert.ok(!letter.includes('ОТ ОРГАНИЗАЦИИ'));
+  assert.ok(!letter.includes('Сотрудников к обучению'));
+});

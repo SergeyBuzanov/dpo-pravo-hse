@@ -140,3 +140,49 @@ test('время получения проставляется в ISO', () => {
 test('имя для темы письма — фамилия и имя', () => {
   assert.equal(displayName(parseApplication(valid()).application), 'Петрова Анна');
 });
+
+// ---- Корпоративная заявка (01.09.2026, последний пункт критики 28/40) ----
+
+test('корпоративная заявка сохраняет число сотрудников и сроки', () => {
+  const res = parseApplication({
+    ...valid(),
+    applicantType: 'corporate',
+    employeesCount: '10–15',
+    timeframe: 'октябрь – декабрь 2026',
+  });
+  assert.equal(res.ok, true);
+  assert.equal(res.application.applicantType, 'corporate');
+  assert.equal(res.application.employeesCount, '10–15');
+  assert.equal(res.application.timeframe, 'октябрь – декабрь 2026');
+});
+
+test('личная заявка отбрасывает корпоративные поля, даже если их прислали', () => {
+  const res = parseApplication({
+    ...valid(),
+    applicantType: 'personal',
+    employeesCount: '8',
+    timeframe: 'октябрь',
+  });
+  assert.equal(res.application.applicantType, 'personal');
+  assert.equal(res.application.employeesCount, '');
+  assert.equal(res.application.timeframe, '');
+});
+
+test('неизвестный или отсутствующий тип заявителя сводится к personal', () => {
+  assert.equal(parseApplication(valid()).application.applicantType, 'personal');
+  assert.equal(
+    parseApplication({ ...valid(), applicantType: 'martian' }).application.applicantType,
+    'personal',
+  );
+});
+
+test('корпоративные поля обрезаются по лимитам, а не отбрасываются', () => {
+  const res = parseApplication({
+    ...valid(),
+    applicantType: 'corporate',
+    employeesCount: '9'.repeat(100),
+    timeframe: 'x'.repeat(500),
+  });
+  assert.equal(res.application.employeesCount.length, 40);
+  assert.equal(res.application.timeframe.length, 200);
+});

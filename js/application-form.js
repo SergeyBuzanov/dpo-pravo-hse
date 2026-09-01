@@ -383,11 +383,39 @@
       applyTopic(topicSelect.value);
     });
 
+    // Кто подаёт заявку: за себя или от организации (01.09.2026). Выбор
+    // «от организации» раскрывает два корпоративных поля – сотрудники и
+    // сроки. Кнопка «Обсудить корпоративное обучение» на лендинге
+    // предвыбирает организацию атрибутом data-application-kind.
+    var kindSelect = el(
+      'select',
+      { id: 'dpo-app-kind', name: 'applicantType' },
+      [
+        el('option', { value: 'personal', text: 'За себя' }),
+        el('option', { value: 'corporate', text: 'От организации – обучение сотрудников' }),
+      ],
+    );
+    kindSelect.addEventListener('change', function () {
+      applyKind(kindSelect.value, true);
+    });
+    var kindField = el('div', { class: 'dpo-app-field', id: 'dpo-app-kind-wrap' }, [
+      el('label', { for: 'dpo-app-kind', text: 'Кто подаёт заявку' }),
+      kindSelect,
+    ]);
+    var corpBlock = el('div', { class: 'dpo-app-row', id: 'dpo-app-corp', hidden: 'hidden' }, [
+      field('employeesCount', 'Сколько сотрудников обучить', 'text', false),
+      field('timeframe', 'Желаемые сроки', 'text', false),
+    ]);
+    corpBlock.querySelector('#dpo-app-employeesCount').placeholder = 'например: 8 или 10–15';
+    corpBlock.querySelector('#dpo-app-timeframe').placeholder = 'например: октябрь – декабрь';
+
     var form = el('form', { class: 'dpo-app-form', novalidate: 'novalidate' }, [
       el('div', { class: 'dpo-app-field' }, [
         el('label', { for: 'dpo-app-topic', text: 'Тема обращения' }),
         topicSelect,
       ]),
+      kindField,
+      corpBlock,
       programField,
       el('div', { class: 'dpo-app-row' }, [
         field('lastName', 'Фамилия', 'text', true, 'family-name'),
@@ -539,6 +567,18 @@
     var hasList = select && select.options.length > 1;
     if (wrap) wrap.hidden = !(topic === 'program' && hasList);
 
+    // Выбор «за себя / от организации» имеет смысл только у заявки на
+    // программу: у идеи курса, преподавания и отзыва заявителя-организации
+    // нет. Значение при скрытии не сбрасывается – сервер сам отбросит
+    // корпоративные поля у нецелевых тем по правилу applicantType.
+    var kindWrap = backdrop.querySelector('#dpo-app-kind-wrap');
+    if (kindWrap) kindWrap.hidden = topic !== 'program';
+    var corp = backdrop.querySelector('#dpo-app-corp');
+    if (corp) {
+      var kindSel = backdrop.querySelector('#dpo-app-kind');
+      corp.hidden = topic !== 'program' || !kindSel || kindSel.value !== 'corporate';
+    }
+
     var caption = backdrop.querySelector('.dpo-app-program');
     if (!caption) return;
     if (topic === 'program') {
@@ -553,6 +593,30 @@
     } else {
       caption.hidden = false;
       caption.textContent = TOPIC_HINTS[topic] || '';
+    }
+  }
+
+  /**
+   * Показ корпоративных полей (01.09.2026, последний пункт критики 28/40).
+   * «От организации» раскрывает число сотрудников и сроки, а заодно и
+   * раздел «Ещё о себе»: там живут организация и должность, и HR не должен
+   * их искать. Фокус переводится только при живом переключении (focusFirst),
+   * не при программном открытии окна – иначе крадётся фокус с фамилии.
+   */
+  function applyKind(kind, focusFirst) {
+    if (!backdrop) return;
+    context.kind = kind;
+    var corp = backdrop.querySelector('#dpo-app-corp');
+    if (!corp) return;
+    var corporate = kind === 'corporate' && (context.topic || 'program') === 'program';
+    corp.hidden = !corporate;
+    if (corporate) {
+      var more = backdrop.querySelector('.dpo-app-more');
+      if (more) more.open = true;
+      if (focusFirst) {
+        var firstCorp = corp.querySelector('input');
+        if (firstCorp) firstCorp.focus();
+      }
     }
   }
 
@@ -588,6 +652,7 @@
       programTitle: trigger.getAttribute('data-program-title') || '',
       programUrl: trigger.getAttribute('data-program-url') || location.href,
       topic: trigger.getAttribute('data-application-topic') || 'program',
+      kind: trigger.getAttribute('data-application-kind') || 'personal',
     };
 
     if (!backdrop) {
@@ -598,6 +663,9 @@
     var topicSelect = backdrop.querySelector('#dpo-app-topic');
     if (topicSelect) topicSelect.value = context.topic;
     applyTopic(context.topic);
+    var kindSelect = backdrop.querySelector('#dpo-app-kind');
+    if (kindSelect) kindSelect.value = context.kind;
+    applyKind(context.kind, false);
 
     // Список программ подгружается при первом открытии. Пока он едет, окно
     // уже работает: поле «Программа» просто появляется, когда список готов.
@@ -707,6 +775,9 @@
     var program = chosenProgram(form);
     return {
       topic: data.get('topic') || 'program',
+      applicantType: data.get('applicantType') || 'personal',
+      employeesCount: data.get('employeesCount') || '',
+      timeframe: data.get('timeframe') || '',
       firstName: data.get('firstName') || '',
       lastName: data.get('lastName') || '',
       phone: data.get('phone') || '',
