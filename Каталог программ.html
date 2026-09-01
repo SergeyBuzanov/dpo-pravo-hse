@@ -143,14 +143,25 @@
     border-bottom: 1px solid var(--line);
     padding: clamp(24px, 4vw, 40px) clamp(20px, 5vw, 56px) clamp(16px, 2.5vw, 28px);
   }
+  /* Заголовок – по Label-правилу DESIGN.md (13px/600/0.12em, цвет
+     акцента), как надзаголовок героя выше: серый капитель выбивался
+     из ключа (правка 01.09.2026). */
   .starts h2{
-    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
-    font-weight: 600; color: var(--ink-mute); margin: 0 0 4px;
+    font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 600; color: rgb(var(--accent)); margin: 0 0 4px;
   }
+  /* Мягкий scroll-snap: на промежуточных позициях ручной прокрутки
+     флажки резались краем – proximity досаживает дорожку так, чтобы
+     станция вставала целиком, не мешая свободной прокрутке. */
   .starts-arrow-wrap{
     overflow-x: auto; padding: 4px 0 10px;
+    scroll-snap-type: x proximity; scroll-padding-left: 12px;
     scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / .28) transparent;
   }
+  .flag{ scroll-snap-align: start; }
+  /* В режиме для слабовидящих snap отключается – как у лент лендинга:
+     принудительное дотягивание мешает точной прокрутке с клавиатуры. */
+  html.vi-mode .starts-arrow-wrap{ scroll-snap-type: none; }
   .starts-arrow-wrap::-webkit-scrollbar{ height: 6px; }
   .starts-arrow-wrap::-webkit-scrollbar-track{ background: rgb(var(--ink) / .08); border-radius: 999px; }
   .starts-arrow-wrap::-webkit-scrollbar-thumb{ background: rgb(var(--ink) / .28); border-radius: 999px; }
@@ -1376,8 +1387,11 @@
 </footer>
 
 <nav class="mobile-cta" aria-label="Быстрые действия">
-  <a class="secondary" href="index.html">На главную</a>
-  <a class="primary" href="#filters">Фильтры</a>
+  <!-- Слот «На главную» отдан заявке (01.09.2026): ссылка на главную
+       дублировала шапку, которая всегда на экране. href – фолбэк без
+       JavaScript, со скриптом клик перехватывает js/application-form.js. -->
+  <a class="secondary" href="#filters">Фильтры</a>
+  <a class="primary" href="index.html#contacts" data-application>Подать заявку</a>
 </nav>
 
 <script>
