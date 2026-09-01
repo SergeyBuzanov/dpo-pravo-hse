@@ -932,35 +932,32 @@ function renderStarts(programs) {
     .slice(0, 30);
   if (!upcoming.length) return { html: '', count: 0 };
 
-  // Билету нужны день и месяц по отдельности (день – крупно слабом).
-  // У дат с точностью до месяца (isStartDateWithoutDay) дня нет: крупным
-  // элементом становится сам месяц, подписью – год.
-  const dateParts = (p) => {
+  // Единый язык двух лент стартов (01.09.2026): дата – станцией-капсулой,
+  // как на стреле каталога (13px/700, accent-dark, пилюля с волосяной
+  // рамкой), название – жирным. Прежний билет «крупный день слэбом +
+  // месяц столбиком» – в истории git. У дат с точностью до месяца в
+  // капсуле сам месяц (год добавляется, если не текущий, – как в
+  // каталоге).
+  const capsuleLabel = (p) => {
     const d = new Date(p.startDate);
+    const fmt = (opts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', ...opts }).format(d);
+    const curYear = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(new Date());
+    const year = fmt({ year: 'numeric' });
     if (p.isStartDateWithoutDay) {
-      const mon = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', month: 'long' }).format(d);
-      const year = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(d);
-      return { big: mon, small: year, isMonth: true };
+      const mon = fmt({ month: 'long' });
+      const cap = mon.charAt(0).toUpperCase() + mon.slice(1);
+      return year === curYear ? cap : `${cap} ${year}`;
     }
-    const parts = new Intl.DateTimeFormat('ru-RU', {
-      timeZone: 'Europe/Moscow',
-      day: 'numeric',
-      month: 'long',
-    }).formatToParts(d);
-    const get = (type) => parts.find((x) => x.type === type)?.value || '';
-    return { big: get('day'), small: get('month'), isMonth: false };
+    const label = fmt({ day: 'numeric', month: 'long' });
+    return year === curYear ? label : `${label} ${year}`;
   };
 
   const card = (p, dupe) => {
-    const { big, small, isMonth } = dateParts(p);
-    // formatDate – полная дата для диктора: билет разбирает её на части,
-    // и без подписи скринридер прочёл бы «1 сентября» без года.
+    // formatDate – полная дата для диктора: без подписи скринридер
+    // прочёл бы «1 сентября» без года.
     const full = formatDate(p) || '';
     return `      <a class="dpo-start" href="${escapeHtml(programHref(p))}"${dupe ? ' tabindex="-1"' : ''} aria-label="${escapeHtml(`${p.title} – старт ${full}`)}">
-        <span class="dpo-start-date" aria-hidden="true">
-          <span class="dpo-start-day${isMonth ? ' is-month' : ''}">${escapeHtml(big)}</span>
-          <span class="dpo-start-mon">${escapeHtml(small)}</span>
-        </span>
+        <span class="dpo-start-date" aria-hidden="true">${escapeHtml(capsuleLabel(p))}</span>
         <span class="dpo-start-title" aria-hidden="true">${escapeHtml(p.title)}</span>
       </a>`;
   };
