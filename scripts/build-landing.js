@@ -398,9 +398,13 @@ function renderFormats(programs) {
     // экране прижатая направо она рвалась на две строки посередине фразы.
     // Направо уходит только то, что не проза: цена и кнопка.
     const doc = `\n            <p class="dpo-format-facts"><span>${escapeHtml(fmt.document)}</span></p>`;
+    // Пустой слот цены под разделителем читался дырой сравнительной
+    // таблицы (финальная критика 02.09). Чисел не выдумываем – в слоте
+    // честная подпись: у второго высшего цена живёт на его странице,
+    // у ДО для взрослых считается по запросу.
     const price = prices.length
       ? `\n            <span class="dpo-format-price">от ${escapeHtml(formatPrice(prices[0]))}</span>`
-      : '';
+      : `\n            <span class="dpo-format-noprice">${fmt.url ? 'Стоимость – на странице программы' : 'Стоимость – по запросу'}</span>`;
 
     // Кнопка ведёт в каталог с уже применённым фильтром по типу: механика
     // чтения фильтров из адреса в каталоге уже работает. У формата без типа
@@ -427,7 +431,11 @@ function renderFormats(programs) {
     // и идти ему было некуда (аудит 21.08.2026). Теперь у него есть действие –
     // та же форма заявки, что у остальных кнопок сайта; href на контакты
     // остаётся фолбэком без JavaScript.
-    const ask = price || cta
+    // Действие обязано быть в каждой карточке. Условие проверяет именно
+    // cta, а не price: с 02.09 слот цены всегда заполнен (числом или
+    // подписью «по запросу»), и прежняя проверка price||cta оставила бы
+    // карточку без кнопки вовсе.
+    const ask = cta
       ? ''
       : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Подать заявку</a>`;
     // Подвал карточки: цена (число – слэбом, по правилу двух гарнитур)
@@ -492,6 +500,7 @@ function renderFormats(programs) {
           font-family: 'HSE Slab', 'Source Serif 4', serif;
           font-weight: 600; font-size: 17px; color: #211E1B;
         }
+        .dpo-format-noprice { font-size: 13.5px; line-height: 1.4; color: #6B6459; }
         @media (max-width: 1100px) {
           .dpo-formats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .dpo-format:nth-child(n) { margin-top: 0; }

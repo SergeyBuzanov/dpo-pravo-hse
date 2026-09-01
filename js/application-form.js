@@ -684,8 +684,17 @@
       backdrop.classList.add('is-open');
     });
 
-    var firstInput = backdrop.querySelector('input');
-    if (firstInput) firstInput.focus();
+    // Фокус – на заголовок диалога, а не на первое поле (02.09.2026,
+    // финальная критика). Прежний querySelector('input') после появления
+    // корпоративного блока находил первым СКРЫТОЕ поле сотрудников,
+    // focus() на нём молча не срабатывал и activeElement оставался BODY –
+    // скринридер не объявлял диалог. Заголовок с tabindex="-1" надёжен
+    // при любом составе полей и озвучивает, куда попал человек.
+    var title = backdrop.querySelector('#dpo-app-title');
+    if (title) {
+      title.setAttribute('tabindex', '-1');
+      title.focus();
+    }
   }
 
   /**
