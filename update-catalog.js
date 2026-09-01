@@ -502,11 +502,10 @@ async function writeCatalogHtml(items, { updatedLabel } = {}) {
   }
   const now = updatedLabel || formatUpdatedLabel();
   let html = await fs.readFile(CATALOG_FILE, 'utf8');
-  html = replaceBetween(
-    html,
-    MARKERS.meta,
-    `<span class="meta">Обновлено: <b>${now}</b> · ${items.length} актуальных программ</span>`,
-  );
+  // Плашка «Обновлено: … · N актуальных программ» снята по решению
+  // владельца 01.09.2026. Маркеры и метка времени остаются: дата попадает
+  // в HTML-комментарий для отладки, наружу не показывается.
+  html = replaceBetween(html, MARKERS.meta, `<!-- каталог обновлён: ${now}, программ: ${items.length} -->`);
   html = replaceBetween(html, MARKERS.filtersType, buildTypeChips(items));
   html = replaceBetween(html, MARKERS.filtersSphere, buildSphereChips(items));
   html = replaceBetween(html, MARKERS.filtersFormat, buildFormatChips(items));
