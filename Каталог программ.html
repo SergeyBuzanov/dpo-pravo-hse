@@ -160,16 +160,26 @@
     min-width: max-content; height: 330px;
   }
   /* Древко стрелы – сплошной акцент: градиент снят 01.09.2026 по ключу
-     Seline (градиентов в системе нет, синий – один и тот же везде). */
+     Seline. Тогда же (правка владельца) ось истончена до 2px, а даты
+     переехали из карточек НА ось станциями-капсулами: линия читается как
+     маршрут с остановками, карточка несёт только название. */
   .starts-arrow::before{
-    content: ''; position: absolute; left: 0; right: 30px; top: 50%;
-    height: 5px; margin-top: -2.5px; border-radius: 999px;
+    content: ''; position: absolute; left: 0; right: 24px; top: 50%;
+    height: 2px; margin-top: -1px; border-radius: 999px;
     background: rgb(var(--accent));
   }
   .starts-arrow::after{
-    content: ''; position: absolute; right: 0; top: 50%; margin-top: -14px;
-    border-left: 30px solid rgb(var(--accent));
-    border-top: 14px solid transparent; border-bottom: 14px solid transparent;
+    content: ''; position: absolute; right: 0; top: 50%; margin-top: -9px;
+    border-left: 24px solid rgb(var(--accent));
+    border-top: 9px solid transparent; border-bottom: 9px solid transparent;
+  }
+  .flag-date{
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    z-index: 1; white-space: nowrap;
+    font-size: 13px; font-weight: 700; color: var(--accent-dark);
+    background: rgb(var(--surface)); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 12px;
+    font-variant-numeric: tabular-nums;
   }
   .flag{ flex: none; width: 210px; position: relative; height: 100%; }
   /* Тень в покое снята 01.09.2026: по ключу Seline и правилу DESIGN.md
@@ -180,14 +190,12 @@
     border-radius: 16px; padding: 11px 14px; text-decoration: none;
     transition: border-color .15s;
   }
-  .flag-card b{
-    display: block; font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif;
-    font-size: 16px; font-weight: 700; color: rgb(var(--accent)); margin: 0 0 3px;
-  }
+  /* Название – жирным (правка владельца 01.09.2026): дата ушла на ось,
+     и вес в карточке несёт программа, а не число. */
   .flag-card span{
     display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 13px; line-height: 1.35; color: var(--ink-soft);
+    font-size: 13px; font-weight: 600; line-height: 1.4; color: rgb(var(--ink));
   }
   .flag-pin{ position: absolute; left: 30px; width: 2px; background: rgb(var(--accent) / .5); }
   .flag-pin::after{
@@ -205,6 +213,7 @@
   }
   html.vi-mode .starts{ border: 2px solid #000 !important; }
   html.vi-mode .flag-card{ border: 2px solid #000 !important; }
+  html.vi-mode .flag-date{ border: 2px solid #000 !important; }
 
   .filters{
     display: flex; flex-wrap: wrap; gap: 8px;
@@ -535,7 +544,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<span class="meta">Обновлено: <b>20 августа 2026 г. в 13:19</b> · 26 актуальных программ</span>
+<span class="meta">Обновлено: <b>1 сентября 2026 г. в 18:39</b> · 26 актуальных программ</span>
   <!-- /CATALOG:META -->
 </section>
 
@@ -551,185 +560,178 @@
   <div class="starts-arrow-wrap" tabindex="0" role="region" aria-label="Лента ближайших стартов, прокручивается горизонтально">
     <div class="starts-arrow">
       <div class="flag up">
-        <a class="flag-card" href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" title="Актуальные вопросы гражданского права">
-          <b>31 августа</b>
-          <span>Актуальные вопросы гражданского права</span>
+        <a class="flag-card" href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" title="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers" aria-label="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers – старт: 1 сентября">
+          <span aria-hidden="true">Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span>
         </a>
+        <span class="flag-date" aria-hidden="true">1 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" title="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers">
-          <b>1 сентября</b>
-          <span>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span>
+        <a class="flag-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" aria-label="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября">
+          <span aria-hidden="true">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
         </a>
+        <span class="flag-date" aria-hidden="true">7 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса">
-          <b>7 сентября</b>
-          <span>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
+        <a class="flag-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики" aria-label="Правовые вопросы банкротства: теории и практики – старт: 10 сентября">
+          <span aria-hidden="true">Правовые вопросы банкротства: теории и практики</span>
         </a>
+        <span class="flag-date" aria-hidden="true">10 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики">
-          <b>10 сентября</b>
-          <span>Правовые вопросы банкротства: теории и практики</span>
+        <a class="flag-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)" aria-label="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября">
+          <span aria-hidden="true">Французское (европейское) экономическое право / Droit économique français (européen)</span>
         </a>
+        <span class="flag-date" aria-hidden="true">14 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)">
-          <b>14 сентября</b>
-          <span>Французское (европейское) экономическое право / Droit économique français (européen)</span>
+        <a class="flag-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга" aria-label="Контрактное право Гонконга – старт: 15 сентября">
+          <span aria-hidden="true">Контрактное право Гонконга</span>
         </a>
+        <span class="flag-date" aria-hidden="true">15 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга">
-          <b>15 сентября</b>
-          <span>Контрактное право Гонконга</span>
+        <a class="flag-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO" aria-label="Персональный ассистент PRO – старт: 19 сентября">
+          <span aria-hidden="true">Персональный ассистент PRO</span>
         </a>
+        <span class="flag-date" aria-hidden="true">19 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO">
-          <b>19 сентября</b>
-          <span>Персональный ассистент PRO</span>
+        <a class="flag-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике" aria-label="Интеллектуальная собственность: от закона к практике – старт: 21 сентября">
+          <span aria-hidden="true">Интеллектуальная собственность: от закона к практике</span>
         </a>
+        <span class="flag-date" aria-hidden="true">21 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике">
-          <b>21 сентября</b>
-          <span>Интеллектуальная собственность: от закона к практике</span>
+        <a class="flag-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса" aria-label="Цифровое право для бизнеса – старт: 23 сентября">
+          <span aria-hidden="true">Цифровое право для бизнеса</span>
         </a>
+        <span class="flag-date" aria-hidden="true">23 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса">
-          <b>23 сентября</b>
-          <span>Цифровое право для бизнеса</span>
+        <a class="flag-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции" aria-label="Международное частное право: трансграничные операции – старт: 24 сентября">
+          <span aria-hidden="true">Международное частное право: трансграничные операции</span>
         </a>
+        <span class="flag-date" aria-hidden="true">24 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции">
-          <b>24 сентября</b>
-          <span>Международное частное право: трансграничные операции</span>
+        <a class="flag-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика" aria-label="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября">
+          <span aria-hidden="true">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
         </a>
+        <span class="flag-date" aria-hidden="true">28 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика">
-          <b>28 сентября</b>
-          <span>Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
+        <a class="flag-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English" aria-label="Право на английском / Legal English – старт: 30 сентября">
+          <span aria-hidden="true">Право на английском / Legal English</span>
         </a>
+        <span class="flag-date" aria-hidden="true">30 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English">
-          <b>30 сентября</b>
-          <span>Право на английском / Legal English</span>
+        <a class="flag-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе" aria-label="Авторское право в информационном обществе – старт: 5 октября">
+          <span aria-hidden="true">Авторское право в информационном обществе</span>
         </a>
+        <span class="flag-date" aria-hidden="true">5 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе">
-          <b>5 октября</b>
-          <span>Авторское право в информационном обществе</span>
+        <a class="flag-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)" aria-label="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме) – старт: 13 октября">
+          <span aria-hidden="true">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
         </a>
+        <span class="flag-date" aria-hidden="true">13 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)">
-          <b>13 октября</b>
-          <span>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
+        <a class="flag-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация" aria-label="Бизнес-медиация – старт: 14 октября">
+          <span aria-hidden="true">Бизнес-медиация</span>
         </a>
+        <span class="flag-date" aria-hidden="true">14 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация">
-          <b>14 октября</b>
-          <span>Бизнес-медиация</span>
+        <a class="flag-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования" aria-label="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования – старт: 24 октября">
+          <span aria-hidden="true">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
         </a>
+        <span class="flag-date" aria-hidden="true">24 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования">
-          <b>24 октября</b>
-          <span>Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
+        <a class="flag-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)" aria-label="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation) – старт: 26 октября">
+          <span aria-hidden="true">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
         </a>
+        <span class="flag-date" aria-hidden="true">26 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)">
-          <b>26 октября</b>
-          <span>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
+        <a class="flag-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая" aria-label="Введение в правовую систему Китая – старт: 2 ноября">
+          <span aria-hidden="true">Введение в правовую систему Китая</span>
         </a>
+        <span class="flag-date" aria-hidden="true">2 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая">
-          <b>2 ноября</b>
-          <span>Введение в правовую систему Китая</span>
+        <a class="flag-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право" aria-label="Английское контрактное право – старт: 9 ноября">
+          <span aria-hidden="true">Английское контрактное право</span>
         </a>
+        <span class="flag-date" aria-hidden="true">9 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право">
-          <b>9 ноября</b>
-          <span>Английское контрактное право</span>
+        <a class="flag-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж" aria-label="Морской арбитраж – старт: 10 ноября">
+          <span aria-hidden="true">Морской арбитраж</span>
         </a>
+        <span class="flag-date" aria-hidden="true">10 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж">
-          <b>10 ноября</b>
-          <span>Морской арбитраж</span>
+        <a class="flag-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы" aria-label="Корпоративное право: основные проблемы – старт: 16 ноября">
+          <span aria-hidden="true">Корпоративное право: основные проблемы</span>
         </a>
+        <span class="flag-date" aria-hidden="true">16 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы">
-          <b>16 ноября</b>
-          <span>Корпоративное право: основные проблемы</span>
+        <a class="flag-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов" aria-label="Техники эффективного анализа юридических документов – старт: 16 ноября">
+          <span aria-hidden="true">Техники эффективного анализа юридических документов</span>
         </a>
+        <span class="flag-date" aria-hidden="true">16 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов">
-          <b>16 ноября</b>
-          <span>Техники эффективного анализа юридических документов</span>
+        <a class="flag-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии" aria-label="Деловые переговоры: правовые стратегии – старт: 17 ноября">
+          <span aria-hidden="true">Деловые переговоры: правовые стратегии</span>
         </a>
+        <span class="flag-date" aria-hidden="true">17 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии">
-          <b>17 ноября</b>
-          <span>Деловые переговоры: правовые стратегии</span>
+        <a class="flag-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право" aria-label="Транспортное право – старт: 18 ноября">
+          <span aria-hidden="true">Транспортное право</span>
         </a>
+        <span class="flag-date" aria-hidden="true">18 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag down">
-        <a class="flag-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право">
-          <b>18 ноября</b>
-          <span>Транспортное право</span>
+        <a class="flag-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права" aria-label="Общие вопросы договорного права – старт: 25 ноября">
+          <span aria-hidden="true">Общие вопросы договорного права</span>
         </a>
+        <span class="flag-date" aria-hidden="true">25 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
       <div class="flag up">
-        <a class="flag-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права">
-          <b>25 ноября</b>
-          <span>Общие вопросы договорного права</span>
+        <a class="flag-card" href="programs/neyropravo-905186485.html" title="Нейроправо" aria-label="Нейроправо – старт: 30 ноября">
+          <span aria-hidden="true">Нейроправо</span>
         </a>
-        <span class="flag-pin" aria-hidden="true"></span>
-      </div>
-      <div class="flag down">
-        <a class="flag-card" href="programs/neyropravo-905186485.html" title="Нейроправо">
-          <b>30 ноября</b>
-          <span>Нейроправо</span>
-        </a>
+        <span class="flag-date" aria-hidden="true">30 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
     </div>
@@ -797,12 +799,12 @@
   <h2 class="visually-hidden">Программы повышения квалификации и профессиональной переподготовки для юристов</h2>
   <div class="grid" id="grid">
     <!-- CATALOG:LIST -->
-    <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1788123600000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный старт: 31 августа 2026 г.">
+    <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1788123600000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/958734693.jpg" alt="Обложка программы «Актуальные вопросы гражданского права»" loading="lazy"></span>
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Актуальные вопросы гражданского права</h3>
-      <div class="meta">Онлайн асинхронный · Старт: 31 августа 2026 г.</div>
+      <div class="meta">Онлайн асинхронный</div>
       <div class="foot">
         <span class="price">22 000 ₽</span>
         <span class="go">Подробнее →</span>

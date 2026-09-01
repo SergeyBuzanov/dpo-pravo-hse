@@ -229,11 +229,15 @@ function buildStartsBlock(items, now = new Date()) {
         : fmt({ day: 'numeric', month: 'long' }).format(d) + (year === curYear ? '' : ` ${year} г.`);
       // title дублирует название: у самых длинных имён видимый текст
       // обрезается четырьмя строками, подсказка отдаёт его целиком.
+      // Дата живёт НА оси станцией-капсулой (правка владельца 01.09.2026),
+      // а не в карточке, поэтому она вне ссылки и aria-hidden; для диктора
+      // дата продублирована в aria-label ссылки – тот же приём, что у
+      // ленты стартов на лендинге.
       return `      <div class="flag ${i % 2 ? 'down' : 'up'}">
-        <a class="flag-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}">
-          <b>${escapeHtml(when)}</b>
-          <span>${escapeHtml(item.title)}</span>
+        <a class="flag-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(when)}">
+          <span aria-hidden="true">${escapeHtml(item.title)}</span>
         </a>
+        <span class="flag-date" aria-hidden="true">${escapeHtml(when)}</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>`;
     })
