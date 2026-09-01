@@ -118,11 +118,28 @@
      а не фоном. Прежняя заливка rgb(var(--accent)) с контраст-замерами
      золота и полупрозрачного белого – в истории git. */
   .hero{
+    position: relative;
     background: var(--bg);
     color: rgb(var(--ink));
     padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 64px);
     border-bottom: 1px solid var(--line);
   }
+  .hero > *{ position: relative; z-index: 1; }
+  /* Светлая версия фирменного паттерна ВШЭ (01.09.2026): та же блочная
+     мозаика, что на тёмных секциях лендинга, но в тонах бумаги – голубая
+     и чернильная плашки в шесть сотых силы. SVG - replaced-элемент,
+     высоту задаём явно, top/bottom его не растягивают. */
+  .hero-pattern{
+    position: absolute;
+    top: 0; right: 0;
+    height: 100%;
+    width: clamp(240px, 28vw, 440px);
+    pointer-events: none;
+    z-index: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+  }
+  @media (max-width: 900px){ .hero-pattern{ display: none; } }
   /* Надзаголовок по Label-правилу DESIGN.md: 13px/600/0.12em, цвет акцента
      (#1658DA на #FBF9F5 – 6,5:1, для 13px/600 проходит с запасом). */
   .hero .eyebrow{ font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(var(--accent)); font-weight: 600; }
@@ -591,6 +608,22 @@
 </header>
 
 <section class="hero">
+  <svg class="hero-pattern" aria-hidden="true" viewBox="0 0 400 640" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <g fill="rgba(22, 88, 218, 0.07)">
+      <rect x="80" y="0" width="80" height="80"/><rect x="240" y="80" width="80" height="80"/>
+      <rect x="0" y="160" width="80" height="80"/><rect x="320" y="160" width="80" height="160"/>
+      <rect x="160" y="240" width="80" height="80"/><rect x="80" y="320" width="40" height="160"/>
+      <rect x="240" y="400" width="80" height="80"/><rect x="0" y="480" width="80" height="80"/>
+      <rect x="320" y="480" width="80" height="80"/><rect x="160" y="560" width="80" height="80"/>
+    </g>
+    <g fill="rgba(33, 30, 27, 0.045)">
+      <rect x="0" y="0" width="80" height="80"/><rect x="320" y="80" width="80" height="80"/>
+      <rect x="80" y="160" width="80" height="80"/><rect x="240" y="160" width="40" height="160"/>
+      <rect x="0" y="320" width="80" height="80"/><rect x="320" y="320" width="80" height="80"/>
+      <rect x="160" y="400" width="40" height="160"/><rect x="80" y="480" width="80" height="80"/>
+      <rect x="240" y="560" width="80" height="80"/>
+    </g>
+  </svg>
   <span class="eyebrow">Каталог программ</span>
   <h1>Курсы повышения квалификации и переподготовки для юристов</h1>
   <!-- Подводка – текст заказчика 18.08, три абзаца. -->
@@ -598,7 +631,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 1 сентября 2026 г. в 20:04, программ: 26 -->
+<!-- каталог обновлён: 1 сентября 2026 г. в 22:32, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 

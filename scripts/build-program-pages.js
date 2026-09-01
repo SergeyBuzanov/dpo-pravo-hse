@@ -872,6 +872,7 @@ ${cta}
     ${
       doc
         ? `<div class="card doc">
+      <svg class="doc-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M46 34 a10 10 0 1 0 0 20 H118 a10 10 0 0 0 10 -10 a10 10 0 0 0 -10 -10 Z"/><path d="M56 54 V118 a8 8 0 0 0 8 8 H98"/><path d="M128 44 V70"/><path d="M68 72 H104 M68 86 H112 M68 100 H96"/><circle cx="118" cy="112" r="11"/><path d="M113 121 L108 140 M123 121 L128 140"/></svg>
       <span class="doc-tag">${esc(short)}</span>
       <h2>${esc(doc.name)}</h2>
       <p>${esc(doc.note)}</p>
@@ -1169,7 +1170,12 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
 }
 /* В режиме для слабовидящих фиксированные панели скрываются – как на лендинге. */
 html.vi-mode .buy-bar{display:none !important}
-.doc{background:var(--bg-tint)}
+/* Виньетка-свиток (проба артов 01.09.2026, тот же рисунок, что в панели
+   «Документы» лендинга): водяной знак в углу карточки документа. */
+.doc{background:var(--bg-tint);position:relative;overflow:hidden}
+.doc>*{position:relative;z-index:1}
+.doc-vignette{position:absolute;right:-14px;bottom:-18px;width:132px;height:132px;
+  color:rgb(var(--accent));opacity:.12;pointer-events:none;z-index:0}
 .doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
   border-radius:999px;padding:4px 11px;margin-bottom:12px}
 .doc h2{font-size:19px;font-weight:600;margin-bottom:8px}
