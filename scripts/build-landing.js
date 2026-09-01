@@ -950,7 +950,7 @@ function renderTop5Data(template, programs) {
  * (двигатель js/carousel.js), карточки лежат дважды (копия aria-hidden,
  * tabindex=-1), интервал – margin-right карточки, НЕ gap и НЕ padding
  * дорожки, иначе scrollWidth/2 не равен периоду и на шве виден скачок.
- * Скорость своя: data-dpo-speed="12" (отзывы едут 26). Пауза: наведение,
+ * Скорость своя: data-dpo-speed="12" (у отзывов с 02.09 – своя, 14). Пауза: наведение,
  * фокус, кнопка (WCAG 2.2.2); на тач-экране, при reduced-motion и в
  * vi-mode двигатель автоход не запускает.
  */
@@ -961,32 +961,37 @@ function renderStarts(programs) {
     .slice(0, 30);
   if (!upcoming.length) return { html: '', count: 0 };
 
-  // Единый язык двух лент стартов (01.09.2026): дата – станцией-капсулой,
-  // как на стреле каталога (13px/700, accent-dark, пилюля с волосяной
-  // рамкой), название – жирным. Прежний билет «крупный день слэбом +
-  // месяц столбиком» – в истории git. У дат с точностью до месяца в
-  // капсуле сам месяц (год добавляется, если не текущий, – как в
-  // каталоге).
-  const capsuleLabel = (p) => {
+  // Билет ленты стартов – рисунок Claude Design, возвращён 02.09.2026 по
+  // указанию владельца (капсулы-станции от 01.09 отменены: «было лучше»).
+  // Билету нужны день и месяц по отдельности (день – крупно слабом).
+  // У дат с точностью до месяца (isStartDateWithoutDay) дня нет: крупным
+  // элементом становится сам месяц, подписью – год.
+  const dateParts = (p) => {
     const d = new Date(p.startDate);
-    const fmt = (opts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', ...opts }).format(d);
-    const curYear = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(new Date());
-    const year = fmt({ year: 'numeric' });
     if (p.isStartDateWithoutDay) {
-      const mon = fmt({ month: 'long' });
-      const cap = mon.charAt(0).toUpperCase() + mon.slice(1);
-      return year === curYear ? cap : `${cap} ${year}`;
+      const mon = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', month: 'long' }).format(d);
+      const year = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(d);
+      return { big: mon, small: year, isMonth: true };
     }
-    const label = fmt({ day: 'numeric', month: 'long' });
-    return year === curYear ? label : `${label} ${year}`;
+    const parts = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: 'numeric',
+      month: 'long',
+    }).formatToParts(d);
+    const get = (type) => parts.find((x) => x.type === type)?.value || '';
+    return { big: get('day'), small: get('month'), isMonth: false };
   };
 
   const card = (p, dupe) => {
-    // formatDate – полная дата для диктора: без подписи скринридер
-    // прочёл бы «1 сентября» без года.
+    const { big, small, isMonth } = dateParts(p);
+    // formatDate – полная дата для диктора: билет разбирает её на части,
+    // и без подписи скринридер прочёл бы «1 сентября» без года.
     const full = formatDate(p) || '';
     return `      <a class="dpo-start" href="${escapeHtml(programHref(p))}"${dupe ? ' tabindex="-1"' : ''} aria-label="${escapeHtml(`${p.title} – старт ${full}`)}">
-        <span class="dpo-start-date" aria-hidden="true">${escapeHtml(capsuleLabel(p))}</span>
+        <span class="dpo-start-date" aria-hidden="true">
+          <span class="dpo-start-day${isMonth ? ' is-month' : ''}">${escapeHtml(big)}</span>
+          <span class="dpo-start-mon">${escapeHtml(small)}</span>
+        </span>
         <span class="dpo-start-title" aria-hidden="true">${escapeHtml(p.title)}</span>
       </a>`;
   };
@@ -1065,8 +1070,12 @@ function renderReviews(programs) {
   }
   if (!picks.length) return { html: '', count: 0 };
 
+  // Гравюрная кавычка-ёлочка (02.09.2026, по финальной критике): тот же
+  // штрих 2.5, что у виньеток манифеста; берёт роль кавычек на себя –
+  // символьные « » из CSS сняты (закрывающая переносилась на свою строку).
   const card = (r, dupe) => `      <figure class="dpo-review">
-        <blockquote class="dpo-review-text">${escapeHtml(fixTeacherText(r.text))}</blockquote>
+        <svg class="dpo-review-quote" aria-hidden="true" viewBox="0 0 40 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5 L6 16 L17 27 M33 5 L22 16 L33 27"/></svg>
+        <blockquote class="dpo-review-text">${escapeHtml(fixTeacherText(r.text).trim())}</blockquote>
         <figcaption class="dpo-review-foot">
           <p class="dpo-review-author">${escapeHtml(r.author)}</p>
           <a class="dpo-review-program" href="${escapeHtml(programHref(r.program))}"${dupe ? ' tabindex="-1"' : ''}>${escapeHtml(r.program.title)}</a>
@@ -1092,7 +1101,7 @@ ${arrow('next', 'Следующие отзывы', 'M6 3l5 5-5 5')}
         <button type="button" class="dpo-reviews-toggle" data-dpo-pause aria-controls="reviewsTrack" aria-pressed="false" aria-label="Остановить ленту"></button>
       </div>
     </div>
-    <div class="dpo-reviews-track" id="reviewsTrack" data-dpo-loop aria-label="Отзывы выпускников">
+    <div class="dpo-reviews-track" id="reviewsTrack" data-dpo-loop data-dpo-speed="14" aria-label="Отзывы выпускников">
 ${cards}
       <div class="dpo-reviews-dupe" aria-hidden="true">
 ${dupes}
