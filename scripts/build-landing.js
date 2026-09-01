@@ -398,7 +398,7 @@ function renderFormats(programs) {
     // Направо уходит только то, что не проза: цена и кнопка.
     const doc = `\n            <p class="dpo-format-facts"><span>${escapeHtml(fmt.document)}</span></p>`;
     const price = prices.length
-      ? `\n            <p class="dpo-format-facts"><span>от ${escapeHtml(formatPrice(prices[0]))}</span></p>`
+      ? `\n            <span class="dpo-format-price">от ${escapeHtml(formatPrice(prices[0]))}</span>`
       : '';
 
     // Кнопка ведёт в каталог с уже применённым фильтром по типу: механика
@@ -429,14 +429,13 @@ function renderFormats(programs) {
     const ask = price || cta
       ? ''
       : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Спросить про этот формат</a>`;
-    const sideBody = `${price}${cta}${ask}`;
-    const side = sideBody ? `\n          <div class="dpo-format-side">${sideBody}\n          </div>` : '';
+    // Подвал карточки: цена (число – слэбом, по правилу двух гарнитур)
+    // и действие на общей нижней оси, как у карточек каталога.
+    const foot = `\n          <div class="dpo-format-foot">${price}${cta}${ask}\n          </div>`;
 
     return `        <li class="dpo-format">
-          <div class="dpo-format-body">
-            <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
-            <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}
-          </div>${side}
+          <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
+          <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}${foot}
         </li>`;
   }).filter(Boolean);
 
@@ -449,36 +448,66 @@ function renderFormats(programs) {
   // вторая колонка появляется только с 980px: до этой ширины описание
   // заказчика в три-четыре строки и правый столбик не уживаются.
   return `      <style>
-        .dpo-format-side { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-        /* Строка кончается там же, где контент. Правка 21.08 прижала
-           правый столбик к тексту и оставила 504px пергамента справа под
-           сплошной волосяной линейкой – линейка во всю ширину секции
-           читалась как незагрузившаяся правая колонка (замер контрольной
-           критики: строка 64–1376px, контент до 872). */
-        .dpo-formats { max-width: 900px; }
-        @media (min-width: 980px) {
-          /* Правый столбик прижат к тексту, а не к краю секции. Прежние
-             minmax(0,1fr) + выключка вправо разносили цену и её описание на
-             630–690px пустого пергамента при 1440px: читателю приходилось
-             удерживать абзац в голове, пока глаз шёл через пустоту
-             (замер 21.08.2026). Ширина текстовой колонки – те же 62ch, что
-             у .dpo-format-desc, поэтому у всех строк блока цена начинается
-             на одной вертикали. */
-          .dpo-format {
-            grid-template-columns: minmax(0, 62ch) minmax(200px, max-content);
-            justify-content: start;
-            column-gap: 48px;
-          }
-          .dpo-format-side { grid-column: 2; align-items: flex-start; text-align: left; }
-          /* Точка-разделитель в столбике осталась бы одна в начале строки. */
-          .dpo-format-side .dpo-format-facts { flex-direction: column; gap: 4px; align-items: flex-start; }
-          .dpo-format-side .dpo-format-facts span + span::before { content: none; }
-          .dpo-format-side .dpo-format-cta { align-self: flex-start; }
+        /* «Траектория развития» (редизайн владельца 01.09.2026): четыре
+           формата – ступени восходящего пути. Белые карточки поднимаются
+           слева направо, за ними восходящая линия акцента (2px держит
+           vector-effect при любой ширине; карточки перекрывают её своим
+           z-index, линия живёт в зазорах). Тексты заказчика не тронуты.
+           До 1100px – сетка 2×2 без ступеней и линии, до 640px – столбец.
+           Стиль живёт в регионе: шаблонный <style> отсюда недостижим. */
+        .dpo-formats-wrap { position: relative; }
+        .dpo-formats-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .dpo-formats-line line { stroke: var(--dpo-accent, #1658DA); stroke-width: 2px; vector-effect: non-scaling-stroke; opacity: .3; }
+        .dpo-formats {
+          border-top: none;
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: clamp(14px, 1.6vw, 22px);
+          align-items: start;
+          position: relative;
+          z-index: 1;
         }
+        .dpo-format {
+          display: flex; flex-direction: column; gap: 10px;
+          background: #fff;
+          border: 1px solid rgba(33, 30, 27, 0.1);
+          border-bottom: 1px solid rgba(33, 30, 27, 0.1);
+          border-radius: 16px;
+          padding: clamp(20px, 2vw, 26px);
+          align-self: stretch;
+        }
+        .dpo-format:nth-child(1) { margin-top: 96px; }
+        .dpo-format:nth-child(2) { margin-top: 64px; }
+        .dpo-format:nth-child(3) { margin-top: 32px; }
+        .dpo-format-title { font-size: 19px; line-height: 1.25; }
+        .dpo-format-desc { font-size: 14.5px; line-height: 1.55; }
+        .dpo-format-foot {
+          margin-top: auto;
+          padding-top: 12px;
+          border-top: 1px solid rgba(33, 30, 27, 0.1);
+          display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+        }
+        .dpo-format-price {
+          font-family: 'HSE Slab', 'Source Serif 4', serif;
+          font-weight: 600; font-size: 17px; color: #211E1B;
+        }
+        @media (max-width: 1100px) {
+          .dpo-formats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .dpo-format:nth-child(n) { margin-top: 0; }
+          .dpo-formats-line { display: none; }
+        }
+        @media (max-width: 640px) {
+          .dpo-formats { grid-template-columns: minmax(0, 1fr); }
+        }
+        html.vi-mode .dpo-format { border: 2px solid #000 !important; }
+        html.vi-mode .dpo-formats-line { display: none !important; }
       </style>
+      <div class="dpo-formats-wrap">
+      <svg class="dpo-formats-line" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="1" y1="97" x2="99" y2="3"/></svg>
       <ul class="dpo-formats">
 ${rows.join('\n')}
-      </ul>`;
+      </ul>
+      </div>`;
 }
 
 /**
