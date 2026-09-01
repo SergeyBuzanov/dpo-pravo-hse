@@ -1024,9 +1024,12 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
   white-space:nowrap;transition:color .28s var(--ease),border-color .28s var(--ease)}
 .vi-btn:hover{border-color:rgb(var(--accent));color:rgb(var(--accent))}
 
-.hero{background:linear-gradient(160deg,rgb(var(--accent)) 0%,var(--accent-dark) 100%);color:rgb(var(--surface));
+/* Фолбэк героя – сплошной тёмный акцент (градиент снят 01.09.2026 по
+   ключу Seline: градиентов в системе нет); виден только у программ без
+   обложки, у остальных сверху лежат фото и вуаль. */
+.hero{background:var(--accent-dark);color:rgb(var(--surface));
   padding:clamp(32px,5vw,56px) var(--gutter) clamp(36px,6vw,64px)}
-/* Герой с обложкой программы. Стопка: градиент героя (фолбэк) -> фото ->
+/* Герой с обложкой программы. Стопка: заливка героя (фолбэк) -> фото ->
    вуаль -> текст. isolation держит отрицательные z-index внутри секции.
    Вуаль – по «правилу вуали» DESIGN.md: те же тона darken(accent), что у
    героя лендинга, но плотнее (0.80/0.84/0.90 против 0.72/0.80/0.93):

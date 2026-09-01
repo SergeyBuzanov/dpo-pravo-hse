@@ -112,22 +112,24 @@
     header a.back .back-short{ display: inline; }
   }
 
-  /* Герой залит акцентом, как секция «Кто преподаёт» на лендинге: плоская
-     заливка, градиентов в системе нет. Контрасты ниже посчитаны на rgb(var(--accent)). */
+  /* Герой в ключе Seline (решение владельца 01.09.2026 для внутренних
+     страниц): тёплая бумага и чернила вместо сплошной синей заливки –
+     синий на странице остаётся голосом действия (активные фильтры, CTA),
+     а не фоном. Прежняя заливка rgb(var(--accent)) с контраст-замерами
+     золота и полупрозрачного белого – в истории git. */
   .hero{
-    background: rgb(var(--accent));
-    color: rgb(var(--surface));
+    background: var(--bg);
+    color: rgb(var(--ink));
     padding: clamp(48px, 8vw, 88px) clamp(20px, 5vw, 56px) clamp(40px, 6vw, 64px);
+    border-bottom: 1px solid var(--line);
   }
-  /* На синей заливке основное золото даёт 3,4:1 и для 13px не проходит,
-     поэтому здесь светлое — ровно та роль, ради которой оно и заведено
-     в палитре (4,5:1). Полупрозрачный белый поднят с 0,78 и 0,65: на
-     акценте они давали 4,3:1 и 3,5:1, то есть тоже ниже нормы. */
-  .hero .eyebrow{ font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-light); font-weight: 600; }
+  /* Надзаголовок по Label-правилу DESIGN.md: 13px/600/0.12em, цвет акцента
+     (#1658DA на #FBF9F5 – 6,5:1, для 13px/600 проходит с запасом). */
+  .hero .eyebrow{ font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(var(--accent)); font-weight: 600; }
   .hero h1{ font-weight: 600; font-size: clamp(28px, 3.2vw, 42px); line-height: 1.15; margin: 14px 0 16px; max-width: 720px; }
-  .hero p{ font-size: clamp(15px, 1.3vw, 17px); line-height: 1.6; color: rgb(var(--surface) / 0.88); max-width: 620px; margin: 0 0 20px; }
-  .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--surface) / 0.88); background: rgb(var(--surface) / 0.14); border-radius: var(--radius-sm); padding: 8px 16px; }
-  .hero .meta b{ color: rgb(var(--surface)); }
+  .hero p{ font-size: clamp(15px, 1.3vw, 17px); line-height: 1.6; color: var(--ink-soft); max-width: 620px; margin: 0 0 20px; }
+  .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-mute); background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 16px; }
+  .hero .meta b{ color: rgb(var(--ink)); }
 
   /* «Ближайшие старты»: стрела времени (выбор владельца 20.08.2026).
      Одна хронологическая ось со стрелкой на конце, старты – флажки на
@@ -157,10 +159,12 @@
     display: flex; align-items: center; position: relative;
     min-width: max-content; height: 330px;
   }
+  /* Древко стрелы – сплошной акцент: градиент снят 01.09.2026 по ключу
+     Seline (градиентов в системе нет, синий – один и тот же везде). */
   .starts-arrow::before{
     content: ''; position: absolute; left: 0; right: 30px; top: 50%;
     height: 5px; margin-top: -2.5px; border-radius: 999px;
-    background: linear-gradient(90deg, var(--accent-dark), rgb(var(--accent)));
+    background: rgb(var(--accent));
   }
   .starts-arrow::after{
     content: ''; position: absolute; right: 0; top: 50%; margin-top: -14px;
@@ -168,11 +172,12 @@
     border-top: 14px solid transparent; border-bottom: 14px solid transparent;
   }
   .flag{ flex: none; width: 210px; position: relative; height: 100%; }
+  /* Тень в покое снята 01.09.2026: по ключу Seline и правилу DESIGN.md
+     структуру держит волосяная рамка, а не элевация. */
   .flag-card{
     position: absolute; left: 12px; width: 190px;
     background: rgb(var(--surface)); border: 1px solid var(--line);
     border-radius: 16px; padding: 11px 14px; text-decoration: none;
-    box-shadow: 0 6px 18px rgb(var(--ink) / .07);
     transition: border-color .15s;
   }
   .flag-card b{
