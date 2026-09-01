@@ -173,15 +173,30 @@ function renderCard(item) {
     ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="${escapeHtml(`Обложка программы «${item.title}»`)}" loading="lazy"></span>`
     : '';
 
-  return `    <a href="${href}" class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">${thumbLine}
+  // Карточка – <div> с растянутой ссылкой внутри (01.09.2026): раньше вся
+  // карточка была <a>, и кнопку «Заявка» внутрь положить было нельзя –
+  // интерактивный элемент в интерактивном. Ссылка .card-link накрывает
+  // карточку псевдоэлементом (клик в любом месте – переход на страницу
+  // программы, как раньше), кнопка лежит выше по z-index. Решение
+  // владельца 19.08 «Подать заявку везде» доехало и до каталога.
+  return `    <div class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
+      <a href="${href}" class="card-link">${thumbLine}
       <span class="badge">${typeShort}</span>${sphereLine}
       <h3>${escapeHtml(item.title)}</h3>
       <div class="meta">${metaBits}</div>
+      </a>
       <div class="foot">
         <span class="price">${escapeHtml(formatPrice(item))}</span>
-        <span class="go">Подробнее →</span>
+        <span class="foot-actions">
+          <button type="button" class="card-apply" data-application
+            data-program-id="${escapeHtml(String(item.id || ''))}"
+            data-program-title="${escapeHtml(item.title)}"
+            data-program-url="${href}"
+            aria-label="Подать заявку: ${escapeHtml(item.title)}">Заявка</button>
+          <span class="go" aria-hidden="true">Подробнее →</span>
+        </span>
       </div>
-    </a>`;
+    </div>`;
 }
 
 /**
