@@ -220,10 +220,11 @@ function renderSphereCard(sphere) {
           </li>`;
   });
 
-  // Когда скрытых программ нет, «Все 3 программы сферы» обещало бы больше,
-  // чем покажет: те же три уже на карточке. Формулировка честнее.
-  const allLabel =
-    total > PREVIEW ? `Все ${pluralPrograms(total)} сферы` : 'Открыть сферу в каталоге';
+  // Единый ярлык для всех сфер (02.09.2026, финальная критика: в одной
+  // сетке соседствовали два разных имени ссылки). Число не обманывает и
+  // при полностью показанной сфере: в каталоге будут ровно эти N программ,
+  // просто карточками с фильтрами.
+  const allLabel = `Все ${pluralPrograms(total)} сферы`;
 
   return `        <div class="dpo-sphere">
           <div class="dpo-sphere-head">
@@ -428,7 +429,7 @@ function renderFormats(programs) {
     // остаётся фолбэком без JavaScript.
     const ask = price || cta
       ? ''
-      : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Спросить про этот формат</a>`;
+      : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Подать заявку</a>`;
     // Подвал карточки: цена (число – слэбом, по правилу двух гарнитур)
     // и действие на общей нижней оси, как у карточек каталога.
     const foot = `\n          <div class="dpo-format-foot">${price}${cta}${ask}\n          </div>`;
