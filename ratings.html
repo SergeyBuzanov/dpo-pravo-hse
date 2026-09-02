@@ -51,24 +51,24 @@
   a:hover{ text-decoration:underline; }
   /* Шапка держится на экране при прокрутке, как на остальных страницах. */
   header{ position:sticky; top:0; z-index:20; padding:16px clamp(20px,6vw,64px); border-bottom:1px solid rgb(var(--ink) / 0.08); background:rgba(251,249,245,0.9); backdrop-filter:blur(10px); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
-  .logo{ font-family:'HSE Slab', 'Source Serif 4', serif; font-weight:700; font-size:20px; color:rgb(var(--accent)); }
+  .logo{ font-family:'HSE Slab', 'Source Serif 4', serif; font-weight:700; font-size:1.25rem; color:rgb(var(--accent)); }
   main{ max-width:1080px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,40px) 80px; }
-  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size:clamp(28px, 3.2vw, 42px); line-height:1.15; margin:0 0 8px; }
-  .updated{ font-size:13.5px; color:var(--ink-mute); margin-bottom:12px; }
-  p{ font-size:16px; color:var(--ink-soft); max-width:75ch; }
+  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size: clamp(1.75rem, 3.2vw, 2.625rem); line-height:1.15; margin:0 0 8px; }
+  .updated{ font-size:0.8438rem; color:var(--ink-mute); margin-bottom:12px; }
+  p{ font-size:1rem; color:var(--ink-soft); max-width:75ch; }
   /* Таблица шире экрана телефона: прокрутка внутри собственной обёртки,
      страница горизонтально не ездит. */
   .table-wrap{ margin-top:28px; overflow-x:auto; border:1px solid var(--line); border-radius:16px; background:rgb(var(--surface)); }
-  table{ border-collapse:collapse; width:100%; min-width:760px; font-size:14.5px; }
-  caption{ text-align:left; padding:16px 18px 4px; font-family:'HSE Slab','Source Serif 4',serif; font-size:17px; font-weight:600; }
-  th{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); text-align:left; padding:14px 18px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table{ border-collapse:collapse; width:100%; min-width:760px; font-size:0.9062rem; }
+  caption{ text-align:left; padding:16px 18px 4px; font-family:'HSE Slab','Source Serif 4',serif; font-size:1.0625rem; font-weight:600; }
+  th{ font-size:0.7812rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); text-align:left; padding:14px 18px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td{ padding:10px 18px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-soft); }
   td.rating{ font-weight:600; color:rgb(var(--ink)); }
   td.place{ font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:600; color:rgb(var(--ink)); }
   td.none{ color:var(--ink-mute); font-weight:400; }
   tr:last-child td{ border-bottom:0; }
-  footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgb(var(--ink) / 0.1); font-size:13px; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
-  .vi-btn{ font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+  footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgb(var(--ink) / 0.1); font-size:0.8125rem; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .vi-btn{ font:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer; color:var(--ink-soft);
     background:transparent; border:1px solid rgb(var(--ink) / 0.25); border-radius:999px;
     padding:8px 14px; white-space:nowrap; }
   .vi-btn:hover{ border-color:rgb(var(--accent)); color:rgb(var(--accent)); }
@@ -83,7 +83,7 @@
      (ГОСТ Р 52872-2019, WCAG 2.4.7); правило из каталога, дословно. */
   html.vi-mode :focus-visible{ outline: 3px solid #000 !important; outline-offset: 2px; }
   .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
-    font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+    font:600 0.9375rem/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
     box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
   .skip-link:focus{left:0}
 </style>
@@ -167,7 +167,7 @@
     </table>
   </div>
 
-  <p style="font-size:13.5px; color:var(--ink-mute); margin-top:16px;">Данные – сводка факультета права «Позиции НИУ ВШЭ в предметных рейтингах по праву, 2021-2026». В скобках у национального рейтинга по трудоустройству указана позиция магистратуры.</p>
+  <p style="font-size:0.8438rem; color:var(--ink-mute); margin-top:16px;">Данные – сводка факультета права «Позиции НИУ ВШЭ в предметных рейтингах по праву, 2021-2026». В скобках у национального рейтинга по трудоустройству указана позиция магистратуры.</p>
 </main>
 
 <footer>

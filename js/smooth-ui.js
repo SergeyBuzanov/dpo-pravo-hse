@@ -196,7 +196,7 @@ section#explore a[href]{
   box-shadow: 0 12px 40px rgb(var(--ink) / 0.16);
 }
 .dpo-mobile-cta a{
-  flex: 1; text-align: center; font-weight: 600; font-size: 15px;
+  flex: 1; text-align: center; font-weight: 600; font-size: 0.9375rem;
   /* Панель вставляется в body, а не внутрь вёрстки страницы, поэтому
      фирменный шрифт задаём здесь: наследовать его неоткуда. */
   font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;

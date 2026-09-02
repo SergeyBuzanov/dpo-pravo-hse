@@ -100,7 +100,7 @@
     'border-radius:18px;box-shadow:0 24px 60px rgb(var(--ink) / .28);padding:clamp(22px,4vw,34px);',
     'transform:translateY(12px) scale(.985);transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.dpo-app-backdrop.is-open .dpo-app{transform:none}',
-    '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size:clamp(22px,3.4vw,28px);',
+    '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size: clamp(1.375rem,3.4vw,1.75rem);',
     'line-height:1.15;margin:0 8px 6px 0;font-weight:600}',
     // Заголовок получает программный фокус при открытии (tabindex=-1), и
     // браузерная рамка рисовала его как текстовое поле – «Заявка на
@@ -109,9 +109,9 @@
     // vi-mode ниже перекрывает его чёрным по-своему.
     '.dpo-app h2:focus{outline:none}',
     '.dpo-app h2:focus-visible{outline:2px solid rgb(var(--accent));outline-offset:6px;border-radius:2px}',
-    '.dpo-app-program{font-size:15px;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
+    '.dpo-app-program{font-size:0.9375rem;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
     '.dpo-app-close{position:absolute;top:11px;right:11px;width:44px;height:44px;border-radius:999px;',
-    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:20px;line-height:1;',
+    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:1.25rem;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
     '.dpo-app-close:hover{background:var(--bg-tint)}',
     '.dpo-app-row{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-bottom:14px}',
@@ -122,7 +122,7 @@
     // у иконок контактов.
     '.dpo-app-more{margin:2px 0 14px;border-top:1px solid rgb(var(--ink) / .1);border-bottom:1px solid rgb(var(--ink) / .1)}',
     '.dpo-app-more summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;',
-    'font-size:14px;font-weight:600;color:rgb(var(--accent));list-style:none}',
+    'font-size:0.875rem;font-weight:600;color:rgb(var(--accent));list-style:none}',
     '.dpo-app-more summary::-webkit-details-marker{display:none}',
     '.dpo-app-more summary::after{content:"";width:8px;height:8px;border-right:1.6px solid currentColor;',
     'border-bottom:1.6px solid currentColor;transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}',
@@ -132,14 +132,14 @@
     // без этой строки поле «уточните, откуда узнали» видно всегда.
     '.dpo-app [hidden]{display:none}',
     '.dpo-app-row .dpo-app-field{margin-bottom:0}',
-    '.dpo-app label{font-size:13px;font-weight:600;letter-spacing:.01em}',
+    '.dpo-app label{font-size:0.8125rem;font-weight:600;letter-spacing:.01em}',
     '.dpo-app .req{color:rgb(var(--accent))}',
     '.dpo-app input[type=text],.dpo-app input[type=tel],.dpo-app input[type=email],.dpo-app textarea,.dpo-app select{',
     // Граница поля – единственное, что обозначает поле на белой карточке,
     // поэтому обязана давать 3:1 (WCAG 1.4.11): альфа .5 = 3,25:1, прежняя
     // .16 давала 1,4:1. Плейсхолдер без opacity: чистый --ink-mute на белом
     // даёт 5,85:1, с opacity .75 было 3,38:1 при норме 4,5:1 (WCAG 1.4.3).
-    'font:inherit;font-size:15px;color:rgb(var(--ink));background:rgb(var(--surface));border:1px solid rgb(var(--ink) / .5);',
+    'font:inherit;font-size:0.9375rem;color:rgb(var(--ink));background:rgb(var(--surface));border:1px solid rgb(var(--ink) / .5);',
     'border-radius:10px;padding:11px 13px;width:100%;transition:border-color .15s,box-shadow .15s}',
     '.dpo-app textarea{min-height:88px;resize:vertical;font-family:inherit}',
     '.dpo-app ::placeholder{color:var(--ink-mute);opacity:1}',
@@ -150,23 +150,23 @@
     // flex он не схлопывается – шесть пустых слотов ошибки давали форме
     // лишние ~230px, из-за которых кнопка отправки уезжала под сгиб
     // (замер 21.08.2026). :empty гасит слот, пока ошибки нет.
-    '.dpo-app-err{font-size:13px;line-height:1.4;color:#B00020;margin:0}',
+    '.dpo-app-err{font-size:0.8125rem;line-height:1.4;color:#B00020;margin:0}',
     '.dpo-app-err:empty{display:none}',
     // padding растит мишень строки до 24px+ (WCAG 2.5.8); 44px здесь
     // раздули бы форму, а это не отдельная кнопка, а строка с галочкой.
-    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.4;cursor:pointer;padding:4px 0}',
+    '.dpo-app-check{display:flex;gap:9px;align-items:flex-start;font-size:0.9375rem;line-height:1.4;cursor:pointer;padding:4px 0}',
     '.dpo-app-check input{margin:2px 0 0;width:17px;height:17px;accent-color:rgb(var(--accent));flex:none}',
-    '.dpo-app-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;',
+    '.dpo-app-consent{display:flex;gap:10px;align-items:flex-start;font-size:0.8125rem;line-height:1.5;',
     'color:var(--ink-soft);margin:6px 0 4px;cursor:pointer}',
     '.dpo-app-consent a{color:rgb(var(--accent))}',
-    '.dpo-app-submit{margin-top:18px;width:100%;font:inherit;font-size:15px;font-weight:600;color:rgb(var(--surface));',
+    '.dpo-app-submit{margin-top:18px;width:100%;font:inherit;font-size:0.9375rem;font-weight:600;color:rgb(var(--surface));',
     'background:rgb(var(--accent));border:0;border-radius:999px;padding:14px 20px;cursor:pointer;',
     'transition:background .15s,transform .12s}',
     '.dpo-app-submit:hover{background:#1145AA}',
     '.dpo-app-submit:active{transform:scale(.985)}',
     '.dpo-app-submit[disabled]{opacity:.6;cursor:progress}',
-    '.dpo-app-note{font-size:12px;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
-    '.dpo-app-status{margin:14px 0 0;font-size:15px;line-height:1.5;border-radius:10px;padding:0}',
+    '.dpo-app-note{font-size:0.75rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
+    '.dpo-app-status{margin:14px 0 0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
     // Цвет ошибки — системный #B00020; фон и граница выведены из него, а не
     // подобраны глазом (правило производного состояния в DESIGN.md).
@@ -176,17 +176,17 @@
     // единственным на сайте (аудит 21.08.2026).
     '.dpo-app-done{padding:4px 0}',
     '.dpo-app-done h2{margin-bottom:10px}',
-    '.dpo-app-done p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
+    '.dpo-app-done p{font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
     // Строка «что дальше»: пергаментная плашка с названием программы –
     // человек видит, ЧТО именно приняли, а не только что приняли.
     '.dpo-app-done-program{background:var(--bg-tint);border:1px solid rgb(var(--ink) / .1);',
     // Радиус 10px – тот же, что у полей формы: плашка живёт внутри окна и
     // не заводит собственную ступень шкалы.
-    'border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.5;color:rgb(var(--ink));margin:0 0 14px}',
+    'border-radius:10px;padding:12px 14px;font-size:0.9375rem;line-height:1.5;color:rgb(var(--ink));margin:0 0 14px}',
     '.dpo-app-done-program b{font-weight:600}',
     '.dpo-app-next{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}',
     '.dpo-app-next a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;',
-    'font-size:14px;font-weight:600;text-decoration:none;color:rgb(var(--accent));background:rgb(var(--surface));',
+    'font-size:0.875rem;font-weight:600;text-decoration:none;color:rgb(var(--accent));background:rgb(var(--surface));',
     'border:1px solid rgb(var(--accent) / .3);transition:background .15s,border-color .15s}',
     '.dpo-app-next a:hover{background:rgb(var(--accent));border-color:rgb(var(--accent));color:rgb(var(--surface))}',
     'html.vi-mode .dpo-app-next a{border:2px solid #000}',

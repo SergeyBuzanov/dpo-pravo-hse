@@ -61,16 +61,16 @@
     '#channelInvite .ci-icon{width:44px;height:44px;flex:none;border-radius:999px;background:var(--bg-tint);color:rgb(var(--accent));',
     'display:flex;align-items:center;justify-content:center;overflow:hidden}',
     '#channelInvite .ci-icon img{width:100%;height:100%;object-fit:cover}',
-    '#channelInvite .ci-title{font:600 15px/1.35 inherit;margin:2px 44px 4px 0;font-family:inherit}',
-    '#channelInvite .ci-desc{font-size:13px;line-height:1.5;color:#48423A;margin:0 0 12px}',
+    '#channelInvite .ci-title{font:600 0.9375rem/1.35 inherit;margin:2px 44px 4px 0;font-family:inherit}',
+    '#channelInvite .ci-desc{font-size:0.8125rem;line-height:1.5;color:#48423A;margin:0 0 12px}',
     // Мишени 44px (WCAG 2.5.5): кнопка-действие и крестик.
-    '#channelInvite .ci-join{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
+    '#channelInvite .ci-join{display:inline-flex;align-items:center;min-height:44px;font-size:0.8125rem;font-weight:600;color:rgb(var(--surface));background:rgb(var(--accent));',
     'border-radius:999px;padding:0 18px;text-decoration:none}',
     '#channelInvite .ci-join:hover{background:#1145AA}',
     // font:inherit обязателен: кнопки не наследуют шрифт сами, и крестик
     // рисовался системным Arial (замер аудита 18.08).
     '#channelInvite .ci-close{position:absolute;top:4px;right:4px;width:44px;height:44px;border-radius:999px;',
-    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:17px;line-height:1;cursor:pointer}',
+    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:1.0625rem;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',
     // На телефоне карточка сворачивается в одну строку (решение владельца
@@ -85,7 +85,7 @@
     // ссылка в ряд, а не столбиком.
     '#channelInvite > div{display:flex;align-items:center;gap:10px;flex:1;min-width:0}',
     '#channelInvite .ci-icon{width:32px;height:32px}',
-    '#channelInvite .ci-title{font-size:14px;margin:0;flex:1;min-width:0;',
+    '#channelInvite .ci-title{font-size:0.875rem;margin:0;flex:1;min-width:0;',
     'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '#channelInvite .ci-desc{display:none}',
     // Ссылкой, а не пилюлей: в одной строке две заливки (она и кнопка
@@ -96,7 +96,7 @@
     '#channelInvite .ci-join{min-height:44px;padding:0 4px;background:none;color:rgb(var(--accent));',
     'text-decoration:underline;text-underline-offset:3px}',
     '#channelInvite .ci-join:hover{background:none}',
-    '#channelInvite .ci-close{top:6px;right:6px;font-size:16px}',
+    '#channelInvite .ci-close{top:6px;right:6px;font-size:1rem}',
     '}',
     'html.vi-mode #channelInvite{background:rgb(var(--surface))!important;border:2px solid #000!important}',
     'html.vi-mode #channelInvite .ci-close,html.vi-mode #channelInvite .ci-join{border:2px solid #000!important}',

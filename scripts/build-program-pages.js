@@ -1005,7 +1005,7 @@ a:focus-visible,button:focus-visible{outline:2px solid rgb(var(--accent));outlin
   box-shadow:0 0 0 3px rgb(var(--accent) / .18)}
 
 .skip-link{position:absolute;left:-9999px;top:0;z-index:10001;background:rgb(var(--surface));color:rgb(var(--accent));
-  font:600 15px/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
+  font:600 0.9375rem/1.4 'HSE Sans','IBM Plex Sans',sans-serif;padding:12px 20px;border-radius:0 0 10px 0;
   box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
 .skip-link:focus{left:0}
 
@@ -1024,13 +1024,13 @@ html.vi-mode header::after{display:none !important}
   header::after{display:none}
   .buy-bar{background:rgb(var(--surface));backdrop-filter:none;border-color:rgb(var(--ink))}}
 .logo{display:flex;flex-direction:column;gap:1px}
-.logo .name{font-weight:700;font-size:15px;color:rgb(var(--accent))}
-.logo .sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+.logo .name{font-weight:700;font-size:0.9375rem;color:rgb(var(--accent))}
+.logo .sub{font-size:0.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .header-nav{display:flex;align-items:center;gap:14px}
-.nav-link{font-size:14px;font-weight:600;color:rgb(var(--accent))}
+.nav-link{font-size:0.875rem;font-weight:600;color:rgb(var(--accent))}
 .nav-link:hover{text-decoration:underline}
-.vi-btn{font:inherit;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft);
+.vi-btn{font:inherit;font-size:0.8125rem;font-weight:600;cursor:pointer;color:var(--ink-soft);
   background:transparent;border:1px solid rgb(var(--ink) / .25);border-radius:999px;padding:8px 14px;
   min-height:44px; /* мишень касания, WCAG 2.5.5 */
   white-space:nowrap;transition:color .28s var(--ease),border-color .28s var(--ease)}
@@ -1053,12 +1053,12 @@ html.vi-mode header::after{display:none !important}
   object-fit:cover;object-position:center 30%}
 .hero-veil{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,
   rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
-.crumbs{font-size:13px;color:rgb(var(--surface) / .88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.crumbs{font-size:0.8125rem;color:rgb(var(--surface) / .88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .crumbs a{text-decoration:underline}
-.hero h1{font-weight:600;font-size:clamp(28px,3.2vw,42px);line-height:1.15;max-width:20ch;
+.hero h1{font-weight:600;font-size: clamp(1.75rem,3.2vw,2.625rem);line-height:1.15;max-width:20ch;
   max-width:900px;text-wrap:balance}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
-.chips span{font-size:13px;background:rgb(var(--surface) / .14);border-radius:999px;padding:8px 16px}
+.chips span{font-size:0.8125rem;background:rgb(var(--surface) / .14);border-radius:999px;padding:8px 16px}
 
 .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);
   gap:clamp(28px,4vw,56px);padding:clamp(32px,5vw,64px) var(--gutter) clamp(56px,8vw,96px);
@@ -1066,13 +1066,13 @@ html.vi-mode header::after{display:none !important}
 @media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
 
 .block{margin-bottom:clamp(28px,4vw,48px)}
-.block h2{font-size:clamp(21px,2.2vw,28px);font-weight:600;margin-bottom:12px}
-.block-sub{font-size:13.5px;color:var(--ink-mute);margin:0 0 16px}
-.about-lead{font-size:17px;line-height:1.6;font-weight:600;color:rgb(var(--ink));margin:0 0 14px}
-.about-body{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px}
+.block h2{font-size: clamp(1.3125rem,2.2vw,1.75rem);font-weight:600;margin-bottom:12px}
+.block-sub{font-size:0.8438rem;color:var(--ink-mute);margin:0 0 16px}
+.about-lead{font-size:1.0625rem;line-height:1.6;font-weight:600;color:rgb(var(--ink));margin:0 0 14px}
+.about-body{font-size:0.9688rem;line-height:1.7;color:var(--ink-soft);margin:0 0 14px}
 /* about, склеенный источником из <li>, возвращаем к виду списка. */
 .about-list{list-style:none;margin:0 0 14px;padding:0}
-.about-list li{position:relative;font-size:15.5px;line-height:1.6;color:var(--ink-soft);
+.about-list li{position:relative;font-size:0.9688rem;line-height:1.6;color:var(--ink-soft);
   padding:10px 0 10px 22px;border-top:1px solid var(--line)}
 /* Точка нарисована бордером, а не фоном: в режиме для слабовидящих фоны
    обнуляются, и маркер на background там бы исчез. */
@@ -1082,20 +1082,20 @@ html.vi-mode header::after{display:none !important}
    при этом не меняется – ограничивается только ширина самого текста. */
 .about-lead,.about-body,.about-list li,.block-sub,.block-note,.slot,
 .results li,.modules li,.teachers li,.siblings a{max-width:72ch}
-.slot{font-size:15.5px;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
+.slot{font-size:0.9688rem;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgb(var(--ink) / .25);border-radius:16px;padding:20px;margin:0}
 .pills{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0}
-.pills li{font-size:14.5px;line-height:1.4;color:var(--ink-soft);background:var(--bg-tint);
+.pills li{font-size:0.9062rem;line-height:1.4;color:var(--ink-soft);background:var(--bg-tint);
   border-radius:999px;padding:10px 18px}
 .results{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.results li{position:relative;font-size:15.5px;line-height:1.6;color:var(--ink-soft);
+.results li{position:relative;font-size:0.9688rem;line-height:1.6;color:var(--ink-soft);
   padding:14px 0 14px 34px;border-top:1px solid var(--line)}
 /* Галочка нарисована фоном, а не символом: в режиме для слабовидящих
    svg скрывается, а псевдоэлемент с текстом остаётся читаемым. */
 .results li::before{content:"";position:absolute;left:8px;top:19px;width:7px;height:12px;
   border-right:2px solid rgb(var(--accent));border-bottom:2px solid rgb(var(--accent));
   transform:rotate(45deg)}
-.block-note{font-size:13.5px;color:var(--ink-mute);margin:0 0 14px}
+.block-note{font-size:0.8438rem;color:var(--ink-mute);margin:0 0 14px}
 
 /* Учебный план. Номер рисуется счётчиком, а не маркером списка: нужен
    моноширинный столбец, иначе двузначные номера сдвигают все названия. */
@@ -1103,10 +1103,10 @@ html.vi-mode header::after{display:none !important}
 .modules li{counter-increment:module;display:grid;
   grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;
   padding:13px 0;border-top:1px solid var(--line)}
-.modules li::before{content:counter(module);font-size:13px;color:var(--ink-mute);
+.modules li::before{content:counter(module);font-size:0.8125rem;color:var(--ink-mute);
   font-variant-numeric:tabular-nums}
-.module-title{font-size:15.5px;line-height:1.5;color:var(--ink-soft)}
-.module-hours{font-size:13px;color:var(--ink-mute);white-space:nowrap;
+.module-title{font-size:0.9688rem;line-height:1.5;color:var(--ink-soft)}
+.module-hours{font-size:0.8125rem;color:var(--ink-mute);white-space:nowrap;
   font-variant-numeric:tabular-nums}
 
 /* Преподаватели. Фотографий нет: снимки лежат на hse.ru, а CSP страницы
@@ -1116,12 +1116,12 @@ html.vi-mode header::after{display:none !important}
 .reviews{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .reviews li{background:rgb(var(--surface));border:1px solid var(--line);border-radius:16px;
   padding:20px 22px;max-width:72ch}
-.reviews blockquote{margin:0;font-size:15px;line-height:1.65;color:var(--ink-soft)}
+.reviews blockquote{margin:0;font-size:0.9375rem;line-height:1.65;color:var(--ink-soft)}
 .reviews blockquote::before{content:"« "}
 .reviews blockquote::after{content:" »"}
-.review-author{margin:12px 0 0;font-size:13.5px;font-weight:600;color:rgb(var(--ink))}
-.teacher-name{font-size:16px;font-weight:600;margin:0 0 4px;color:rgb(var(--ink))}
-.teacher-about{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin:0}
+.review-author{margin:12px 0 0;font-size:0.8438rem;font-weight:600;color:rgb(var(--ink))}
+.teacher-name{font-size:1rem;font-weight:600;margin:0 0 4px;color:rgb(var(--ink))}
+.teacher-about{font-size:0.9062rem;line-height:1.55;color:var(--ink-soft);margin:0}
 
 @media (max-width:520px){
   .modules li{grid-template-columns:22px minmax(0,1fr);gap:2px 10px}
@@ -1132,7 +1132,7 @@ html.vi-mode header::after{display:none !important}
 .siblings li{border-top:1px solid var(--line)}
 /* Ссылки на соседние программы выглядят ссылками: цвет акцента и
    проявляющееся подчёркивание по системной кривой. */
-.siblings a{display:block;padding:14px 0;font-size:14.5px;line-height:1.5;color:rgb(var(--accent));
+.siblings a{display:block;padding:14px 0;font-size:0.9062rem;line-height:1.5;color:rgb(var(--accent));
   text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;
   transition:color .28s var(--ease),text-decoration-color .28s var(--ease)}
 .siblings a:hover{color:var(--accent-dark);text-decoration-color:currentColor}
@@ -1140,29 +1140,29 @@ html.vi-mode header::after{display:none !important}
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.side{position:static}}
 .card{background:rgb(var(--surface));border:1px solid var(--line);border-radius:24px;padding:26px}
-.price{font-size:clamp(22px,2vw,30px);font-weight:700;font-family:'HSE Slab','Source Serif 4',serif;
+.price{font-size: clamp(1.375rem,2vw,1.875rem);font-weight:700;font-family:'HSE Slab','Source Serif 4',serif;
   margin-bottom:18px}
 .facts{margin:0 0 20px}
 .fact{display:flex;justify-content:space-between;gap:12px;padding:10px 0;
   border-top:1px solid var(--line)}
-.fact dt{font-size:13px;color:var(--ink-mute);margin:0}
-.fact dd{font-size:14.5px;font-weight:600;margin:0;text-align:right}
-.cta{display:block;width:100%;font:inherit;border:0;cursor:pointer;text-align:center;font-size:15px;font-weight:600;color:rgb(var(--surface));
+.fact dt{font-size:0.8125rem;color:var(--ink-mute);margin:0}
+.fact dd{font-size:0.9062rem;font-weight:600;margin:0;text-align:right}
+.cta{display:block;width:100%;font:inherit;border:0;cursor:pointer;text-align:center;font-size:0.9375rem;font-weight:600;color:rgb(var(--surface));
   background:rgb(var(--accent));border-radius:999px;padding:15px 24px;
   transition:background .28s var(--ease),transform 140ms ease}
 .cta:hover{background:var(--accent-dark)}
 .cta:active{transform:scale(.97)}
-.cta-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}
-.cta-alt{display:block;text-align:center;font-size:14px;color:var(--ink-mute);margin:14px 0 0;
+.cta-note{font-size:0.8125rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}
+.cta-alt{display:block;text-align:center;font-size:0.875rem;color:var(--ink-mute);margin:14px 0 0;
   text-decoration:underline;text-underline-offset:3px}
 .cta-alt:hover{color:rgb(var(--accent))}
 /* Вторичная кнопка оплаты: контур в акцент, не спорит с primary.
    Hover только у настоящего курсора – на тач-экране :hover залипает. */
-.cta-pay{display:block;text-align:center;font-size:15px;font-weight:600;color:rgb(var(--accent));
+.cta-pay{display:block;text-align:center;font-size:0.9375rem;font-weight:600;color:rgb(var(--accent));
   background:transparent;border:1.5px solid rgb(var(--accent));border-radius:999px;
   padding:13px 24px;margin:12px 0 0;transition:background .28s var(--ease),color .28s var(--ease)}
 @media (hover:hover) and (pointer:fine){.cta-pay:hover{background:rgb(var(--accent));color:rgb(var(--surface))}}
-.cta-pay-note{font-size:13px;line-height:1.5;color:var(--ink-mute);margin:8px 0 0;text-align:center}
+.cta-pay-note{font-size:0.8125rem;line-height:1.5;color:var(--ink-mute);margin:8px 0 0;text-align:center}
 /* Липкая полоса с ценой: только при одноколоночной раскладке (<=900px),
    на десктопе цену показывает липкая боковая карточка. Словарь полосы – тот
    же, что у мобильной панели лендинга (js/smooth-ui.js). */
@@ -1174,7 +1174,7 @@ html.vi-mode header::after{display:none !important}
     border:1px solid rgb(var(--ink) / .1);border-radius:18px;
     box-shadow:0 12px 40px rgb(var(--ink) / .16)}
   .buy-bar-price{font-family:'HSE Slab','Source Serif 4',serif;font-weight:700;
-    font-size:17px;white-space:nowrap}
+    font-size:1.0625rem;white-space:nowrap}
   .buy-bar .cta{flex:1;min-height:44px;padding:12px 18px}
   body{padding-bottom:84px}
 }
@@ -1186,14 +1186,14 @@ html.vi-mode .buy-bar{display:none !important}
 .doc>*{position:relative;z-index:1}
 .doc-vignette{position:absolute;right:-14px;bottom:-18px;width:132px;height:132px;
   color:rgb(var(--accent));opacity:.12;pointer-events:none;z-index:0}
-.doc-tag{display:inline-block;font-size:12.5px;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
+.doc-tag{display:inline-block;font-size:0.7812rem;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
   border-radius:999px;padding:4px 11px;margin-bottom:12px}
-.doc h2{font-size:19px;font-weight:600;margin-bottom:8px}
-.doc p{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin:0}
-.doc-note{font-size:13px;color:var(--ink-mute);margin-top:10px}
+.doc h2{font-size:1.1875rem;font-weight:600;margin-bottom:8px}
+.doc p{font-size:0.9062rem;line-height:1.55;color:var(--ink-soft);margin:0}
+.doc-note{font-size:0.8125rem;color:var(--ink-mute);margin-top:10px}
 
 footer{padding:28px var(--gutter);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;
-  align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-mute)}
+  align-items:center;justify-content:space-between;gap:12px;font-size:0.8125rem;color:var(--ink-mute)}
 .footer-links{display:flex;gap:18px;flex-wrap:wrap}
 .footer-links a{color:rgb(var(--accent))}
 
