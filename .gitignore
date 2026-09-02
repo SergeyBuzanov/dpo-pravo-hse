@@ -41,3 +41,7 @@ node_modules/
 # Публичная выкладка для зеркала: артефакт сборки scripts/build-public.js.
 # Собирается заново одной командой, в истории ей делать нечего.
 .public/
+
+# Бинарники инструмента стилизации портретов (пересобираются swiftc)
+scripts/cutout/cutout
+scripts/cutout/stylize
