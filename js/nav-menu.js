@@ -87,8 +87,157 @@
     // раскрытым, а на экране не менялось ничего и ссылки не фокусировались.
     // Принудительный рефлоу даёт тот же эффект и не зависит от кадров.
     void panel.offsetWidth;
+    // Жест мог оставить панель уехавшей вверх инлайновым transform –
+    // штатное открытие обязано начинаться с чистого листа.
+    panel.style.transform = '';
+    panel.style.opacity = '';
+    panel.style.transition = '';
+    if (panel.id === 'mobileMenuPanel') setupSheetGesture(trigger, panel);
     panel.classList.add('is-open');
     trigger.setAttribute('aria-expanded', 'true');
+  }
+
+  /* ── Жест «смахнуть вверх – закрыть» у мобильного меню ──────────────────
+     Пилот apple-design (02.09.2026, решение заказчика после пробы на
+     модалке заявки). Та же физика, что в js/application-form.js: 1:1 за
+     пальцем, rubber-band при тяге вниз (панель пришла сверху и уходит
+     вверх – путь симметричен), скорость пальца передаётся рукописной
+     пружине, решение «закрыть/вернуть» – проекцией импульса.
+
+     Только тач и без reduced-motion. Жест включается лишь пока содержимое
+     панели ПОМЕЩАЕТСЯ без прокрутки (touch-action: none душит нативный
+     скролл, а на маленьком экране с раскрытым аккордеоном прокрутка
+     нужнее жеста) – после каждого клика внутри панели гейт пересчитывается:
+     раскрытие «Направлений» меняет высоту содержимого. */
+  function setupSheetGesture(trigger, panel) {
+    if (panel.dataset.dpoSheet) return;
+    panel.dataset.dpoSheet = '1';
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var y = 0;
+    var vel = 0;
+    var raf = null;
+    var engaged = false;
+    var tracking = false;
+    var startY = 0;
+    var grab = 0;
+    var history = [];
+
+    function scrollable() {
+      return panel.scrollHeight > panel.clientHeight + 4;
+    }
+    function syncTouchAction() {
+      panel.style.touchAction = scrollable() ? '' : 'none';
+    }
+    syncTouchAction();
+    panel.addEventListener('click', function () {
+      window.requestAnimationFrame(syncTouchAction);
+    });
+
+    // Смахивание, начатое на ссылке, не должно превращаться в переход:
+    // нативная прокрутка глушит click сама, у ручного жеста глушителя нет.
+    var swallowClick = false;
+    panel.addEventListener('click', function (e) {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+
+    function setY(value) {
+      y = value;
+      var h = panel.offsetHeight || 400;
+      panel.style.transform = value ? 'translateY(' + value.toFixed(2) + 'px)' : '';
+      panel.style.opacity = value < 0 ? String(Math.max(0, 1 + value / (h * 0.9))) : '';
+    }
+
+    function rubber(overshoot) {
+      var dim = 300, c = 0.55;
+      return (overshoot * dim * c) / (dim + c * Math.abs(overshoot));
+    }
+
+    function spring(target, response, onSettle) {
+      var k = Math.pow((2 * Math.PI) / response, 2);
+      var c = 2 * Math.sqrt(k);
+      var prev = performance.now();
+      if (raf) cancelAnimationFrame(raf);
+      function step(now) {
+        var dt = Math.min(32, now - prev) / 1000;
+        prev = now;
+        var a = k * (target - y) - c * vel;
+        vel += a * dt;
+        setY(y + vel * dt);
+        if (Math.abs(target - y) < 0.5 && Math.abs(vel) < 20) {
+          setY(target);
+          raf = null;
+          if (onSettle) onSettle();
+          return;
+        }
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    panel.addEventListener('pointerdown', function (e) {
+      if (!e.isPrimary || scrollable()) return;
+      tracking = true;
+      engaged = false;
+      startY = e.clientY;
+      if (raf) { cancelAnimationFrame(raf); raf = null; } // перехват на лету
+      history = [{ t: e.timeStamp, y: y }];
+    });
+
+    panel.addEventListener('pointermove', function (e) {
+      if (!tracking || !e.isPrimary) return;
+      var dy = e.clientY - startY;
+      if (!engaged) {
+        // Гистерезис ~10px: тап по ссылке остаётся тапом.
+        if (Math.abs(dy) < 10) return;
+        engaged = true;
+        grab = e.clientY - y;
+        panel.style.transition = 'none';
+        panel.setPointerCapture(e.pointerId);
+      }
+      var raw = e.clientY - grab;
+      setY(raw <= 0 ? raw : rubber(raw));
+      history.push({ t: e.timeStamp, y: raw });
+      while (history.length > 6 || e.timeStamp - history[0].t > 100) history.shift();
+    });
+
+    function release(e) {
+      if (!tracking || !e.isPrimary) return;
+      tracking = false;
+      if (!engaged) return;
+      engaged = false;
+      swallowClick = true;
+      // Если click так и не пришёл (палец уехал с элемента), не съедать
+      // следующий честный тап.
+      window.setTimeout(function () { swallowClick = false; }, 120);
+      var last = history[history.length - 1];
+      var first = history[0];
+      vel = last && first && last.t > first.t
+        ? ((last.y - first.y) / (last.t - first.t)) * 1000
+        : 0;
+      var h = panel.offsetHeight || 400;
+      var projected = y + (vel / 1000) * 0.998 / (1 - 0.998);
+      if (projected < -h * 0.35 && vel < 100) {
+        spring(-(h + 60), 0.3, function () {
+          panel.style.transition = '';
+          close(trigger);
+          panel.style.opacity = '';
+          // Уехавший transform снимет open() при следующем открытии.
+        });
+      } else {
+        spring(0, 0.35, function () {
+          panel.style.transition = '';
+          panel.style.transform = '';
+          panel.style.opacity = '';
+        });
+      }
+    }
+    panel.addEventListener('pointerup', release);
+    panel.addEventListener('pointercancel', release);
   }
 
   /* ── Раскрытие по наведению ─────────────────────────────────────────────
