@@ -471,6 +471,18 @@
     margin: -6px 0 -4px;
   }
   .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0; }
+  /* Пометки формата и итогового документа под названием – просьба заказчика
+     02.09.2026: оба фактора должны читаться с карточки мгновенно, а не
+     выуживаться из строки меты. Формат – синяя пилюля (действующий признак,
+     по нему есть фильтр), документ – нейтральная: это справка об итоге.
+     Разметку пишет renderCard в update-catalog.js. */
+  .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; }
+  .card .tag{
+    font-size: 12px; font-weight: 600; line-height: 1.2;
+    padding: 4px 10px; border-radius: var(--radius-sm);
+    background: rgb(var(--accent) / 0.09); color: rgb(var(--accent));
+  }
+  .card .tag-doc{ background: var(--bg-tint); color: var(--ink-soft); }
   .card .meta{ font-size: 13.5px; color: var(--ink-mute); line-height: 1.5; }
   /* Ссылка карточки (01.09.2026): карточка стала <div>, чтобы в подвале
      жила кнопка «Заявка» – интерактивное в интерактивном невалидно.
@@ -552,6 +564,9 @@
   /* Миниатюры – теги img, общее правило background-image их не снимает. */
   html.vi-mode .card-media{ display: none !important; }
   html.vi-mode .card, html.vi-mode .contact-card{ border: 2px solid #000 !important; }
+  /* Заливки пилюль общее правило сняло – без рамки пометки формата и
+     документа слились бы в обычную строку текста. */
+  html.vi-mode .card .tag{ border: 1px solid #000 !important; }
   html.vi-mode .card-apply{ border: 2px solid #000 !important; }
   html.vi-mode .chip, html.vi-mode .vi-btn, html.vi-mode button{ border: 2px solid #000 !important; }
   html.vi-mode .chip.active{ background: #000 !important; color: rgb(var(--surface)) !important; }
@@ -631,7 +646,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 1 сентября 2026 г. в 22:32, программ: 26 -->
+<!-- каталог обновлён: 2 сентября 2026 г. в 21:25, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 
@@ -647,174 +662,167 @@
   <div class="starts-arrow-wrap" tabindex="0" role="region" aria-label="Лента ближайших стартов, прокручивается горизонтально">
     <div class="starts-arrow">
       <div class="flag up">
-        <a class="flag-card" href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" title="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers" aria-label="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers – старт: 1 сентября">
-          <span aria-hidden="true">Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</span>
-        </a>
-        <span class="flag-date" aria-hidden="true">1 сентября</span>
-        <span class="flag-pin" aria-hidden="true"></span>
-      </div>
-      <div class="flag down">
         <a class="flag-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" aria-label="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября">
           <span aria-hidden="true">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
         </a>
         <span class="flag-date" aria-hidden="true">7 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики" aria-label="Правовые вопросы банкротства: теории и практики – старт: 10 сентября">
           <span aria-hidden="true">Правовые вопросы банкротства: теории и практики</span>
         </a>
         <span class="flag-date" aria-hidden="true">10 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)" aria-label="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября">
           <span aria-hidden="true">Французское (европейское) экономическое право / Droit économique français (européen)</span>
         </a>
         <span class="flag-date" aria-hidden="true">14 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга" aria-label="Контрактное право Гонконга – старт: 15 сентября">
           <span aria-hidden="true">Контрактное право Гонконга</span>
         </a>
         <span class="flag-date" aria-hidden="true">15 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO" aria-label="Персональный ассистент PRO – старт: 19 сентября">
           <span aria-hidden="true">Персональный ассистент PRO</span>
         </a>
         <span class="flag-date" aria-hidden="true">19 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике" aria-label="Интеллектуальная собственность: от закона к практике – старт: 21 сентября">
           <span aria-hidden="true">Интеллектуальная собственность: от закона к практике</span>
         </a>
         <span class="flag-date" aria-hidden="true">21 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса" aria-label="Цифровое право для бизнеса – старт: 23 сентября">
           <span aria-hidden="true">Цифровое право для бизнеса</span>
         </a>
         <span class="flag-date" aria-hidden="true">23 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции" aria-label="Международное частное право: трансграничные операции – старт: 24 сентября">
           <span aria-hidden="true">Международное частное право: трансграничные операции</span>
         </a>
         <span class="flag-date" aria-hidden="true">24 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика" aria-label="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября">
           <span aria-hidden="true">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
         </a>
         <span class="flag-date" aria-hidden="true">28 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English" aria-label="Право на английском / Legal English – старт: 30 сентября">
           <span aria-hidden="true">Право на английском / Legal English</span>
         </a>
         <span class="flag-date" aria-hidden="true">30 сентября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе" aria-label="Авторское право в информационном обществе – старт: 5 октября">
           <span aria-hidden="true">Авторское право в информационном обществе</span>
         </a>
         <span class="flag-date" aria-hidden="true">5 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)" aria-label="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме) – старт: 13 октября">
           <span aria-hidden="true">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
         </a>
         <span class="flag-date" aria-hidden="true">13 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация" aria-label="Бизнес-медиация – старт: 14 октября">
           <span aria-hidden="true">Бизнес-медиация</span>
         </a>
         <span class="flag-date" aria-hidden="true">14 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования" aria-label="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования – старт: 24 октября">
           <span aria-hidden="true">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
         </a>
         <span class="flag-date" aria-hidden="true">24 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)" aria-label="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation) – старт: 26 октября">
           <span aria-hidden="true">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
         </a>
         <span class="flag-date" aria-hidden="true">26 октября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая" aria-label="Введение в правовую систему Китая – старт: 2 ноября">
           <span aria-hidden="true">Введение в правовую систему Китая</span>
         </a>
         <span class="flag-date" aria-hidden="true">2 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право" aria-label="Английское контрактное право – старт: 9 ноября">
           <span aria-hidden="true">Английское контрактное право</span>
         </a>
         <span class="flag-date" aria-hidden="true">9 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж" aria-label="Морской арбитраж – старт: 10 ноября">
           <span aria-hidden="true">Морской арбитраж</span>
         </a>
         <span class="flag-date" aria-hidden="true">10 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы" aria-label="Корпоративное право: основные проблемы – старт: 16 ноября">
           <span aria-hidden="true">Корпоративное право: основные проблемы</span>
         </a>
         <span class="flag-date" aria-hidden="true">16 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов" aria-label="Техники эффективного анализа юридических документов – старт: 16 ноября">
           <span aria-hidden="true">Техники эффективного анализа юридических документов</span>
         </a>
         <span class="flag-date" aria-hidden="true">16 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии" aria-label="Деловые переговоры: правовые стратегии – старт: 17 ноября">
           <span aria-hidden="true">Деловые переговоры: правовые стратегии</span>
         </a>
         <span class="flag-date" aria-hidden="true">17 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право" aria-label="Транспортное право – старт: 18 ноября">
           <span aria-hidden="true">Транспортное право</span>
         </a>
         <span class="flag-date" aria-hidden="true">18 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag down">
+      <div class="flag up">
         <a class="flag-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права" aria-label="Общие вопросы договорного права – старт: 25 ноября">
           <span aria-hidden="true">Общие вопросы договорного права</span>
         </a>
         <span class="flag-date" aria-hidden="true">25 ноября</span>
         <span class="flag-pin" aria-hidden="true"></span>
       </div>
-      <div class="flag up">
+      <div class="flag down">
         <a class="flag-card" href="programs/neyropravo-905186485.html" title="Нейроправо" aria-label="Нейроправо – старт: 30 ноября">
           <span aria-hidden="true">Нейроправо</span>
         </a>
@@ -892,7 +900,7 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Актуальные вопросы гражданского права</h3>
-      <div class="meta">Онлайн асинхронный</div>
+      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
       </a>
       <div class="foot">
         <span class="price">22 000 ₽</span>
@@ -906,13 +914,13 @@
         </span>
       </div>
     </div>
-    <div class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="45000" data-start="1788210000000" data-title="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers" data-search="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers пк онлайн асинхронный старт: 1 сентября 2026 г.">
+    <div class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="45000" data-start="1788210000000" data-title="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers" data-search="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers пк онлайн асинхронный">
       <a href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/959312137.jpg" alt="Обложка программы «Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers»" loading="lazy"></span>
       <span class="badge">ПК</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</h3>
-      <div class="meta">Онлайн асинхронный · Старт: 1 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -932,7 +940,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</h3>
-      <div class="meta">Онлайн асинхронный · Старт: 7 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 7 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">57 000 ₽</span>
@@ -952,7 +961,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Правовые вопросы банкротства: теории и практики</h3>
-      <div class="meta">Онлайн синхронный · Старт: 10 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 10 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -972,7 +982,8 @@
       <span class="badge">ПП</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Французское (европейское) экономическое право / Droit économique français (européen)</h3>
-      <div class="meta">Смешанный · Старт: 14 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Диплом</span></span>
+      <div class="meta">Старт: 14 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">180 000 ₽</span>
@@ -992,7 +1003,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Контрактное право Гонконга</h3>
-      <div class="meta">Онлайн синхронный · Старт: 15 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 15 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -1012,7 +1024,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Персональный ассистент PRO</h3>
-      <div class="meta">Смешанный · 2 недели · Старт: 19 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">2 недели · Старт: 19 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">47 000 ₽</span>
@@ -1032,7 +1045,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Интеллектуальная собственность: от закона к практике</h3>
-      <div class="meta">Очный · 6 недель · Старт: 21 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">6 недель · Старт: 21 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1052,7 +1066,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Цифровое право для бизнеса</h3>
-      <div class="meta">Онлайн синхронный · 1,5 месяца · Старт: 23 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">1,5 месяца · Старт: 23 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">55 000 ₽</span>
@@ -1072,7 +1087,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Международное частное право: трансграничные операции</h3>
-      <div class="meta">Смешанный · 1,5 месяца · Старт: 24 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">1,5 месяца · Старт: 24 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -1092,7 +1108,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Исламские финансы: правовые основы, комплаенс и бизнес-практика</h3>
-      <div class="meta">Онлайн синхронный · 3 месяца · Старт: 28 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">3 месяца · Старт: 28 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">78 000 ₽</span>
@@ -1112,7 +1129,8 @@
       <span class="badge">ПП</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Право на английском / Legal English</h3>
-      <div class="meta">Гибридный (обучение проходит очно и параллельно в онлайн) · 8 месяцев · Старт: 30 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Гибридный</span><span class="tag tag-doc">Диплом</span></span>
+      <div class="meta">8 месяцев · Старт: 30 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">130 000 ₽</span>
@@ -1132,7 +1150,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Авторское право в информационном обществе</h3>
-      <div class="meta">Очный · 5 недель · Старт: 5 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">5 недель · Старт: 5 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">75 000 ₽</span>
@@ -1152,7 +1171,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</h3>
-      <div class="meta">Гибридный (обучение проходит очно и параллельно в онлайн) · Старт: 13 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Гибридный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 13 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">150 000 ₽</span>
@@ -1172,7 +1192,8 @@
       <span class="badge">ПП</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Бизнес-медиация</h3>
-      <div class="meta">Смешанный · 6 месяцев · Старт: 14 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Диплом</span></span>
+      <div class="meta">6 месяцев · Старт: 14 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">390 000 ₽</span>
@@ -1191,7 +1212,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</h3>
-      <div class="meta">Очный · Старт: 24 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 24 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">40 000 ₽</span>
@@ -1211,7 +1233,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</h3>
-      <div class="meta">Онлайн синхронный · Старт: 26 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 26 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">90 000 ₽</span>
@@ -1231,7 +1254,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Введение в правовую систему Китая</h3>
-      <div class="meta">Онлайн синхронный · Старт: 2 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 2 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">125 000 ₽</span>
@@ -1251,7 +1275,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Английское контрактное право</h3>
-      <div class="meta">Онлайн синхронный · 1 месяц · Старт: 9 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">1 месяц · Старт: 9 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -1271,7 +1296,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Морской арбитраж</h3>
-      <div class="meta">Онлайн синхронный · Старт: 10 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 10 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">60 000 ₽</span>
@@ -1291,7 +1317,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Корпоративное право: основные проблемы</h3>
-      <div class="meta">Онлайн синхронный · 5 недель · Старт: 16 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">5 недель · Старт: 16 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">60 000 ₽</span>
@@ -1311,7 +1338,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Техники эффективного анализа юридических документов</h3>
-      <div class="meta">Онлайн синхронный · 4 недели · Старт: 16 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">4 недели · Старт: 16 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">40 000 ₽</span>
@@ -1331,7 +1359,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Деловые переговоры: правовые стратегии</h3>
-      <div class="meta">Смешанный · 5 недель · Старт: 17 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">5 недель · Старт: 17 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1351,7 +1380,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Транспортное право</h3>
-      <div class="meta">Онлайн синхронный · 1 месяц · Старт: 18 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">1 месяц · Старт: 18 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1371,7 +1401,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Общие вопросы договорного права</h3>
-      <div class="meta">Онлайн синхронный · 3 недели · Старт: 25 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">3 недели · Старт: 25 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">40 000 ₽</span>
@@ -1391,7 +1422,8 @@
       <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Нейроправо</h3>
-      <div class="meta">Очный · Старт: 30 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <div class="meta">Старт: 30 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>

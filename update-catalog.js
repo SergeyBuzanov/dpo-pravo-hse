@@ -130,7 +130,10 @@ function renderCard(item) {
   // «Старт: …» – единая подпись всех витрин (upcomingStartLabel): прошедшая
   // или отсутствующая дата не выводится вовсе, «уточняется» не подставляется.
   const date = upcomingStartLabel(item);
-  const metaBits = [format, item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
+  // Формат ушёл из строки меты в пилюлю .card-tags (просьба заказчика
+  // 02.09.2026); в data-search он остаётся – поиск по «онлайн» должен
+  // находить карточки, как раньше.
+  const metaBits = [item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
   const search = escapeHtml(
     [item.title, typeShort, format, item.duration, date].filter(Boolean).join(' ').toLowerCase(),
   );
@@ -173,6 +176,22 @@ function renderCard(item) {
     ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="${escapeHtml(`Обложка программы «${item.title}»`)}" loading="lazy"></span>`
     : '';
 
+  // Пометки формата и итогового документа (просьба заказчика 02.09.2026):
+  // формат – без скобочного пояснения («Гибридный (обучение проходит…)» в
+  // пилюлю не влезает, полный вариант остаётся на странице программы),
+  // документ – одним словом по типу программы. Полные имена документов –
+  // в DOC_BY_TYPE страниц программ (scripts/build-program-pages.js).
+  const shortFormat = format.replace(/\s*\(.*\)\s*$/, '');
+  const docShort = typeShort === 'ПК' ? 'Удостоверение' : typeShort === 'ПП' ? 'Диплом' : '';
+  const tags = [
+    shortFormat ? `<span class="tag">${escapeHtml(shortFormat)}</span>` : '',
+    docShort ? `<span class="tag tag-doc">${docShort}</span>` : '',
+  ].filter(Boolean);
+  const tagsLine = tags.length
+    ? `\n      <span class="card-tags">${tags.join('')}</span>`
+    : '';
+  const metaLine = metaBits ? `\n      <div class="meta">${metaBits}</div>` : '';
+
   // Карточка – <div> с растянутой ссылкой внутри (01.09.2026): раньше вся
   // карточка была <a>, и кнопку «Заявка» внутрь положить было нельзя –
   // интерактивный элемент в интерактивном. Ссылка .card-link накрывает
@@ -182,8 +201,7 @@ function renderCard(item) {
   return `    <div class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
       <a href="${href}" class="card-link">${thumbLine}
       <span class="badge">${typeShort}</span>${sphereLine}
-      <h3>${escapeHtml(item.title)}</h3>
-      <div class="meta">${metaBits}</div>
+      <h3>${escapeHtml(item.title)}</h3>${tagsLine}${metaLine}
       </a>
       <div class="foot">
         <span class="price">${escapeHtml(formatPrice(item))}</span>

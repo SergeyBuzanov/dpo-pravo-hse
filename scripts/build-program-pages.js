@@ -364,8 +364,7 @@ function renderAbout(p) {
       : '';
   return `      <section class="block">
         <h2>О программе</h2>
-${lead}${body}        <p class="about-source">Описание с официальной страницы программы на hse.ru.</p>
-      </section>`;
+${lead}${body}      </section>`;
 }
 
 /** «Для кого»: подводка и список аудиторий со страницы программы. */
@@ -1067,7 +1066,6 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
    обнуляются, и маркер на background там бы исчез. */
 .about-list li::before{content:"";position:absolute;left:2px;top:19px;width:0;height:0;
   border:3px solid rgb(var(--accent));border-radius:999px}
-.about-source{font-size:13px;color:var(--ink-mute);margin:0}
 /* Мера строки: длинные текстовые блоки держим около 72ch, сетка колонок
    при этом не меняется – ограничивается только ширина самого текста. */
 .about-lead,.about-body,.about-list li,.block-sub,.block-note,.slot,

@@ -177,6 +177,18 @@ function kindLabel(p) {
 }
 
 /**
+ * Итоговый документ одним словом – для пометок в карточках программ
+ * (просьба заказчика 02.09.2026). Полные имена документов живут в
+ * DOC_BY_TYPE страниц программ (scripts/build-program-pages.js).
+ */
+function docLabel(p) {
+  const s = (p.type && (p.type.shortTitle || p.type.title)) || '';
+  if (s === 'ПК') return 'Удостоверение';
+  if (s === 'ПП') return 'Диплом';
+  return '';
+}
+
+/**
  * Формат без пояснения в скобках: «Гибридный (обучение проходит очно и
  * параллельно в онлайн)» в строке меты карточки сферы занимал бы три строки.
  * Пояснение остаётся на странице программы, где ему и место.
@@ -931,7 +943,11 @@ function renderTop5Data(template, programs) {
       `title: '${q(enDash(p.title))}'`,
       `tagline: '${q(tagline)}'`,
       `kind: '${q(kindLabel(p))}'`,
-      `format: '${q((p.studyFormat && p.studyFormat.title) || '')}'`,
+      // Формат без скобочного пояснения: длинный «Гибридный (…)» не влезает
+      // в подвал тайла. Документ – пометка заказчика 02.09.2026: по тайлу
+      // сразу видно, что выдаётся по окончании.
+      `format: '${q(shortFormat(p))}'`,
+      `doc: '${q(docLabel(p))}'`,
       `duration: '${q(p.duration || '')}'`,
       `price: '${q(priceOf(p))}'`,
       `href: '${q(programHref(p))}'`,
