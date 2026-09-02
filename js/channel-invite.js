@@ -104,6 +104,22 @@
     // его не берёт: он остаётся единственным цветным пятном на чёрно-белой
     // странице (замер 21.08.2026: 3 768 цветных пикселей из 1,3 млн).
     'html.vi-mode #channelInvite .ci-icon img{filter:grayscale(1) contrast(1.2)!important}',
+    // Свёрнутое состояние (решение владельца 02.09.2026, контрольная
+    // критика): ниже первого экрана карточка глушила цены и кнопки
+    // «Подать заявку» у форматов, «Топ-5» и сфер. За пределами героя
+    // остаётся только круглый бейдж-аватар, полная карточка – по клику.
+    '#channelInvite.ci-collapsed{display:none}',
+    '#channelInviteBadge{position:fixed;right:16px;bottom:16px;z-index:900;width:48px;height:48px;',
+    'border-radius:999px;padding:0;border:1px solid rgb(var(--ink) / .18);background:rgb(var(--surface));',
+    'box-shadow:0 8px 24px rgb(var(--ink) / .18);cursor:pointer;display:none;align-items:center;justify-content:center;overflow:hidden;',
+    'opacity:0;transform:translateY(8px);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1)}',
+    '#channelInviteBadge.ci-on{display:flex}',
+    '#channelInviteBadge.ci-in{opacity:1;transform:none}',
+    '#channelInviteBadge img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}',
+    '#channelInviteBadge:hover{box-shadow:0 10px 28px rgb(var(--ink) / .26)}',
+    '@media (prefers-reduced-motion:reduce){#channelInviteBadge{transition:none;transform:none}}',
+    'html.vi-mode #channelInviteBadge{border:2px solid #000!important}',
+    'html.vi-mode #channelInviteBadge img{filter:grayscale(1) contrast(1.2)!important}',
   ].join('');
 
   function remember() {
@@ -156,10 +172,6 @@
     join.target = '_blank';
     join.rel = 'noopener noreferrer';
     join.textContent = 'Подписаться';
-    join.addEventListener('click', function () {
-      remember();
-      box.remove();
-    });
     body.append(title, desc, join);
 
     var close = document.createElement('button');
@@ -167,17 +179,86 @@
     close.className = 'ci-close';
     close.setAttribute('aria-label', 'Закрыть приглашение');
     close.innerHTML = '&times;';
-    close.addEventListener('click', function () {
-      remember();
-      box.remove();
-    });
+    // Обработчики закрытия (крестик и «Подписаться») навешиваются ниже
+    // единой функцией dismiss: она убирает и карточку, и бейдж.
 
     box.append(icon, body, close);
     document.body.append(box);
+
+    // Бейдж-аватар для свёрнутого состояния. Кнопка, а не div: свёрнутое
+    // приглашение обязано открываться с клавиатуры.
+    var badge = document.createElement('button');
+    badge.type = 'button';
+    badge.id = 'channelInviteBadge';
+    badge.setAttribute('aria-label', 'Открыть приглашение на канал «' + CHANNEL.title + '»');
+    if (CHANNEL.icon) {
+      var badgeImg = document.createElement('img');
+      badgeImg.src = CHANNEL.icon;
+      badgeImg.alt = '';
+      badge.appendChild(badgeImg);
+    } else {
+      badge.innerHTML =
+        '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 3 2.8 9l4.6 1.8L15 5.5l-5.4 6.4 5.9 4.1z"/></svg>';
+    }
+    document.body.append(badge);
+
+    /**
+     * Полная карточка живёт только в пределах первого экрана (решение
+     * владельца 02.09.2026): ниже героя она перекрывала цены и кнопки
+     * заявки у форматов, «Топ-5» и сфер. За героем остаётся бейдж;
+     * клик по нему разворачивает карточку до закрытия или ухода к герою.
+     */
+    var hero = document.getElementById('top');
+    var manualOpen = false;
+    var pastHero = function () {
+      if (!hero) return window.scrollY > window.innerHeight * 0.85;
+      return hero.getBoundingClientRect().bottom < 120;
+    };
+    var sync = function () {
+      var collapsed = !manualOpen && pastHero();
+      box.classList.toggle('ci-collapsed', collapsed);
+      var wasOn = badge.classList.contains('ci-on');
+      badge.classList.toggle('ci-on', collapsed);
+      if (collapsed && !wasOn) {
+        requestAnimationFrame(function () {
+          badge.classList.add('ci-in');
+        });
+      }
+      if (!collapsed) badge.classList.remove('ci-in');
+    };
+    badge.addEventListener('click', function () {
+      manualOpen = true;
+      sync();
+      var focusable = box.querySelector('.ci-join');
+      if (focusable) focusable.focus();
+    });
+    // Вернулся к герою после ручного раскрытия – правило снова действует.
+    var ticking = false;
+    var onScroll = function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        if (manualOpen && !pastHero()) manualOpen = false;
+        sync();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    var dismiss = function () {
+      remember();
+      box.remove();
+      badge.remove();
+      window.removeEventListener('scroll', onScroll);
+    };
+    close.addEventListener('click', dismiss);
+    join.addEventListener('click', dismiss);
+
+    sync();
     requestAnimationFrame(function () {
       box.classList.add('is-open');
     });
-    keepAboveBottomBars(box);
+    keepAboveBottomBars(box, badge);
   }
 
   /**
@@ -193,7 +274,7 @@
    * не останавливается, пока карточка на экране: панель появляется и
    * исчезает при смене ширины окна и в режиме для слабовидящих.
    */
-  function keepAboveBottomBars(box) {
+  function keepAboveBottomBars(box, badge) {
     var topOf = function (node) {
       if (!node || !node.offsetHeight) return null;
       var rect = node.getBoundingClientRect();
@@ -208,17 +289,20 @@
       ].filter(function (value) {
         return value != null;
       });
-      if (!tops.length) {
-        box.style.bottom = '16px';
-        return false;
+      // Приподнимаются оба представления: карточка и бейдж (видимо в
+      // каждый момент только одно, но bottom держим у обоих).
+      var bottom = '16px';
+      if (tops.length) {
+        var overlap = window.innerHeight - Math.min.apply(null, tops);
+        bottom = Math.max(16, overlap + 12) + 'px';
       }
-      var overlap = window.innerHeight - Math.min.apply(null, tops);
-      box.style.bottom = Math.max(16, overlap + 12) + 'px';
-      return true;
+      box.style.bottom = bottom;
+      if (badge) badge.style.bottom = bottom;
+      return tops.length > 0;
     };
     place();
     var timer = setInterval(function () {
-      if (!document.body.contains(box)) {
+      if (!document.body.contains(box) && !(badge && document.body.contains(badge))) {
         clearInterval(timer);
         return;
       }
