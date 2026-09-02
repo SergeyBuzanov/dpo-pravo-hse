@@ -268,7 +268,19 @@
   .filters:first-of-type{
     position: sticky; top: var(--header-h); z-index: 15;
     padding-top: 16px; padding-bottom: 14px;
-    border-bottom: 1px solid var(--line);
+  }
+  /* Scroll-edge и у липкой полосы фильтров – карточки уходят под неё
+     тем же мягким затуханием, что под шапку (apple-design, разд. 12). */
+  .filters:first-of-type::after{
+    content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px;
+    background: linear-gradient(rgb(var(--ink) / 0.08), transparent);
+    pointer-events: none;
+  }
+  html.vi-mode .filters:first-of-type{ border-bottom: 1px solid #000 !important; }
+  html.vi-mode .filters:first-of-type::after{ display: none !important; }
+  @media (prefers-contrast: more){
+    .filters:first-of-type{ border-bottom: 1px solid rgb(var(--ink)); }
+    .filters:first-of-type::after{ display: none; }
   }
   /* Фильтры жмут помногу раз за визит, поэтому по частотному гейту здесь
      остались только цвет и граница; подъём при наведении и пульс при выборе
