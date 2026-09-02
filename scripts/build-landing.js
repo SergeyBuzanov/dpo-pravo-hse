@@ -41,6 +41,7 @@ const { programHref } = require('../lib/program-slug');
 // или отсутствующая дата не выводится вовсе.
 const { safeHseUrl, upcomingStartLabel, formatDate } = require('../lib/hse-catalog');
 const { canonicalTeacherName } = require('../lib/teacher-names');
+const labels = require('../lib/program-labels');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -176,17 +177,6 @@ function kindLabel(p) {
   return s || 'Программа ДПО';
 }
 
-/**
- * Итоговый документ одним словом – для пометок в карточках программ
- * (просьба заказчика 02.09.2026). Полные имена документов живут в
- * DOC_BY_TYPE страниц программ (scripts/build-program-pages.js).
- */
-function docLabel(p) {
-  const s = (p.type && (p.type.shortTitle || p.type.title)) || '';
-  if (s === 'ПК') return 'Удостоверение';
-  if (s === 'ПП') return 'Диплом';
-  return '';
-}
 
 /**
  * Формат без пояснения в скобках: «Гибридный (обучение проходит очно и
@@ -194,7 +184,7 @@ function docLabel(p) {
  * Пояснение остаётся на странице программы, где ему и место.
  */
 function shortFormat(p) {
-  return String(p.studyFormat?.title || '').replace(/\s*\(.*\)\s*$/, '');
+  return labels.shortFormat(p.studyFormat?.title);
 }
 
 /**
@@ -929,6 +919,7 @@ function renderTop5Data(template, programs) {
       const thumb = `images/programs/thumbs/${p.id}.jpg`;
       image = fs.existsSync(path.join(ROOT, thumb)) ? thumb : p.image;
     }
+    const doc = labels.docBadge(p.type);
     // Подводка: tagline, иначе первое предложение описания. Выдумывать нечего –
     // если нет ни того, ни другого, строка остаётся пустой.
     const source = String(p.tagline || p.about || '').trim();
@@ -943,11 +934,14 @@ function renderTop5Data(template, programs) {
       `title: '${q(enDash(p.title))}'`,
       `tagline: '${q(tagline)}'`,
       `kind: '${q(kindLabel(p))}'`,
-      // Формат без скобочного пояснения: длинный «Гибридный (…)» не влезает
-      // в подвал тайла. Документ – пометка заказчика 02.09.2026: по тайлу
-      // сразу видно, что выдаётся по окончании.
+      // Овалы-пометки тайла (указание заказчика 02.09.2026): формат без
+      // скобочного пояснения, тип документа КАК ТИП (ПК/ПП/…), рядом
+      // продолжительность; расшифровки формата и типа – в подсказках
+      // data-tip. Тексты общие с каталогом: lib/program-labels.js.
       `format: '${q(shortFormat(p))}'`,
-      `doc: '${q(docLabel(p))}'`,
+      `formatTip: '${q(labels.formatTip(p.studyFormat && p.studyFormat.title))}'`,
+      `doc: '${q(doc ? doc.label : '')}'`,
+      `docTip: '${q(doc ? doc.tip : '')}'`,
       `duration: '${q(p.duration || '')}'`,
       `price: '${q(priceOf(p))}'`,
       `href: '${q(programHref(p))}'`,

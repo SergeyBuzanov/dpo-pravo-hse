@@ -460,21 +460,22 @@
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(11, 42, 105, 0.55) 0%, rgba(6, 23, 57, 0.72) 100%);
   }
-  .card .badge{
-    align-self: flex-start; font-size: 12.5px; font-weight: 700;
-    padding: 4px 11px; border-radius: var(--radius-sm); background: var(--bg-tint); color: rgb(var(--accent));
-  }
-  /* Метка сферы: тонкая строка между бейджем и названием. Не синяя и не
+  /* Бейдж «ПК»/«ПП» над сферой снят 02.09.2026 (вторая итерация пометок,
+     решение заказчика): тип программы теперь показывает овал документа в
+     ряду .card-tags, бейдж дублировал его на той же карточке. */
+  /* Метка сферы: тонкая строка над названием. Не синяя и не
      прописная – это справка о принадлежности, а не действие и не ярлык. */
   .card .sphere{
     font-size: 12.5px; line-height: 1.4; color: var(--ink-mute);
     margin: -6px 0 -4px;
   }
   .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0; }
-  /* Пометки формата и итогового документа под названием – просьба заказчика
-     02.09.2026: оба фактора должны читаться с карточки мгновенно, а не
-     выуживаться из строки меты. Формат – синяя пилюля (действующий признак,
-     по нему есть фильтр), документ – нейтральная: это справка об итоге.
+  /* Овалы-пометки под названием – указание заказчика 02.09.2026 (вторая
+     итерация): формат, тип итогового документа (ПК/ПП/…) и
+     продолжительность должны читаться с карточки мгновенно. Формат –
+     синий (действующий признак, по нему есть фильтр), документ –
+     пергаментный, продолжительность – контурный. У формата и документа
+     расшифровка в data-tip показывается при наведении.
      Разметку пишет renderCard в update-catalog.js. */
   .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; }
   .card .tag{
@@ -483,6 +484,33 @@
     background: rgb(var(--accent) / 0.09); color: rgb(var(--accent));
   }
   .card .tag-doc{ background: var(--bg-tint); color: var(--ink-soft); }
+  .card .tag-dur{
+    background: transparent; color: var(--ink-mute);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  /* Подсказка при наведении. Овалы лежат внутри растянутой ссылки
+     .card-link, чей ::after накрывает карточку, – без подъёма по z-index
+     ховер до овала не дошёл бы (тот же приём, что у кнопки «Заявка»).
+     Только там, где есть курсор: на тач-экране подсказке взяться неоткуда,
+     расшифровка есть на странице программы. */
+  @media (hover: hover) and (pointer: fine){
+    .card .tag[data-tip]{ position: relative; z-index: 1; cursor: help; }
+    .card .tag[data-tip]::after{
+      content: attr(data-tip);
+      position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 5;
+      width: max-content; max-width: 250px;
+      font-size: 12.5px; font-weight: 400; line-height: 1.45;
+      background: rgb(var(--ink)); color: rgb(var(--surface));
+      padding: 8px 12px; border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgb(var(--ink) / 0.25);
+      opacity: 0; visibility: hidden; transform: translateY(3px);
+      transition: opacity .16s ease, transform .16s ease, visibility .16s;
+      pointer-events: none;
+    }
+    .card .tag[data-tip]:hover::after{
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+  }
   .card .meta{ font-size: 13.5px; color: var(--ink-mute); line-height: 1.5; }
   /* Ссылка карточки (01.09.2026): карточка стала <div>, чтобы в подвале
      жила кнопка «Заявка» – интерактивное в интерактивном невалидно.
@@ -540,7 +568,8 @@
   }
 
   @media (prefers-reduced-motion: reduce){
-    .chip, .card, .empty, .card .go{ transition: none !important; animation: none !important; }
+    .chip, .card, .empty, .card .go, .card .tag[data-tip]::after{ transition: none !important; animation: none !important; }
+    .card .tag[data-tip]::after{ transform: none; }
     .card.is-leaving, .card.is-entering{ filter: none; transform: none; }
   }
 
@@ -646,7 +675,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 2 сентября 2026 г. в 21:25, программ: 26 -->
+<!-- каталог обновлён: 2 сентября 2026 г. в 21:50, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 
@@ -897,10 +926,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="22000" data-start="1788123600000" data-title="актуальные вопросы гражданского права" data-search="актуальные вопросы гражданского права пк онлайн асинхронный">
       <a href="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/958734693.jpg" alt="Обложка программы «Актуальные вопросы гражданского права»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Актуальные вопросы гражданского права</h3>
-      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия в записи: материалы проходят в удобное время, без привязки к расписанию.">Онлайн асинхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       </a>
       <div class="foot">
         <span class="price">22 000 ₽</span>
@@ -917,10 +945,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="45000" data-start="1788210000000" data-title="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers" data-search="мастерство юридического английского: продвинутые навыки для юристов / legal english mastery: advanced skills for lawyers пк онлайн асинхронный">
       <a href="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/959312137.jpg" alt="Обложка программы «Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers</h3>
-      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия в записи: материалы проходят в удобное время, без привязки к расписанию.">Онлайн асинхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -937,10 +964,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="57000" data-start="1788728400000" data-title="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" data-search="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса пк онлайн асинхронный старт: 7 сентября 2026 г.">
       <a href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/1129129055.jpg" alt="Обложка программы «Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</h3>
-      <span class="card-tags"><span class="tag">Онлайн асинхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия в записи: материалы проходят в удобное время, без привязки к расписанию.">Онлайн асинхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 7 сентября 2026 г.</div>
       </a>
       <div class="foot">
@@ -958,10 +984,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="50000" data-start="1788987600000" data-title="правовые вопросы банкротства: теории и практики" data-search="правовые вопросы банкротства: теории и практики пк онлайн синхронный старт: 10 сентября 2026 г.">
       <a href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/1008772871.jpg" alt="Обложка программы «Правовые вопросы банкротства: теории и практики»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Правовые вопросы банкротства: теории и практики</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 10 сентября 2026 г.</div>
       </a>
       <div class="foot">
@@ -979,10 +1004,9 @@
     <div class="card" data-type="ПП" data-format="mixed" data-sphere="international" data-duration="unknown" data-price="180000" data-start="1789333200000" data-title="французское (европейское) экономическое право / droit économique français (européen)" data-search="французское (европейское) экономическое право / droit économique français (européen) пп смешанный старт: 14 сентября 2026 г.">
       <a href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/961021723.jpg" alt="Обложка программы «Французское (европейское) экономическое право / Droit économique français (européen)»" loading="lazy"></span>
-      <span class="badge">ПП</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Французское (европейское) экономическое право / Droit économique français (européen)</h3>
-      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Диплом</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Часть занятий проходит очно, часть – онлайн.">Смешанный</span><span class="tag tag-doc" data-tip="Профессиональная переподготовка. Итоговый документ – диплом о профессиональной переподготовке НИУ ВШЭ.">ПП</span></span>
       <div class="meta">Старт: 14 сентября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1000,10 +1024,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="unknown" data-price="50000" data-start="1789419600000" data-title="контрактное право гонконга" data-search="контрактное право гонконга пк онлайн синхронный старт: 15 сентября 2026 г.">
       <a href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/1025688553.jpg" alt="Обложка программы «Контрактное право Гонконга»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Контрактное право Гонконга</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 15 сентября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1021,11 +1044,10 @@
     <div class="card" data-type="ПК" data-format="mixed" data-sphere="practice" data-duration="short" data-price="47000" data-start="1789765200000" data-title="персональный ассистент pro" data-search="персональный ассистент pro пк смешанный 2 недели старт: 19 сентября 2026 г.">
       <a href="programs/personalnyy-assistent-pro-829977883.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/829977883.jpg" alt="Обложка программы «Персональный ассистент PRO»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Персональный ассистент PRO</h3>
-      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">2 недели · Старт: 19 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Часть занятий проходит очно, часть – онлайн.">Смешанный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">2 недели</span></span>
+      <div class="meta">Старт: 19 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">47 000 ₽</span>
@@ -1042,11 +1064,10 @@
     <div class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="short" data-price="45000" data-start="1789938000000" data-title="интеллектуальная собственность: от закона к практике" data-search="интеллектуальная собственность: от закона к практике пк очный 6 недель старт: 21 сентября 2026 г.">
       <a href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/816497962.jpg" alt="Обложка программы «Интеллектуальная собственность: от закона к практике»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Интеллектуальная собственность: от закона к практике</h3>
-      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">6 недель · Старт: 21 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно, в аудиториях факультета права НИУ ВШЭ в Москве.">Очный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">6 недель</span></span>
+      <div class="meta">Старт: 21 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1063,11 +1084,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="digital" data-duration="medium" data-price="55000" data-start="1790110800000" data-title="цифровое право для бизнеса" data-search="цифровое право для бизнеса пк онлайн синхронный 1,5 месяца старт: 23 сентября 2026 г.">
       <a href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/837181759.jpg" alt="Обложка программы «Цифровое право для бизнеса»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Цифровое право для бизнеса</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">1,5 месяца · Старт: 23 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">1,5 месяца</span></span>
+      <div class="meta">Старт: 23 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">55 000 ₽</span>
@@ -1084,11 +1104,10 @@
     <div class="card" data-type="ПК" data-format="mixed" data-sphere="international" data-duration="medium" data-price="50000" data-start="1790197200000" data-title="международное частное право: трансграничные операции" data-search="международное частное право: трансграничные операции пк смешанный 1,5 месяца старт: 24 сентября 2026 г.">
       <a href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/474599435.jpg" alt="Обложка программы «Международное частное право: трансграничные операции»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Международное частное право: трансграничные операции</h3>
-      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">1,5 месяца · Старт: 24 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Часть занятий проходит очно, часть – онлайн.">Смешанный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">1,5 месяца</span></span>
+      <div class="meta">Старт: 24 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -1105,11 +1124,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="medium" data-price="78000" data-start="1790542800000" data-title="исламские финансы: правовые основы, комплаенс и бизнес-практика" data-search="исламские финансы: правовые основы, комплаенс и бизнес-практика пк онлайн синхронный 3 месяца старт: 28 сентября 2026 г.">
       <a href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/814248062.jpg" alt="Обложка программы «Исламские финансы: правовые основы, комплаенс и бизнес-практика»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Исламские финансы: правовые основы, комплаенс и бизнес-практика</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">3 месяца · Старт: 28 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">3 месяца</span></span>
+      <div class="meta">Старт: 28 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">78 000 ₽</span>
@@ -1126,11 +1144,10 @@
     <div class="card" data-type="ПП" data-format="hybrid" data-sphere="language" data-duration="long" data-price="130000" data-start="1790715600000" data-title="право на английском / legal english" data-search="право на английском / legal english пп гибридный (обучение проходит очно и параллельно в онлайн) 8 месяцев старт: 30 сентября 2026 г.">
       <a href="programs/pravo-na-angliyskom-legal-english-474776084.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/474776084.jpg" alt="Обложка программы «Право на английском / Legal English»" loading="lazy"></span>
-      <span class="badge">ПП</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Право на английском / Legal English</h3>
-      <span class="card-tags"><span class="tag">Гибридный</span><span class="tag tag-doc">Диплом</span></span>
-      <div class="meta">8 месяцев · Старт: 30 сентября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно и параллельно транслируются онлайн – способ участия можно выбирать.">Гибридный</span><span class="tag tag-doc" data-tip="Профессиональная переподготовка. Итоговый документ – диплом о профессиональной переподготовке НИУ ВШЭ.">ПП</span><span class="tag tag-dur">8 месяцев</span></span>
+      <div class="meta">Старт: 30 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">130 000 ₽</span>
@@ -1147,11 +1164,10 @@
     <div class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="short" data-price="75000" data-start="1791147600000" data-title="авторское право в информационном обществе" data-search="авторское право в информационном обществе пк очный 5 недель старт: 5 октября 2026 г.">
       <a href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/472681893.jpg" alt="Обложка программы «Авторское право в информационном обществе»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Авторское право в информационном обществе</h3>
-      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">5 недель · Старт: 5 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно, в аудиториях факультета права НИУ ВШЭ в Москве.">Очный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">5 недель</span></span>
+      <div class="meta">Старт: 5 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">75 000 ₽</span>
@@ -1168,10 +1184,9 @@
     <div class="card" data-type="ПК" data-format="hybrid" data-sphere="practice" data-duration="unknown" data-price="150000" data-start="1791838800000" data-title="правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (gr в фарме)" data-search="правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (gr в фарме) пк гибридный (обучение проходит очно и параллельно в онлайн) старт: 13 октября 2026 г.">
       <a href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/1163275658.jpg" alt="Обложка программы «Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</h3>
-      <span class="card-tags"><span class="tag">Гибридный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно и параллельно транслируются онлайн – способ участия можно выбирать.">Гибридный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 13 октября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1189,11 +1204,10 @@
     <div class="card" data-type="ПП" data-format="mixed" data-sphere="practice" data-duration="long" data-price="390000" data-start="1791925200000" data-title="бизнес-медиация" data-search="бизнес-медиация пп смешанный 6 месяцев старт: 14 октября 2026 г.">
       <a href="programs/biznes-mediatsiya-494685723.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/494685723.jpg" alt="Обложка программы «Бизнес-медиация»" loading="lazy"></span>
-      <span class="badge">ПП</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Бизнес-медиация</h3>
-      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Диплом</span></span>
-      <div class="meta">6 месяцев · Старт: 14 октября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Часть занятий проходит очно, часть – онлайн.">Смешанный</span><span class="tag tag-doc" data-tip="Профессиональная переподготовка. Итоговый документ – диплом о профессиональной переподготовке НИУ ВШЭ.">ПП</span><span class="tag tag-dur">6 месяцев</span></span>
+      <div class="meta">Старт: 14 октября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">390 000 ₽</span>
@@ -1209,10 +1223,9 @@
     </div>
     <div class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="unknown" data-price="40000" data-start="1792789200000" data-title="безопасное внедрение цифровых инструментов в кадровую работу: юридические требования" data-search="безопасное внедрение цифровых инструментов в кадровую работу: юридические требования пк очный старт: 24 октября 2026 г.">
       <a href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" class="card-link">
-      <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</h3>
-      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно, в аудиториях факультета права НИУ ВШЭ в Москве.">Очный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 24 октября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1230,10 +1243,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="language" data-duration="unknown" data-price="90000" data-start="1792962000000" data-title="французский юридический язык: право, терминология и аргументация (le français juridique: droit, terminologie et argumentation)" data-search="французский юридический язык: право, терминология и аргументация (le français juridique: droit, terminologie et argumentation) пк онлайн синхронный старт: 26 октября 2026 г.">
       <a href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/1057557281.jpg" alt="Обложка программы «Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Иностранные языки для юристов</div>
       <h3>Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 26 октября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1251,10 +1263,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="international" data-duration="unknown" data-price="125000" data-start="1793566800000" data-title="введение в правовую систему китая" data-search="введение в правовую систему китая пк онлайн синхронный старт: 2 ноября 2026 г.">
       <a href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/894108285.jpg" alt="Обложка программы «Введение в правовую систему Китая»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Введение в правовую систему Китая</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 2 ноября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1272,11 +1283,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="50000" data-start="1794171600000" data-title="английское контрактное право" data-search="английское контрактное право пк онлайн синхронный 1 месяц старт: 9 ноября 2026 г.">
       <a href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/856421092.jpg" alt="Обложка программы «Английское контрактное право»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Английское контрактное право</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">1 месяц · Старт: 9 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">1 месяц</span></span>
+      <div class="meta">Старт: 9 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">50 000 ₽</span>
@@ -1293,10 +1303,9 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="international" data-duration="unknown" data-price="60000" data-start="1794258000000" data-title="морской арбитраж" data-search="морской арбитраж пк онлайн синхронный старт: 10 ноября 2026 г.">
       <a href="programs/morskoy-arbitrazh-906651510.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/906651510.jpg" alt="Обложка программы «Морской арбитраж»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Международное и зарубежное право</div>
       <h3>Морской арбитраж</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 10 ноября 2026 г.</div>
       </a>
       <div class="foot">
@@ -1314,11 +1323,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="60000" data-start="1794776400000" data-title="корпоративное право: основные проблемы" data-search="корпоративное право: основные проблемы пк онлайн синхронный 5 недель старт: 16 ноября 2026 г.">
       <a href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/474596729.jpg" alt="Обложка программы «Корпоративное право: основные проблемы»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Корпоративное право: основные проблемы</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">5 недель · Старт: 16 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">5 недель</span></span>
+      <div class="meta">Старт: 16 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">60 000 ₽</span>
@@ -1335,11 +1343,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="practice" data-duration="short" data-price="40000" data-start="1794776400000" data-title="техники эффективного анализа юридических документов" data-search="техники эффективного анализа юридических документов пк онлайн синхронный 4 недели старт: 16 ноября 2026 г.">
       <a href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/820703080.jpg" alt="Обложка программы «Техники эффективного анализа юридических документов»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Техники эффективного анализа юридических документов</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">4 недели · Старт: 16 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">4 недели</span></span>
+      <div class="meta">Старт: 16 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">40 000 ₽</span>
@@ -1356,11 +1363,10 @@
     <div class="card" data-type="ПК" data-format="mixed" data-sphere="corporate" data-duration="short" data-price="45000" data-start="1794862800000" data-title="деловые переговоры: правовые стратегии" data-search="деловые переговоры: правовые стратегии пк смешанный 5 недель старт: 17 ноября 2026 г.">
       <a href="programs/delovye-peregovory-pravovye-strategii-589527758.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/589527758.jpg" alt="Обложка программы «Деловые переговоры: правовые стратегии»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Деловые переговоры: правовые стратегии</h3>
-      <span class="card-tags"><span class="tag">Смешанный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">5 недель · Старт: 17 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Часть занятий проходит очно, часть – онлайн.">Смешанный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">5 недель</span></span>
+      <div class="meta">Старт: 17 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1377,11 +1383,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="practice" data-duration="short" data-price="45000" data-start="1794949200000" data-title="транспортное право" data-search="транспортное право пк онлайн синхронный 1 месяц старт: 18 ноября 2026 г.">
       <a href="programs/transportnoe-pravo-802031223.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/802031223.jpg" alt="Обложка программы «Транспортное право»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Практика, переговоры и отраслевое регулирование</div>
       <h3>Транспортное право</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">1 месяц · Старт: 18 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">1 месяц</span></span>
+      <div class="meta">Старт: 18 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">45 000 ₽</span>
@@ -1398,11 +1403,10 @@
     <div class="card" data-type="ПК" data-format="online" data-sphere="corporate" data-duration="short" data-price="40000" data-start="1795554000000" data-title="общие вопросы договорного права" data-search="общие вопросы договорного права пк онлайн синхронный 3 недели старт: 25 ноября 2026 г.">
       <a href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/907279244.jpg" alt="Обложка программы «Общие вопросы договорного права»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Корпоративное и договорное право</div>
       <h3>Общие вопросы договорного права</h3>
-      <span class="card-tags"><span class="tag">Онлайн синхронный</span><span class="tag tag-doc">Удостоверение</span></span>
-      <div class="meta">3 недели · Старт: 25 ноября 2026 г.</div>
+      <span class="card-tags"><span class="tag" data-tip="Занятия идут онлайн в реальном времени, по расписанию, с преподавателем.">Онлайн синхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span><span class="tag tag-dur">3 недели</span></span>
+      <div class="meta">Старт: 25 ноября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">40 000 ₽</span>
@@ -1419,10 +1423,9 @@
     <div class="card" data-type="ПК" data-format="offline" data-sphere="digital" data-duration="unknown" data-price="50000" data-start="1795986000000" data-title="нейроправо" data-search="нейроправо пк очный старт: 30 ноября 2026 г.">
       <a href="programs/neyropravo-905186485.html" class="card-link">
       <span class="card-media" aria-hidden="true"><img class="card-thumb" src="images/programs/thumbs/905186485.jpg" alt="Обложка программы «Нейроправо»" loading="lazy"></span>
-      <span class="badge">ПК</span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Нейроправо</h3>
-      <span class="card-tags"><span class="tag">Очный</span><span class="tag tag-doc">Удостоверение</span></span>
+      <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно, в аудиториях факультета права НИУ ВШЭ в Москве.">Очный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
       <div class="meta">Старт: 30 ноября 2026 г.</div>
       </a>
       <div class="foot">

@@ -31,6 +31,7 @@ const {
   writeAtomic,
 } = require('./lib/catalog-store');
 const { programHref } = require('./lib/program-slug');
+const { docBadge, shortFormat, formatTip } = require('./lib/program-labels');
 const { SPHERES, sphereOf } = require('./lib/program-spheres');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
@@ -130,10 +131,10 @@ function renderCard(item) {
   // «Старт: …» – единая подпись всех витрин (upcomingStartLabel): прошедшая
   // или отсутствующая дата не выводится вовсе, «уточняется» не подставляется.
   const date = upcomingStartLabel(item);
-  // Формат ушёл из строки меты в пилюлю .card-tags (просьба заказчика
-  // 02.09.2026); в data-search он остаётся – поиск по «онлайн» должен
-  // находить карточки, как раньше.
-  const metaBits = [item.duration, date].filter(Boolean).map(escapeHtml).join(' · ');
+  // Формат и продолжительность ушли из строки меты в овалы .card-tags
+  // (указание заказчика 02.09.2026); в data-search оба остаются – поиск
+  // по «онлайн» должен находить карточки, как раньше.
+  const metaBits = [date].filter(Boolean).map(escapeHtml).join(' · ');
   const search = escapeHtml(
     [item.title, typeShort, format, item.duration, date].filter(Boolean).join(' ').toLowerCase(),
   );
@@ -176,16 +177,18 @@ function renderCard(item) {
     ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="${escapeHtml(`Обложка программы «${item.title}»`)}" loading="lazy"></span>`
     : '';
 
-  // Пометки формата и итогового документа (просьба заказчика 02.09.2026):
-  // формат – без скобочного пояснения («Гибридный (обучение проходит…)» в
-  // пилюлю не влезает, полный вариант остаётся на странице программы),
-  // документ – одним словом по типу программы. Полные имена документов –
-  // в DOC_BY_TYPE страниц программ (scripts/build-program-pages.js).
-  const shortFormat = format.replace(/\s*\(.*\)\s*$/, '');
-  const docShort = typeShort === 'ПК' ? 'Удостоверение' : typeShort === 'ПП' ? 'Диплом' : '';
+  // Овалы-пометки (указание заказчика 02.09.2026, вторая итерация): тип
+  // документа пишется КАК ТИП (ПК, ПП, …), а не словом «Удостоверение»;
+  // формат – без скобочного пояснения; продолжительность – как пришла с
+  // hse.ru. Расшифровки типа и формата уходят в подсказку data-tip
+  // (CSS-тултип при наведении, разметке помогает lib/program-labels.js).
+  const doc = docBadge(item.type);
+  const tag = (cls, text, tip) =>
+    `<span class="tag${cls ? ` ${cls}` : ''}"${tip ? ` data-tip="${escapeHtml(tip)}"` : ''}>${escapeHtml(text)}</span>`;
   const tags = [
-    shortFormat ? `<span class="tag">${escapeHtml(shortFormat)}</span>` : '',
-    docShort ? `<span class="tag tag-doc">${docShort}</span>` : '',
+    format ? tag('', shortFormat(format), formatTip(format)) : '',
+    doc ? tag('tag-doc', doc.label, doc.tip) : '',
+    item.duration ? tag('tag-dur', item.duration, '') : '',
   ].filter(Boolean);
   const tagsLine = tags.length
     ? `\n      <span class="card-tags">${tags.join('')}</span>`
@@ -199,8 +202,7 @@ function renderCard(item) {
   // программы, как раньше), кнопка лежит выше по z-index. Решение
   // владельца 19.08 «Подать заявку везде» доехало и до каталога.
   return `    <div class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
-      <a href="${href}" class="card-link">${thumbLine}
-      <span class="badge">${typeShort}</span>${sphereLine}
+      <a href="${href}" class="card-link">${thumbLine}${sphereLine}
       <h3>${escapeHtml(item.title)}</h3>${tagsLine}${metaLine}
       </a>
       <div class="foot">
