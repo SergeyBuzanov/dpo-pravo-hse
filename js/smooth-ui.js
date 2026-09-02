@@ -214,6 +214,13 @@ section#explore a[href]{
   .dpo-mobile-cta{ display: flex; }
 }
 html.vi-mode .dpo-mobile-cta{ display: none !important; }
+/* Системные настройки прозрачности/контраста (аудит apple-design). */
+@media (prefers-reduced-transparency: reduce){
+  .dpo-mobile-cta{ background: #FBF9F5; backdrop-filter: none; }
+}
+@media (prefers-contrast: more){
+  .dpo-mobile-cta{ background: #FBF9F5; backdrop-filter: none; border-color: #211E1B; }
+}
 `.trim();
 
   const injectCss = () => {
