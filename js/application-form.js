@@ -193,6 +193,11 @@
     // Ловушка для роботов. `display:none` роботы распознают, поэтому поле
     // уводится за пределы экрана и снимается с обхода Tab и диктора.
     '.dpo-app-trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}',
+    // Хват жеста «потянуть вниз» (пилот apple-design): без touch-action
+    // браузер на первом же движении отдаёт жест прокрутке и шлёт
+    // pointercancel – окно «отлипает» от пальца. Только шапка диалога:
+    // полям и прокрутке формы панорамирование нужно.
+    '@media (pointer:coarse){#dpo-app-title,.dpo-app-program{touch-action:none}}',
     '@media (prefers-reduced-motion:reduce){.dpo-app-backdrop,.dpo-app{transition:none}',
     '.dpo-app-submit:active{transform:none}}',
     // Режим для слабовидящих: та же логика, что у остальных страниц —
@@ -665,7 +670,9 @@
     if (!backdrop) {
       backdrop = buildDialog();
       document.body.appendChild(backdrop);
+      attachSheetGesture(backdrop);
     }
+    if (resetSheet) resetSheet();
 
     var topicSelect = backdrop.querySelector('#dpo-app-topic');
     if (topicSelect) topicSelect.value = context.topic;
@@ -725,6 +732,134 @@
     });
   }
 
+  // ---- Жест «потянуть вниз – закрыть» (пилот apple-design, 02.09.2026) ----
+  //
+  // Только на устройствах с тач-указателем и без reduced-motion. Хват – шапка
+  // диалога (заголовок и строка программы): ниже начинаются поля и прокрутка
+  // формы, им жест не мешает. Физика по скиллу apple-design: 1:1 за пальцем,
+  // rubber-band вверх, на отпускании скорость пальца отдаётся пружине
+  // (критическое затухание, response ~0.35с), решение «закрыть или вернуть»
+  // принимается ПРОЕКЦИЕЙ импульса (затухание 0.998), а не точкой отпускания.
+  // Пружина рукописная (rAF), внешних библиотек нет – CSP и вес.
+  var resetSheet = null;
+
+  function attachSheetGesture(root) {
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var sheet = root.querySelector('.dpo-app');
+    if (!sheet) return;
+
+    var y = 0;          // презентационное значение – с него стартует любой перехват
+    var vel = 0;        // px/s
+    var raf = null;
+    var dragging = false;
+    var history = [];
+    var grabY = 0;
+
+    function setY(value) {
+      y = value;
+      sheet.style.transform = value ? 'translateY(' + value.toFixed(2) + 'px)' : '';
+      // Вуаль темнеет обратно пропорционально уходу окна вниз.
+      var fade = Math.max(0, 1 - value / (sheet.offsetHeight || 480));
+      root.style.opacity = value > 0 ? String(0.35 + 0.65 * fade) : '';
+    }
+
+    resetSheet = function () {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      dragging = false;
+      vel = 0;
+      sheet.style.transition = '';
+      root.style.transition = '';
+      setY(0);
+      sheet.style.transform = '';
+      root.style.opacity = '';
+    };
+
+    function rubber(overshoot) {
+      var dim = 300, c = 0.55;
+      return (overshoot * dim * c) / (dim + c * Math.abs(overshoot));
+    }
+
+    // Полузакрытый интегратор Эйлера; k и c из «дизайнерских» параметров
+    // Apple: response (сек) и damping ratio 1.0 (без перелёта).
+    function spring(target, response, onSettle) {
+      var k = Math.pow((2 * Math.PI) / response, 2);
+      var c = 2 * Math.sqrt(k);
+      var prev = performance.now();
+      if (raf) cancelAnimationFrame(raf);
+      function step(now) {
+        var dt = Math.min(32, now - prev) / 1000;
+        prev = now;
+        var a = k * (target - y) - c * vel;
+        vel += a * dt;
+        setY(y + vel * dt);
+        if (Math.abs(target - y) < 0.5 && Math.abs(vel) < 20) {
+          setY(target);
+          raf = null;
+          if (onSettle) onSettle();
+          return;
+        }
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    root.addEventListener('pointerdown', function (e) {
+      if (!e.isPrimary) return;
+      if (!e.target.closest('#dpo-app-title, .dpo-app-program')) return;
+      dragging = true;
+      if (raf) { cancelAnimationFrame(raf); raf = null; } // перехват на лету
+      grabY = e.clientY - y; // уважить точку хвата
+      history = [{ t: e.timeStamp, y: y }];
+      sheet.style.transition = 'none';
+      root.style.transition = 'none';
+      sheet.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    root.addEventListener('pointermove', function (e) {
+      if (!dragging || !e.isPrimary) return;
+      var raw = e.clientY - grabY;
+      setY(raw >= 0 ? raw : -rubber(-raw));
+      history.push({ t: e.timeStamp, y: raw });
+      while (history.length > 6 || e.timeStamp - history[0].t > 100) history.shift();
+    });
+
+    function release(e) {
+      if (!dragging || !e.isPrimary) return;
+      dragging = false;
+      var last = history[history.length - 1];
+      var first = history[0];
+      vel = last && first && last.t > first.t
+        ? ((last.y - first.y) / (last.t - first.t)) * 1000
+        : 0;
+      // Проекция импульса: куда «летит» окно, а не где его отпустили.
+      var projected = y + (vel / 1000) * 0.998 / (1 - 0.998);
+      var dismissAt = Math.max(140, (sheet.offsetHeight || 480) * 0.4);
+      if (projected > dismissAt && vel > -100) {
+        var exit = window.innerHeight - sheet.getBoundingClientRect().top + 40;
+        spring(exit, 0.3, function () {
+          // Вуаль догорает штатным переходом: вернуть transition ДО снятия
+          // класса, инлайновую прозрачность – сразу после. Уехавший вниз
+          // transform остаётся инлайном до конца затухания (иначе окно
+          // мелькнуло бы в центре); его снимет resetSheet при новом открытии.
+          root.style.transition = '';
+          closeDialog();
+          root.style.opacity = '';
+        });
+      } else {
+        spring(0, 0.35, function () {
+          sheet.style.transition = '';
+          root.style.transition = '';
+          sheet.style.transform = '';
+          root.style.opacity = '';
+        });
+      }
+    }
+    root.addEventListener('pointerup', release);
+    root.addEventListener('pointercancel', release);
+  }
+
   function closeDialog() {
     if (!backdrop) return;
     hideBackground(false);
@@ -733,6 +868,9 @@
     document.documentElement.style.overflow = '';
     var node = backdrop;
     window.setTimeout(function () {
+      // Окно могли успеть открыть заново за эти 220 мс (аудит apple-design
+      // 02.09.2026: прерванное закрытие сносило уже показанный диалог).
+      if (node.classList.contains('is-open')) return;
       if (node && node.parentNode) node.parentNode.removeChild(node);
       if (node === backdrop) backdrop = null;
     }, 220);
