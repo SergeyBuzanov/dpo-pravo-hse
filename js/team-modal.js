@@ -194,6 +194,17 @@
     if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
     backdrop = wrap;
     document.body.appendChild(wrap);
+    // Жест «потянуть вниз – закрыть», общий с формой заявки и опросом
+    // (js/sheet-gesture.js). Окно строится заново при каждом открытии,
+    // поэтому reset() не нужен.
+    if (window.dpoSheet) {
+      window.dpoSheet.attach({
+        root: wrap,
+        sheet: wrap.querySelector('.dpo-team'),
+        grip: '.dpo-team h2, .dpo-team-label',
+        onClose: closeDialog,
+      });
+    }
     document.addEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = 'hidden';
     requestAnimationFrame(function () {

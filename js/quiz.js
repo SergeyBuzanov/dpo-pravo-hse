@@ -173,9 +173,24 @@
     }
   }
 
+  var sheetCtl = null;
+
   function open(fromEl) {
     ensureStyles();
-    if (!backdrop) build();
+    if (!backdrop) {
+      build();
+      // Жест «потянуть вниз – закрыть», общий с формой заявки и карточкой
+      // преподавателя (js/sheet-gesture.js): похожие окна ведут себя одинаково.
+      sheetCtl = window.dpoSheet
+        ? window.dpoSheet.attach({
+            root: backdrop,
+            sheet: backdrop.querySelector('.dpo-quiz'),
+            grip: '#dpoQuizTitle',
+            onClose: close,
+          })
+        : null;
+    }
+    if (sheetCtl) sheetCtl.reset();
     opener = fromEl || null;
     backdrop.style.display = 'flex';
     requestAnimationFrame(function () {

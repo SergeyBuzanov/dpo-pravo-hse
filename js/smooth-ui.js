@@ -214,6 +214,12 @@ section#explore a[href]{
   .dpo-mobile-cta{ display: flex; }
 }
 html.vi-mode .dpo-mobile-cta{ display: none !important; }
+/* Пустой овал длительности в тайлах «Топ-5» (замечание заказчика
+   03.09.2026): рантайм оборачивает подстановку в <span class="sc-interp">,
+   поэтому :empty на самом овале не срабатывает никогда. Правило с :has
+   живёт ИМЕННО ЗДЕСЬ, а не в шаблонном <style>: CSS-парсер рантайма
+   молча выбрасывает селекторы с :has при пересборке страницы. */
+.dpo-tag:has(> .sc-interp:empty):not(:has(> .sc-interp:not(:empty))){ display: none; }
 /* Системные настройки прозрачности/контраста (аудит apple-design). */
 @media (prefers-reduced-transparency: reduce){
   .dpo-mobile-cta{ background: #FBF9F5; backdrop-filter: none; }
