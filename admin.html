@@ -1282,7 +1282,9 @@
     const box = $('applicationsList');
     const items = data.items || [];
     $('applicationsMeta').textContent = items.length
-      ? `Всего ${data.stats.total}, новых ${data.stats.new}. Хранятся ${data.stats.retentionDays} дней.`
+      ? `Всего ${data.stats.total}, новых ${data.stats.new}` +
+        (data.stats.mailFailed ? `, писем менеджеру не ушло: ${data.stats.mailFailed}` : '') +
+        `. Хранятся ${data.stats.retentionDays} дней.`
       : 'Заявок пока нет.';
 
     box.innerHTML = items
@@ -1311,6 +1313,7 @@
             ${rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}
           </dl>
           ${a.noAnnouncements ? '<p class="muted">Анонсы получать отказался(лась).</p>' : ''}
+          ${a.mail === 'failed' ? `<p class="muted" style="color:var(--err)">Письмо менеджеру не ушло: ${escapeHtml(a.mailError || 'причина неизвестна')}</p>` : ''}
           <div class="application-actions">
             ${APPLICATION_STATUSES.map(
               ([value, label]) =>

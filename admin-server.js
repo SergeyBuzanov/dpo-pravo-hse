@@ -248,9 +248,7 @@ async function handleApplication(req, res) {
 
     const { deliver } = require('./lib/application-delivery');
     const delivered = await deliver(result.application);
-    console.log(
-      `заявка ${delivered.id}: ${delivered.duplicate ? 'повтор' : 'принята'}, письмо — ${delivered.mail}`,
-    );
+    console.log(`заявка ${delivered.id}: ${delivered.duplicate ? 'повтор' : 'принята'}`);
     sendJson(res, 200, { ok: true, id: delivered.id });
   } catch (err) {
     if (err.code === 'BODY_TOO_LARGE') {
