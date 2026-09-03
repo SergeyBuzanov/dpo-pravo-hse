@@ -198,10 +198,10 @@ function renderSphereCard(sphere) {
 
   const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
 
-  // В разметку идут ВСЕ программы сферы: первые PREVIEW видны, остальные
-  // раскрываются кнопкой «Ещё N программ» прямо в карточке (критика 03.09.2026:
-  // ссылка в каталог под карточкой, где показаны все три, вела в никуда).
-  const rows = sphere.items.map((p, idx) => {
+  // Плитка-карта (владелец 03.09.2026): в свёрнутом виде – имя, число
+  // программ, «от N ₽» и три названия анонсом; по клику раскрывается полный
+  // список программ (все, без «ещё N»). Разметка – всех программ сферы.
+  const rows = sphere.items.map((p) => {
     const price = p.discountPrice || p.educationPricing;
     const priceHtml =
       Number.isFinite(price) && price > 0
@@ -212,7 +212,7 @@ function renderSphereCard(sphere) {
     // невалидная разметка и ломает обход с клавиатуры. Место под неё
     // резервирует padding-right у самой ссылки, поэтому строка не растёт
     // в высоту и меню сфер не удлиняется.
-    return `          <li class="dpo-prog-row${idx >= PREVIEW ? ' is-extra' : ''}">
+    return `          <li class="dpo-prog-row">
             <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
               <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
               <span class="dpo-prog-meta">${escapeHtml(meta)}</span>
@@ -230,22 +230,20 @@ function renderSphereCard(sphere) {
   // при полностью показанной сфере: в каталоге будут ровно эти N программ,
   // просто карточками с фильтрами.
   const allLabel = `Все ${pluralPrograms(total)} сферы в каталоге`;
-  const extra = total - PREVIEW;
-  const moreBtn =
-    extra > 0
-      ? `
-          <button type="button" class="dpo-sphere-more" aria-expanded="false" data-more="Ещё ${escapeHtml(pluralPrograms(extra))}" data-less="Свернуть">Ещё ${escapeHtml(pluralPrograms(extra))}</button>`
-      : '';
+  const prices = sphere.items.map((p) => p.discountPrice || p.educationPricing).filter((v) => Number.isFinite(v) && v > 0);
+  const fromPrice = prices.length ? ` · от ${formatPrice(Math.min(...prices))}` : '';
+  const preview = sphere.items.slice(0, PREVIEW).map((p) => escapeHtml(p.title)).join(' · ');
 
   return `        <div class="dpo-sphere">
           <div class="dpo-sphere-head">
             <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>
-            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}</span>
+            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}${fromPrice}</span>
           </div>
+          <p class="dpo-sphere-preview">${preview}</p>
           <ul class="dpo-sphere-list">
 ${rows.join('\n')}
           </ul>
-          <div class="dpo-sphere-foot">${moreBtn}
+          <div class="dpo-sphere-foot">
           <a class="dpo-sphere-all" href="${escapeHtml(catalogHref)}">${escapeHtml(allLabel)}</a>
           </div>
         </div>`;
@@ -260,24 +258,10 @@ function renderSpheres(programs) {
   // <style>: до шаблонного блока генератору не дотянуться, а правило рядом
   // с разметкой переживает пересборку вместе с ней.
   const style = `      <style>
-        /* Карточки ряда выравниваются по самой высокой (25.08.2026).
-           РАНЬШЕ ЗДЕСЬ БЫЛО align-items: start – ровно из-за того, что при
-           простом растягивании под списком программ повисал пустой хвост.
-           Растягивания одного мало: карточка сделана колонкой, а нижняя
-           полоска со ссылкой прижата к низу через margin-top: auto. Тогда
-           слабина уходит в воздух НАД разделителем, а не под последнюю
-           программу, и разделители всех карточек ряда встают на общую линию.
-           Убирать прижатие, оставив растягивание, нельзя – вернётся тот же
-           хвост, ради которого правило когда-то откатили.
-
-           Высоты сравниваются ВНУТРИ ряда: рядов два, между собой они
-           отличаются, и это нормально – карточки разных рядов не стоят
-           рядом по горизонтали. Жёсткая высота не годится: при смене
-           каталога длинные названия обрежутся. */
-        .dpo-spheres { align-items: stretch; }
-        .dpo-sphere { display: flex; flex-direction: column; padding-bottom: 0; }
-        /* Подвал карточки: «Ещё N программ» и ссылка в каталог в одной строке –
-           раскрытие в карточке не добавляет карточке высоты. */
+        /* Плитки не растягиваются по ряду (03.09.2026): раскрытая плитка выше
+           соседей, и это нормально – сетка выровнена по верху. */
+        .dpo-spheres { align-items: start; }
+        /* Подвал раскрытой плитки: ссылка в каталог с фильтром сферы. */
         .dpo-sphere-foot {
           display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline;
           gap: 8px 16px;

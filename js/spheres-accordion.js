@@ -1,17 +1,18 @@
 /*
- * Сферы права на телефоне – аккордеон (решение владельца 03.09.2026).
+ * Плитки сфер права под героем (решение владельца 03.09.2026).
  *
- * Шесть карточек со списками программ занимали на 390px около 5000px,
- * четверть страницы. На окне уже 700px заголовок каждой сферы становится
- * кнопкой, списки свёрнуты; на десктопе разметка возвращается к исходной,
- * чтобы заголовок не был бездействующей кнопкой. Без скрипта всё открыто.
- * Разметка сфер генерируется scripts/build-landing.js – здесь только
- * поведение.
+ * Два поведения:
+ *  - раскрытие: заголовок каждой плитки становится кнопкой (aria-expanded),
+ *    в свёрнутом виде видны имя, число программ, цена «от» и три названия
+ *    анонсом; по клику – полный список программ с кнопками заявки. На любой
+ *    ширине. Без скрипта всё открыто. Кнопка без aria-controls намеренно:
+ *    js/nav-menu.js считает триггером меню любой [aria-controls][aria-expanded];
+ *  - вылет: класс dpo-fly включает начальное состояние, is-in – анимацию,
+ *    когда сетка попадает в кадр (один раз). Без JS плитки видны сразу.
+ * Разметка плиток генерируется scripts/build-landing.js – здесь только поведение.
  */
 (function () {
   'use strict';
-
-  var mq = window.matchMedia('(max-width: 699px)');
 
   function spheres() {
     return Array.prototype.slice.call(document.querySelectorAll('.dpo-sphere'));
@@ -31,52 +32,59 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'dpo-sphere-toggle';
-      // Без aria-controls намеренно: js/nav-menu.js считает триггером меню
-      // любой [aria-controls][aria-expanded] и закрывал бы аккордеон по клику
-      // в документе. Список идёт сразу за заголовком – связь по порядку.
       while (title.firstChild) btn.appendChild(title.firstChild);
       title.appendChild(btn);
-      btn.addEventListener('click', function () {
-        setOpen(sphere, btn.getAttribute('aria-expanded') !== 'true');
-      });
       setOpen(sphere, false);
     });
   }
 
-  function disable() {
-    spheres().forEach(function (sphere) {
-      var btn = sphere.querySelector('.dpo-sphere-toggle');
-      if (btn) {
-        var title = btn.parentNode;
-        while (btn.firstChild) title.insertBefore(btn.firstChild, btn);
-        title.removeChild(btn);
-      }
-      sphere.classList.remove('is-collapsed');
-    });
+  // Клик – делегированием по документу: рантайм сборщика клонирует узлы при
+  // перерисовке, классы и атрибуты переживают её, слушатели на кнопках – нет.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.dpo-sphere-toggle') : null;
+    if (!btn) return;
+    setOpen(btn.closest('.dpo-sphere'), btn.getAttribute('aria-expanded') !== 'true');
+  });
+
+  var observed = null;
+  function fly() {
+    var grid = document.querySelector('.dpo-spheres');
+    if (!grid || grid.classList.contains('is-in') || grid === observed) return;
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) return;
+    // Сетка после перерисовки – новый узел с теми же классами: наблюдатель
+    // перевешивается, иначе плитки остались бы невидимыми.
+    grid.classList.add('dpo-fly');
+    observed = grid;
+    var io = new IntersectionObserver(
+      function (entries) {
+        if (!entries.some(function (en) { return en.isIntersecting; })) return;
+        grid.classList.add('is-in');
+        io.disconnect();
+      },
+      { threshold: 0.1 },
+    );
+    io.observe(grid);
   }
 
   function apply() {
-    if (mq.matches) enable();
-    else disable();
+    enable();
+    fly();
   }
 
-  // «Ещё N программ»: раскрытие свёрнутых строк прямо в карточке, на любой
-  // ширине. Кнопка приходит из генератора (build-landing), без aria-controls
-  // по той же причине, что и заголовок аккордеона.
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest ? e.target.closest('.dpo-sphere-more') : null;
-    if (!btn) return;
-    var sphere = btn.closest('.dpo-sphere');
-    var open = !sphere.classList.contains('is-expanded');
-    sphere.classList.toggle('is-expanded', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    btn.textContent = open ? btn.getAttribute('data-less') : btn.getAttribute('data-more');
-  });
-
-  if (mq.addEventListener) mq.addEventListener('change', apply);
-  else mq.addListener(apply);
+  // Рантайм сборщика рисует разметку асинхронно и подменяет documentElement
+  // уже после load: одного вызова мало – плиток ещё нет. Повторяем, пока они
+  // не появятся, и следим за перерисовками документа.
   apply();
-  // Рантайм сборщика может перерисовать разметку после загрузки – как и
-  // остальные скрипты лендинга, проверяем ещё раз после первой отрисовки.
-  window.addEventListener('load', apply);
+  var tries = 0;
+  var timer = window.setInterval(function () {
+    apply();
+    if (document.querySelector('.dpo-sphere-toggle') || ++tries > 60) window.clearInterval(timer);
+  }, 200);
+  if ('MutationObserver' in window) {
+    new MutationObserver(function () {
+      var grid = document.querySelector('.dpo-spheres');
+      if (grid && (!document.querySelector('.dpo-sphere-toggle') || grid !== observed)) apply();
+    }).observe(document, { childList: true, subtree: true });
+  }
 })();

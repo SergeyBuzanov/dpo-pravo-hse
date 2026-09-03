@@ -26,16 +26,18 @@ const FINANCE = [
   program('Исламские финансы: правовые основы'),
 ];
 
-test('в карточке сферы видны не больше трёх программ, остальные свёрнуты за кнопкой', () => {
+test('плитка сферы: анонс не длиннее трёх названий, в списке – все программы, «от» – минимальная цена', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  for (const card of html.split('<div class="dpo-sphere">').slice(1)) {
-    const total = card.split('class="dpo-prog"').length - 1;
-    const hidden = card.split('dpo-prog-row is-extra').length - 1;
-    const shown = total - hidden;
-    assert.ok(shown >= 1 && shown <= 3, `в карточке видно ${shown} программ`);
-    if (hidden) assert.match(card, new RegExp(`class="dpo-sphere-more"[^>]*>Ещё ${hidden} программ`), 'нет кнопки раскрытия');
-    else assert.doesNotMatch(card, /dpo-sphere-more/, 'кнопка без скрытых строк');
+  const cards = html.split('<div class="dpo-sphere">').slice(1);
+  assert.equal(cards.length, 2);
+  for (const card of cards) {
+    const preview = card.match(/<p class="dpo-sphere-preview">([^<]*)<\/p>/);
+    assert.ok(preview, 'нет анонса');
+    assert.ok(preview[1].split(' · ').length <= 3, 'в анонсе больше трёх названий');
+    assert.doesNotMatch(card, /is-extra|dpo-sphere-more/);
   }
+  assert.equal(cards[0].split('class="dpo-prog"').length - 1, CORPORATE.length, 'в списке не все программы сферы');
+  assert.match(cards[0], /dpo-sphere-count">5 программ · от /);
 });
 
 test('сфера с избытком программ ведёт в каталог со своим фильтром', () => {

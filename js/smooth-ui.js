@@ -310,7 +310,6 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     // i%6 давал бы случайные ступени между соседями.
     const CARD_CASCADE = [
       '.dpo-top5-grid .dpo-tile',
-      '.dpo-sphere',
       '.dpo-explore-grid .explore-card',
       '.dpo-why-card',
       '.dpo-start',
