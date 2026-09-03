@@ -259,6 +259,10 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       (e) => {
         const a = e.target.closest && e.target.closest('a[href^="#"]');
         if (!a) return;
+        // Триггеры формы заявки обслуживает js/application-form.js: он
+        // открывает диалог, а прокрутка к #contacts – только фолбэк без
+        // скрипта. Иначе один клик и открывал окно, и уносил страницу.
+        if (a.hasAttribute('data-application') || a.getAttribute('data-application-topic')) return;
         const id = a.getAttribute('href');
         if (!id || id === '#' || id.length < 2) return;
         let target;
@@ -462,6 +466,8 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
 
     if (activeNavCleanup) activeNavCleanup();
 
+    const zones = [...new Set([...document.querySelectorAll('section[id]'), ...map.map((item) => item.el)])];
+
     const sync = () => {
       const y = window.scrollY + headerOffset() + 48;
       const nearBottom =
@@ -471,9 +477,13 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       // достигнута, и подчёркивать первый пункт («Форматы») нечестно –
       // посетитель находится не там. Замечание заказчика 19.08.2026.
       let current = null;
-      for (const item of map) {
-        if (item.el.offsetTop <= y) current = item;
+      // Зона – любая секция с id, не только те, что есть в меню: иначе на
+      // «Документах» и «Отзывах» подсвечивались «Преподаватели».
+      let zone = null;
+      for (const el of zones) {
+        if (el.offsetTop <= y && (!zone || el.offsetTop >= zone.offsetTop)) zone = el;
       }
+      if (zone) current = map.find((item) => item.el === zone) || null;
       // Last section (Контакты) is short — pin it when user is at page end
       if (nearBottom) current = map[map.length - 1];
 

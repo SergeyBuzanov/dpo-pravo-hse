@@ -54,7 +54,8 @@
   /* Scroll-edge вместо жёсткой границы + системные настройки прозрачности
      и контраста – та же связка, что у шапок лендинга, каталога и страниц
      программ (аудит apple-design 03.09.2026). */
-  header::after{ content:''; position:absolute; left:0; right:0; top:100%; height:14px; background:linear-gradient(rgb(var(--ink) / 0.10), transparent); pointer-events:none; }
+  header::after{ content:''; position:absolute; left:0; right:0; top:100%; height:14px; background:linear-gradient(rgb(var(--ink) / 0.10), transparent); pointer-events:none; animation:dpo-scroll-edge linear both; animation-timeline:scroll(root); animation-range:0 24px; }
+  @keyframes dpo-scroll-edge{ from{opacity:0} to{opacity:1} }
   html.vi-mode header{ border-bottom:1px solid #000 !important; }
   html.vi-mode header::after{ display:none !important; }
   @media (prefers-reduced-transparency: reduce){
@@ -66,7 +67,7 @@
   }
   .logo{ font-family:'HSE Slab', 'Source Serif 4', serif; font-weight:700; font-size:1.25rem; color:rgb(var(--accent)); }
   main{ max-width:1080px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,40px) 80px; }
-  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size: clamp(1.75rem, 3.2vw, 2.625rem); line-height:1.15; margin:0 0 8px; }
+  h1{ font-family:'HSE Slab', 'Source Serif 4', serif; font-size: clamp(1.75rem, 3.2vw, 2.625rem); line-height:1.15; letter-spacing:-0.01em; margin:0 0 8px; }
   .updated{ font-size:0.8438rem; color:var(--ink-mute); margin-bottom:12px; }
   p{ font-size:1rem; color:var(--ink-soft); max-width:75ch; }
   /* Таблица шире экрана телефона: прокрутка внутри собственной обёртки,

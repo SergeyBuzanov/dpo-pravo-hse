@@ -105,7 +105,9 @@
     content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px;
     background: linear-gradient(rgb(var(--ink) / 0.10), transparent);
     pointer-events: none;
+    animation: dpo-scroll-edge linear both; animation-timeline: scroll(root); animation-range: 0 24px;
   }
+  @keyframes dpo-scroll-edge{ from{ opacity: 0; } to{ opacity: 1; } }
   html.vi-mode header{ border-bottom: 1px solid #000 !important; }
   html.vi-mode header::after{ display: none !important; }
   /* Системные настройки прозрачности и контраста (apple-design, разд. 14):
