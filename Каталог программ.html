@@ -313,6 +313,8 @@
   /* Обе группы фильтров используют один акцент: второй синий существовал
      только чтобы различать группы цветом, а они и так разнесены по строкам. */
 
+  /* Расшифровка овалов ПК/ПП: подсказка по наведению на таче недоступна. */
+  .tag-legend{ font-size: 0.8125rem; color: var(--ink-mute); margin: 10px 0 0; }
   .toolbar{
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     padding: 14px clamp(20px, 5vw, 56px) 4px;
@@ -967,6 +969,7 @@
   <button type="button" class="reset" id="resetFilters" disabled>Сбросить фильтры</button>
   <span class="result-count" id="resultCount" aria-live="polite"></span>
 </div>
+<p class="tag-legend">ПК – повышение квалификации, итог – удостоверение; ПП – профессиональная переподготовка, итог – диплом.</p>
 
 <main id="main">
   <h2 class="visually-hidden">Программы повышения квалификации и профессиональной переподготовки для юристов</h2>

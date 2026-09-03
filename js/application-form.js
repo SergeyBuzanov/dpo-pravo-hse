@@ -101,14 +101,15 @@
     'transform:translateY(12px) scale(.985);transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.dpo-app-backdrop.is-open .dpo-app{transform:none}',
     '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size: clamp(1.375rem,3.4vw,1.75rem);',
-    'line-height:1.15;margin:0 8px 6px 0;font-weight:600}',
+    'line-height:1.15;margin:0 48px 6px 0;font-weight:600}',
     // Заголовок получает программный фокус при открытии (tabindex=-1), и
     // браузерная рамка рисовала его как текстовое поле – «Заявка на
     // обучение» выглядела редактируемой (контрольная критика 02.09.2026).
-    // Кольцо с отступом читается как индикатор фокуса, а не как инпут;
-    // vi-mode ниже перекрывает его чёрным по-своему.
+    // Кольцо тоже читалось рамкой поля, а крестик налезал на него (критика
+    // 03.09.2026): фокус показан подчёркиванием акцентом, отступ справа 48px
+    // уводит текст из-под крестика; vi-mode ниже рисует чёрную рамку по-своему.
     '.dpo-app h2:focus{outline:none}',
-    '.dpo-app h2:focus-visible{outline:2px solid rgb(var(--accent));outline-offset:6px;border-radius:2px}',
+    '.dpo-app h2:focus-visible{text-decoration:underline;text-decoration-color:rgb(var(--accent));text-decoration-thickness:2px;text-underline-offset:6px}',
     '.dpo-app-program{font-size:0.9375rem;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
     '.dpo-app-close{position:absolute;top:11px;right:11px;width:44px;height:44px;border-radius:999px;',
     'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:1.25rem;line-height:1;',
