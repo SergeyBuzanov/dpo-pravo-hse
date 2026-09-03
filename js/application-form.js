@@ -822,6 +822,7 @@
       // чтобы в журнал не попадала пустая строка.
       sources: data.getAll('sources').filter(Boolean),
       sourceOther: data.get('sourceOther') || '',
+      comment: data.get('comment') || '',
       noAnnouncements: Boolean(data.get('noAnnouncements')),
       consent: Boolean(data.get('consent')),
       website: data.get('website') || '',
