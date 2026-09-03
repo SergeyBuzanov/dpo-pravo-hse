@@ -192,6 +192,16 @@ function shortFormat(p) {
  * и строкой-ссылкой в каталог с уже применённым фильтром направления –
  * та же механика адреса, что у «ещё N» в панели «Направления».
  */
+/** Рисунки сфер для водяных знаков плиток; ключ – id сферы из lib/program-spheres.js. */
+const SPHERE_GLYPHS = {
+  corporate: '<path d="M46 26 H100 L120 46 V134 H46 Z"/><path d="M100 26 V46 H120"/><path d="M60 64 H106 M60 78 H106 M60 92 H90"/><circle cx="100" cy="114" r="12"/><path d="M58 118 Q66 106 74 118 T90 116"/>',
+  digital: '<rect x="52" y="52" width="56" height="56" rx="8"/><rect x="68" y="68" width="24" height="24" rx="3"/><path d="M64 52 V34 M80 52 V34 M96 52 V34 M64 108 V126 M80 108 V126 M96 108 V126 M52 64 H34 M52 80 H34 M52 96 H34 M108 64 H126 M108 80 H126 M108 96 H126"/>',
+  international: '<circle cx="80" cy="80" r="48"/><ellipse cx="80" cy="80" rx="20" ry="48"/><path d="M32 80 H128 M40 58 H120 M40 102 H120"/>',
+  finance: '<ellipse cx="80" cy="58" rx="38" ry="13"/><path d="M42 58 V102 Q42 116 80 116 Q118 116 118 102 V58"/><path d="M42 72 Q42 86 80 86 Q118 86 118 72 M42 87 Q42 101 80 101 Q118 101 118 87"/>',
+  language: '<path d="M36 44 H98 Q110 44 110 56 V82 Q110 94 98 94 H66 L48 110 V94 H36 Q24 94 24 82 V56 Q24 44 36 44 Z"/><path d="M46 62 H88 M46 76 H74"/><path d="M118 70 H126 Q136 70 136 80 V104 Q136 114 126 114 H122 V128 L106 114 H92"/>',
+  practice: '<path d="M80 30 V126 M52 126 H108 M40 50 H120"/><path d="M40 50 L26 90 M40 50 L54 90 M22 90 Q40 106 58 90"/><path d="M120 50 L106 90 M120 50 L134 90 M102 90 Q120 106 138 90"/>',
+};
+
 function renderSphereCard(sphere) {
   const total = sphere.items.length;
   if (!total) return '';
@@ -230,13 +240,16 @@ function renderSphereCard(sphere) {
   // при полностью показанной сфере: в каталоге будут ровно эти N программ,
   // просто карточками с фильтрами.
   const allLabel = `Все ${pluralPrograms(total)} сферы в каталоге`;
-  const prices = sphere.items.map((p) => p.discountPrice || p.educationPricing).filter((v) => Number.isFinite(v) && v > 0);
-  const fromPrice = prices.length ? ` · от ${formatPrice(Math.min(...prices))}` : '';
+  // Виньетка сферы – линейный рисунок в штрихе .dpo-why-vignette (160×160,
+  // stroke 2.5, currentColor), водяным знаком в углу плитки. Цены на плитке
+  // нет (владелец 03.09.2026) – она у каждой программы в раскрытом списке.
+  const glyph = SPHERE_GLYPHS[sphere.id] || '';
 
   return `        <div class="dpo-sphere" data-sphere="${escapeHtml(sphere.id)}">
           <div class="dpo-sphere-head">
             <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>
-            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}${fromPrice}</span>
+            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}</span>
+            <svg class="dpo-sphere-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
           </div>
           <ul class="dpo-sphere-list">
 ${rows.join('\n')}

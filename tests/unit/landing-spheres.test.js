@@ -34,7 +34,9 @@ test('плитка сферы несёт свой id для цвета, в сп�
   assert.match(cards[1], /^finance"/);
   for (const card of cards) assert.doesNotMatch(card, /is-extra|dpo-sphere-more|dpo-sphere-preview/);
   assert.equal(cards[0].split('class="dpo-prog"').length - 1, CORPORATE.length, 'в списке не все программы сферы');
-  assert.match(cards[0], /dpo-sphere-count">5 программ · от /);
+  assert.match(cards[0], /dpo-sphere-count">5 программ</);
+  assert.doesNotMatch(cards[0], /от \d/, 'цены на плитке быть не должно');
+  assert.match(cards[0], /<svg class="dpo-sphere-vignette"[^>]*><path|<svg class="dpo-sphere-vignette"[^>]*><circle|<svg class="dpo-sphere-vignette"[^>]*><rect|<svg class="dpo-sphere-vignette"[^>]*><ellipse/, 'нет виньетки');
 });
 
 test('сфера с избытком программ ведёт в каталог со своим фильтром', () => {
