@@ -249,8 +249,9 @@ if (require.main === module) {
     setInterval(() => {
       purgeOld().catch((err) => console.warn('analytics purge:', err.message));
     }, 24 * 60 * 60 * 1000).unref();
-  } catch {
+  } catch (err) {
     /* analytics optional for pure static serve */
+    if (err.code !== 'MODULE_NOT_FOUND') throw err;
   }
 
   // Срок хранения заявок. Этот сервер тоже принимает POST /api/application,
@@ -262,8 +263,9 @@ if (require.main === module) {
     setInterval(() => {
       purgeOld().catch((err) => console.warn('applications purge:', err.message));
     }, 24 * 60 * 60 * 1000).unref();
-  } catch {
+  } catch (err) {
     /* приём заявок необязателен для чистой статики */
+    if (err.code !== 'MODULE_NOT_FOUND') throw err;
   }
 
   server.listen(PORT, HOST, 8191, () => {

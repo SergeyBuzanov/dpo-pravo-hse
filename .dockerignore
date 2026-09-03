@@ -11,6 +11,7 @@ node_modules
 .admin-credentials.json
 .admin-status.json
 .analytics
+.applications
 .catalog-data.json
 .catalog-schedule.json
 .catalog-update.lock

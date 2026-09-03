@@ -82,7 +82,7 @@
     '.dpo-quiz-submit{display:inline-block;font:inherit;font-size:0.9375rem;font-weight:600;color:rgb(var(--surface));',
     'background:rgb(var(--accent));border:0;border-radius:999px;padding:14px 28px;cursor:pointer;',
     'transition:background .15s}',
-    '.dpo-quiz-submit:hover{background:#0F3FA0}',
+    '.dpo-quiz-submit:hover{background:#1145AA}',
     '.dpo-quiz-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border:0;',
     'border-radius:999px;background:var(--bg-tint);color:rgb(var(--ink));font-size:1.125rem;line-height:36px;',
     'cursor:pointer;transition:background .15s}',

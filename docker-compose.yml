@@ -21,6 +21,9 @@ services:
       # tests/security_test.py — «белый список nginx».
       - .:/usr/share/nginx/html:ro
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     security_opt:
       - no-new-privileges:true
 
@@ -45,5 +48,8 @@ services:
       # плюс сюда пишутся .admin-credentials.json и .admin-status.json
       - .:/app
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     security_opt:
       - no-new-privileges:true

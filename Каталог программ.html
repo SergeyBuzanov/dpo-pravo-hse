@@ -82,6 +82,8 @@
   @media (prefers-reduced-motion: no-preference){
     html{ scroll-behavior: smooth; }
   }
+  /* Якоря и фокус не прячутся под липкой шапкой. */
+  html{ scroll-padding-top: calc(var(--header-h) + 8px); }
   body{
     margin: 0;
     background: var(--bg);
@@ -109,12 +111,11 @@
   /* Системные настройки прозрачности и контраста (apple-design, разд. 14):
      ручной vi-режим остаётся, но и системные сигналы теперь уважаются. */
   @media (prefers-reduced-transparency: reduce){
-    header, .mobile-cta{ background: rgb(var(--surface)); backdrop-filter: none; }
+    header{ background: rgb(var(--surface)); backdrop-filter: none; }
   }
   @media (prefers-contrast: more){
     header{ background: rgb(var(--surface)); backdrop-filter: none; border-bottom: 1px solid rgb(var(--ink)); }
     header::after{ display: none; }
-    .mobile-cta{ background: rgb(var(--surface)); backdrop-filter: none; border-color: rgb(var(--ink)); }
   }
   .logo{ display: flex; flex-direction: column; gap: 1px; }
   .logo .name{ font-weight: 700; font-size: 0.9375rem; color: rgb(var(--accent)); }
@@ -363,6 +364,15 @@
     border: 1px solid var(--line);
     border-radius: 18px;
     box-shadow: 0 12px 40px rgb(var(--ink) / 0.16);
+  }
+  /* Системные настройки прозрачности и контраста для нижней панели. Стоят
+     ПОСЛЕ базового правила: выше по файлу при той же специфичности их
+     перекрывало base (прогон 03.09.2026). */
+  @media (prefers-reduced-transparency: reduce){
+    .mobile-cta{ background: rgb(var(--surface)); backdrop-filter: none; }
+  }
+  @media (prefers-contrast: more){
+    .mobile-cta{ background: rgb(var(--surface)); backdrop-filter: none; border-color: rgb(var(--ink)); }
   }
   .mobile-cta a{
     flex: 1; text-align: center; font-weight: 600; font-size: 0.875rem;
