@@ -140,3 +140,18 @@ test('вместе с заявкой уходит её статус: сирот 
   assert.equal(statuses['сирота'], undefined, 'статус удалённой заявки остался в файле');
   assert.equal(statuses[id].status, 'in-progress', 'статус живой заявки потерян');
 });
+
+test('заявка уничтожается по запросу: из месяца и из статусов', async () => {
+  const { id } = await store.save(make({ email: 'erase@example.org' }));
+  await store.setStatus(id, 'in-progress');
+  assert.equal(await store.remove(id), true);
+  assert.equal((await store.list()).some((i) => i.id === id), false);
+  const statuses = JSON.parse(fs.readFileSync(path.join(DIR, 'status.json'), 'utf8'));
+  assert.equal(id in statuses, false);
+  // Соседние заявки месяца остаются на месте.
+  assert.ok((await store.list()).length > 0);
+});
+
+test('уничтожение неизвестной заявки – false, файлы не трогаются', async () => {
+  assert.equal(await store.remove('нет-такой'), false);
+});

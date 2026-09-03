@@ -186,3 +186,9 @@ test('корпоративные поля обрезаются по лимита
   assert.equal(res.application.employeesCount.length, 40);
   assert.equal(res.application.timeframe.length, 200);
 });
+
+test('момент согласия на обработку ПДн записан отдельным полем', () => {
+  const res = parseApplication(valid());
+  assert.equal(res.ok, true);
+  assert.equal(res.application.consentAt, res.application.receivedAt);
+});

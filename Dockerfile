@@ -1,6 +1,6 @@
 # Админка каталога (admin-server.js): чистый Node, npm-зависимостей нет.
 # Нужен Node 18+ ради нативного fetch — берём 20 LTS.
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 COPY --chown=node:node . .

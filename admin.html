@@ -324,6 +324,8 @@
   .application-facts dt { color: var(--ink-mute); font-size: 12.5px; flex: none; }
   .application-facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
   .application-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .app-delete { margin-left: auto; color: var(--err); border-color: rgba(176, 0, 32, 0.25); }
+  .app-delete:hover:not(:disabled) { background: var(--err-bg); border-color: var(--err); color: var(--err); }
   .status-btn.active { background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
   .path-chip {
     display: inline-block;
@@ -1325,6 +1327,7 @@
                   a.status === value ? ' active' : ''
                 }" data-status="${value}">${label}</button>`,
             ).join('')}
+            <button type="button" class="secondary app-delete">Уничтожить</button>
           </div>
         </div>`;
       })
@@ -1345,6 +1348,24 @@
   // Делегирование: карточки перерисовываются целиком после каждой смены
   // статуса, и обработчики на самих кнопках пришлось бы вешать заново.
   $('applicationsList').addEventListener('click', async (event) => {
+    const del = event.target.closest('.app-delete');
+    if (del) {
+      // По запросу заявителя (152-ФЗ, privacy разд. 5): запись и статус
+      // уничтожаются безвозвратно, письмо менеджеру при этом не отзывается.
+      if (!confirm('Уничтожить заявку безвозвратно? Делается по запросу заявителя.')) return;
+      try {
+        await ensureCsrf();
+        await api('/api/applications/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ id: del.closest('.application').dataset.id }),
+        });
+        await loadApplications();
+      } catch (e) {
+        $('applicationsMeta').textContent = 'Заявка не уничтожена: ' + (e.message || e);
+      }
+      return;
+    }
     const btn = event.target.closest('.status-btn');
     if (!btn) return;
     const card = btn.closest('.application');

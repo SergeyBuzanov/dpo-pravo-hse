@@ -934,6 +934,7 @@
           status.textContent = 'Проверьте отмеченные поля.';
           return;
         }
+        reportFailure(result.status);
         status.classList.add('is-error');
         status.textContent =
           result.status === 429
@@ -941,6 +942,7 @@
             : 'Не удалось отправить заявку. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
       })
       .catch(function () {
+        reportFailure(0);
         restore();
         status.classList.add('is-error');
         // Сюда попадаем при обрыве сети и при недоступном приёмнике. Молчать
@@ -948,6 +950,15 @@
         status.textContent =
           'Заявка не отправлена – нет связи с сервером. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
       });
+  }
+
+  // Отказ отправки виден только заявителю; при согласии на аналитику он
+  // уходит событием form_error (без данных формы), чтобы владелец узнал о
+  // сломанном приёме не из жалоб. 0 – нет ответа сервера.
+  function reportFailure(httpStatus) {
+    if (typeof window.__dpoAnalyticsEvent === 'function') {
+      window.__dpoAnalyticsEvent('form_error', { label: 'http ' + httpStatus });
+    }
   }
 
   // Делегирование: кнопки могут появиться после загрузки (карточки каталога

@@ -793,6 +793,28 @@ async function handleApplicationStatus(req, res) {
   }
 }
 
+/** Уничтожение заявки по запросу субъекта (152-ФЗ, privacy разд. 5). */
+async function handleApplicationDelete(req, res) {
+  const store = require('./lib/application-store');
+  try {
+    const raw = await readBody(req, 4 * 1024);
+    const { id } = JSON.parse(raw || '{}');
+    if (!id || typeof id !== 'string') {
+      sendJson(res, 400, { error: 'нет идентификатора заявки', csrfToken });
+      return;
+    }
+    const found = await store.remove(id);
+    if (found) console.log(`заявка ${id}: уничтожена по запросу`);
+    sendJson(res, found ? 200 : 404, { ok: found, id, csrfToken });
+  } catch (err) {
+    if (err.code === 'BODY_TOO_LARGE') {
+      sendTooLarge(req, res);
+      return;
+    }
+    sendJson(res, 400, { error: 'invalid json', csrfToken });
+  }
+}
+
 // ─── Daily auto-update ────────────────────────────────────────────────────────
 
 let dailyTimer = null;
@@ -915,6 +937,25 @@ async function runHealthCheck() {
     push('catalog:markers', false, err.message);
   }
 
+  // Заявки: каталог обязан быть доступен на запись, иначе форма отвечает 500,
+  // а письма без SMTP не уходят вовсе – дежурный должен видеть это здесь,
+  // а не в docker logs.
+  try {
+    const { _dir } = require('./lib/application-store');
+    await fsp.mkdir(_dir, { recursive: true, mode: 0o700 });
+    await fsp.access(_dir, fs.constants.W_OK);
+    push('applications:dir', true, 'доступен на запись');
+  } catch (err) {
+    push('applications:dir', false, err.message);
+  }
+  try {
+    const { mailConfig } = require('./lib/application-delivery');
+    const mc = mailConfig();
+    push('applications:mail', true, mc ? `SMTP ${mc.smtp.host}:${mc.smtp.port}, получателей: ${mc.to.length}` : 'SMTP не настроен – письма менеджеру не уходят');
+  } catch (err) {
+    push('applications:mail', false, err.message);
+  }
+
   // Reachability of the upstream catalog (does not rewrite local files).
   const t0 = Date.now();
   try {
@@ -979,6 +1020,7 @@ const API_ROUTES = [
   { method: 'POST', path: '/api/analytics/seed', csrf: true, handler: handleAnalyticsSeed },
   { method: 'GET',  path: '/api/applications',   handler: handleApplicationsList },
   { method: 'POST', path: '/api/applications/status', csrf: true, handler: handleApplicationStatus },
+  { method: 'POST', path: '/api/applications/delete', csrf: true, handler: handleApplicationDelete },
   { method: 'POST', path: '/api/update',         csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: false }) },
   { method: 'POST', path: '/api/rebuild',        csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: true }) },
 ];
