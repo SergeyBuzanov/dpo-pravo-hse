@@ -192,6 +192,16 @@ function shortFormat(p) {
  * и строкой-ссылкой в каталог с уже применённым фильтром направления –
  * та же механика адреса, что у «ещё N» в панели «Направления».
  */
+/** Подводки сфер – одна строка о том, что внутри (тексты 03.09.2026, правятся здесь). */
+const SPHERE_LEADS = {
+  corporate: 'Договоры по российскому, английскому и гонконгскому праву, корпоративные споры и деловые переговоры',
+  digital: 'Интеллектуальная собственность, авторское право, цифровые инструменты в работе и нейроправо',
+  international: 'Право Франции, ЕС и Китая, трансграничные операции и морской арбитраж',
+  finance: 'Налоговое администрирование, банкротство и исламские финансы',
+  language: 'Юридический английский и французский для практикующих юристов',
+  practice: 'Бизнес-медиация, GR в фарме, анализ юридических документов и транспортное право',
+};
+
 /** Рисунки сфер для водяных знаков плиток; ключ – id сферы из lib/program-spheres.js. */
 const SPHERE_GLYPHS = {
   corporate: '<path d="M46 26 H100 L120 46 V134 H46 Z"/><path d="M100 26 V46 H120"/><path d="M60 64 H106 M60 78 H106 M60 92 H90"/><circle cx="100" cy="114" r="12"/><path d="M58 118 Q66 106 74 118 T90 116"/>',
@@ -202,62 +212,43 @@ const SPHERE_GLYPHS = {
   practice: '<path d="M80 30 V126 M52 126 H108 M40 50 H120"/><path d="M40 50 L26 90 M40 50 L54 90 M22 90 Q40 106 58 90"/><path d="M120 50 L106 90 M120 50 L134 90 M102 90 Q120 106 138 90"/>',
 };
 
-function renderSphereCard(sphere) {
+function renderSphereCard(sphere, index) {
   const total = sphere.items.length;
   if (!total) return '';
 
-  const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
-
-  // Плитка-карта (владелец 03.09.2026): в свёрнутом виде – имя, число
-  // программ и «от N ₽» на цветной плитке (цвет по data-sphere в CSS шаблона);
-  // по клику раскрывается полный список программ. Разметка – всех программ.
-  const rows = sphere.items.map((p) => {
-    const price = p.discountPrice || p.educationPricing;
-    const priceHtml =
-      Number.isFinite(price) && price > 0
-        ? `\n              <span class="dpo-prog-price">${escapeHtml(formatPrice(price))}</span>`
-        : '';
-    const meta = [kindLabel(p), shortFormat(p), upcomingStartLabel(p)].filter(Boolean).join(' · ');
-    // Кнопка лежит РЯДОМ со ссылкой, а не внутри неё: кнопка внутри <a> –
-    // невалидная разметка и ломает обход с клавиатуры. Место под неё
-    // резервирует padding-right у самой ссылки, поэтому строка не растёт
-    // в высоту и меню сфер не удлиняется.
-    return `          <li class="dpo-prog-row">
-            <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
-              <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
-              <span class="dpo-prog-meta">${escapeHtml(meta)}</span>
-            </a>
-            <button type="button" class="dpo-prog-apply" data-application
-              data-program-id="${escapeHtml(String(p.id || ''))}"
-              data-program-title="${escapeHtml(p.title)}"
-              data-program-url="${escapeHtml(programHref(p))}"
-              aria-label="Заявка: ${escapeHtml(p.title)}">Заявка</button>
-          </li>`;
-  });
-
-  // Единый ярлык для всех сфер (02.09.2026, финальная критика: в одной
-  // сетке соседствовали два разных имени ссылки). Число не обманывает и
-  // при полностью показанной сфере: в каталоге будут ровно эти N программ,
-  // просто карточками с фильтрами.
-  const allLabel = `Все ${pluralPrograms(total)} сферы в каталоге`;
-  // Виньетка сферы – линейный рисунок в штрихе .dpo-why-vignette (160×160,
-  // stroke 2.5, currentColor), водяным знаком в углу плитки. Цены на плитке
-  // нет (владелец 03.09.2026) – она у каждой программы в раскрытом списке.
+  // Плитка – ссылка в каталог с включённым фильтром сферы и якорем на панель
+  // фильтров (владелец 03.09.2026: без открывашки, сразу к списку программ).
+  // Внутри – номер, имя, подводка, факты (число программ, типы, ближайший
+  // старт), призыв со стрелкой и виньетка. Цены нет – она у программ в каталоге.
+  const href = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id) + '#filters';
+  const kinds = sphere.items.reduce((acc, p) => {
+    const k = (p.type && (p.type.shortTitle || p.type.title)) || '';
+    if (k === 'ПК') acc.pk += 1;
+    else if (k === 'ПП') acc.pp += 1;
+    return acc;
+  }, { pk: 0, pp: 0 });
+  const kindsLabel = [kinds.pk ? `${kinds.pk} ПК` : '', kinds.pp ? `${kinds.pp} ПП` : ''].filter(Boolean).join(' · ');
+  const upcoming = sphere.items
+    .filter((p) => upcomingStartLabel(p))
+    .sort((x, y) => new Date(x.startDate) - new Date(y.startDate));
+  const nearest = upcoming.length ? formatDate(upcoming[0]) : '';
+  const facts = [
+    [pluralPrograms(total), kindsLabel].filter(Boolean).join(' · '),
+    nearest ? `Ближайший старт – ${nearest}` : '',
+  ].filter(Boolean);
   const glyph = SPHERE_GLYPHS[sphere.id] || '';
+  const lead = SPHERE_LEADS[sphere.id] || '';
 
-  return `        <div class="dpo-sphere" data-sphere="${escapeHtml(sphere.id)}">
-          <div class="dpo-sphere-head">
-            <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>
-            <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}</span>
-            <svg class="dpo-sphere-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
-          </div>
-          <ul class="dpo-sphere-list">
-${rows.join('\n')}
+  return `        <a class="dpo-sphere" data-sphere="${escapeHtml(sphere.id)}" href="${escapeHtml(href)}">
+          <span class="dpo-sphere-index">${String(index + 1).padStart(2, '0')}</span>
+          <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>${lead ? `
+          <p class="dpo-sphere-lead">${escapeHtml(lead)}</p>` : ''}
+          <ul class="dpo-sphere-facts">
+${facts.map((f) => `            <li>${escapeHtml(f)}</li>`).join('\n')}
           </ul>
-          <div class="dpo-sphere-foot">
-          <a class="dpo-sphere-all" href="${escapeHtml(catalogHref)}">${escapeHtml(allLabel)}</a>
-          </div>
-        </div>`;
+          <span class="dpo-sphere-cta">Смотреть программы<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h11M9 3.5 13.5 8 9 12.5"/></svg></span>
+          <svg class="dpo-sphere-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
+        </a>`;
 }
 
 function renderSpheres(programs) {
@@ -269,72 +260,14 @@ function renderSpheres(programs) {
   // <style>: до шаблонного блока генератору не дотянуться, а правило рядом
   // с разметкой переживает пересборку вместе с ней.
   const style = `      <style>
-        /* Плитки не растягиваются по ряду (03.09.2026): раскрытая плитка выше
-           соседей, и это нормально – сетка выровнена по верху. */
+        /* Плитки одного размера: ряды сетки выравниваются, лишние правила
+           региона сняты 03.09.2026 – раскладка плиток живёт в шаблонном CSS. */
         .dpo-spheres { align-items: stretch; }
-        /* Подвал раскрытой плитки: ссылка в каталог с фильтром сферы. */
-        .dpo-sphere-foot {
-          display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline;
-          gap: 8px 16px;
-          margin: auto -24px 0;
-          padding: 14px 24px 18px;
-          border-top: 1px solid rgba(33, 30, 27, 0.1);
-        }
-        .dpo-sphere-all {
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--dpo-accent, #1658DA);
-        }
-        .dpo-sphere-all::after { content: ' →'; }
-        @media (hover: hover) and (pointer: fine) {
-          .dpo-sphere-all:hover { text-decoration: underline; }
-        }
-        /* Заявка прямо из строки программы (21.08.2026): выбранная
-           программа уходит в форму атрибутами data-program-*, а не
-           пересказывается человеком в комментарии. Кнопка стоит в правом
-           верхнем углу строки, место под неё вычтено из ссылки. */
-        .dpo-prog-row { position: relative; }
-        .dpo-prog-row .dpo-prog { padding-right: 86px; }
-        .dpo-prog-apply {
-          position: absolute;
-          top: 9px;
-          right: 0;
-          min-height: 34px;
-          padding: 0 14px;
-          font: 600 13px/1.2 'HSE Sans', 'IBM Plex Sans', sans-serif;
-          color: var(--dpo-accent, #1658DA);
-          background: #fff;
-          border: 1px solid rgba(22, 88, 218, 0.3);
-          border-radius: 999px;
-          cursor: pointer;
-          transition: background .28s ease, border-color .28s ease, color .28s ease;
-        }
-        /* Мишень 44px без роста строки: невидимое поле вокруг кнопки
-           (WCAG 2.5.5, тот же приём, что у строчных ссылок лендинга).
-           Было -5px: 34 + 5 + 5 = 44 «на бумаге», но замер области попадания
-           на 390px давал 42-43px – высота кнопки не ровно 34px, и округление
-           съедало последний пиксель. Запас увеличен до -7px (48px), чтобы
-           порог держался без ставки на округление. */
-        .dpo-prog-apply::before {
-          content: '';
-          position: absolute;
-          inset: -7px -4px;
-        }
-        @media (hover: hover) and (pointer: fine) {
-          .dpo-prog-apply:hover {
-            background: var(--dpo-accent, #1658DA);
-            border-color: var(--dpo-accent, #1658DA);
-            color: #fff;
-          }
-        }
-        .dpo-prog-apply:active { transform: scale(0.97); }
-        @media (prefers-reduced-motion: reduce) { .dpo-prog-apply:active { transform: none; } }
-        html.vi-mode .dpo-prog-apply { border: 2px solid #000 !important; }
       </style>`;
 
   const html = `${style}
       <div class="dpo-spheres">
-${filled.map(renderSphereCard).join('\n')}
+${filled.map((sphere, i) => renderSphereCard(sphere, i)).join('\n')}
       </div>`;
 
   return { html, spheres: filled.length, unassigned: unassigned.length };

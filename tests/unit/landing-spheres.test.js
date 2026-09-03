@@ -26,32 +26,20 @@ const FINANCE = [
   program('Исламские финансы: правовые основы'),
 ];
 
-test('плитка сферы несёт свой id для цвета, в списке – все программы, «от» – минимальная цена', () => {
+test('плитка сферы – ссылка в каталог с фильтром сферы и якорем на фильтры, с фактами и виньеткой', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  const cards = html.split('<div class="dpo-sphere" data-sphere="').slice(1);
-  assert.equal(cards.length, 2);
-  assert.match(cards[0], /^corporate"/);
-  assert.match(cards[1], /^finance"/);
-  for (const card of cards) assert.doesNotMatch(card, /is-extra|dpo-sphere-more|dpo-sphere-preview/);
-  assert.equal(cards[0].split('class="dpo-prog"').length - 1, CORPORATE.length, 'в списке не все программы сферы');
-  assert.match(cards[0], /dpo-sphere-count">5 программ</);
-  assert.doesNotMatch(cards[0], /от \d/, 'цены на плитке быть не должно');
-  assert.match(cards[0], /<svg class="dpo-sphere-vignette"[^>]*><path|<svg class="dpo-sphere-vignette"[^>]*><circle|<svg class="dpo-sphere-vignette"[^>]*><rect|<svg class="dpo-sphere-vignette"[^>]*><ellipse/, 'нет виньетки');
-});
-
-test('сфера с избытком программ ведёт в каталог со своим фильтром', () => {
-  const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  assert.match(html, /href="Каталог программ\.html\?sphere=corporate">Все 5 программ сферы в каталоге</);
-});
-
-// Правило сменилось 02.09.2026 (финальная критика: в одной сетке
-// соседствовали два разных имени ссылки). Ярлык теперь единый для всех
-// сфер, а честность держится числом: оно всегда совпадает с фактическим
-// количеством программ сферы – и когда часть скрыта, и когда показаны все.
-test('ярлык сферы един и не врёт про число программ', () => {
-  const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  assert.match(html, /href="Каталог программ\.html\?sphere=finance">Все 2 программы сферы в каталоге</);
-  assert.doesNotMatch(html, /Открыть сферу в каталоге/);
+  const tiles = html.split('<a class="dpo-sphere" data-sphere="').slice(1);
+  assert.equal(tiles.length, 2);
+  assert.match(tiles[0], /^corporate" href="Каталог программ\.html\?sphere=corporate#filters"/);
+  assert.match(tiles[1], /^finance" href="Каталог программ\.html\?sphere=finance#filters"/);
+  assert.match(tiles[0], /<span class="dpo-sphere-index">01</);
+  assert.match(tiles[0], /<li>5 программ(?: · [^<]*)?<\/li>/);
+  assert.match(tiles[1], /<li>2 программы(?: · [^<]*)?<\/li>/);
+  for (const tile of tiles) {
+    assert.match(tile, /<svg class="dpo-sphere-vignette"/, 'нет виньетки');
+    assert.match(tile, /Смотреть программы/, 'нет призыва');
+    assert.doesNotMatch(tile, /от \d|dpo-prog-row|dpo-sphere-toggle/, 'цена или список на плитке');
+  }
 });
 
 test('em dash из данных не доходит до разметки', () => {
@@ -59,7 +47,8 @@ test('em dash из данных не доходит до разметки', () =
   p.title = 'Корпоративное право — основные проблемы';
   const { html } = renderSpheres([p]);
   assert.doesNotMatch(html, /—/);
-  assert.match(html, /Корпоративное право – основные проблемы/);
+  // Названия программ на плитках больше не печатаются (плитка ведёт в каталог),
+  // проверяется только отсутствие em dash в разметке секции.
 });
 
 // Тесты applyHeroStats сняты вместе с самой функцией: полоса показателей

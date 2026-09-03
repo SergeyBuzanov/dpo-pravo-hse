@@ -1725,8 +1725,10 @@
     return touched;
   }
 
+  // Счётчик после фильтра из адреса считает applyFilters; безусловный
+  // updateChrome(totalCards()) перебивал его «26 программ» при пяти видимых.
   if (applyStateFromUrl()) applyFilters();
-  updateChrome(totalCards());
+  else updateChrome(totalCards());
 
   const viBtn = document.getElementById('viToggle');
   function setVi(on) {
