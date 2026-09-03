@@ -790,6 +790,9 @@
         inp.type = opts.type || 'text';
         if (opts.className) inp.className = opts.className;
         if (opts.placeholder) inp.placeholder = opts.placeholder;
+        // Подпись для читалки: заголовок колонки плюс название строки,
+        // иначе 26×7 одинаковых полей звучат как «поле ввода».
+        inp.setAttribute('aria-label', `${opts.label}: ${row.title || 'новая программа'}`);
         const val = row[key];
         inp.value = val == null ? '' : String(val);
         inp.addEventListener('input', () => {
@@ -806,10 +809,10 @@
       };
 
       const tdType = document.createElement('td');
-      tdType.append(mkInput('type', { placeholder: 'ПК / ПП' }));
+      tdType.append(mkInput('type', { label: 'Тип', placeholder: 'ПК / ПП' }));
 
       const tdTitle = document.createElement('td');
-      tdTitle.append(mkInput('title', { className: 'title-input', placeholder: 'Название программы' }));
+      tdTitle.append(mkInput('title', { label: 'Название', className: 'title-input', placeholder: 'Название программы' }));
       if (row.source === 'manual' || row.locked) {
         const tags = document.createElement('div');
         tags.style.marginTop = '4px';
@@ -830,25 +833,26 @@
       }
 
       const tdFormat = document.createElement('td');
-      tdFormat.append(mkInput('format', { placeholder: 'Онлайн' }));
+      tdFormat.append(mkInput('format', { label: 'Формат', placeholder: 'Онлайн' }));
 
       const tdPrice = document.createElement('td');
-      tdPrice.append(mkInput('price', { type: 'number', placeholder: '0' }));
+      tdPrice.append(mkInput('price', { label: 'Цена, ₽', type: 'number', placeholder: '0' }));
 
       const tdStart = document.createElement('td');
-      tdStart.append(mkInput('startDate', { type: 'date' }));
+      tdStart.append(mkInput('startDate', { label: 'Старт', type: 'date' }));
 
       const tdDur = document.createElement('td');
-      tdDur.append(mkInput('duration', { placeholder: '36 ч' }));
+      tdDur.append(mkInput('duration', { label: 'Длительность', placeholder: '36 ч' }));
 
       const tdUrl = document.createElement('td');
-      tdUrl.append(mkInput('url', { className: 'url-input', type: 'url', placeholder: 'https://www.hse.ru/edu/dpo/…' }));
+      tdUrl.append(mkInput('url', { label: 'URL', className: 'url-input', type: 'url', placeholder: 'https://www.hse.ru/edu/dpo/…' }));
 
       const tdLock = document.createElement('td');
       const lock = document.createElement('input');
       lock.type = 'checkbox';
       lock.checked = Boolean(row.locked);
       lock.title = 'Не перезаписывать с hse.ru';
+      lock.setAttribute('aria-label', `Не перезаписывать с hse.ru: ${row.title || 'новая программа'}`);
       lock.addEventListener('change', () => {
         row.locked = lock.checked;
         if (row.locked) row.source = row.source || 'manual';
