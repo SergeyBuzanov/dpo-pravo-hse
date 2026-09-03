@@ -172,31 +172,25 @@
   .hero .meta{ display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--ink-mute); background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 16px; }
   .hero .meta b{ color: rgb(var(--ink)); }
 
-  /* «Ближайшие старты»: табло по месяцам (владелец 03.09.2026, вместо
-     стрелы времени 20.08 – та показывала шесть флажков из 24 и только
-     название). Колонка на месяц, в строке день, название, «ПК · формат ·
-     цена», точка сферы цветом плитки лендинга, «Заявка». Первые пять строк
-     видны, дальше «Ещё N»; на телефоне месяцы переключаются чипами
-     (js/starts-board.js). Разметку собирает buildStartsBlock в
-     update-catalog.js. */
+  /* «Ближайшие старты»: ось времени (владелец 03.09.2026, вариант 3).
+     Горизонтальная шкала 24px на день с сентября по последний месяц
+     стартов; карточка каждого старта висит на булавке над своей датой,
+     близкие даты разведены по четырём дорожкам (две над осью, две под).
+     Полосы месяцев, риски дней (седьмая длиннее), метка «сегодня». Разметку
+     и координаты считает buildStartsBlock в update-catalog.js; чипы месяцев
+     прокручивают дорожку (js/starts-board.js). */
   .starts{
     background: var(--bg-tint);
     border-bottom: 1px solid var(--line);
-    padding: clamp(28px, 4.5vw, 48px) clamp(20px, 5vw, 56px) clamp(24px, 3.5vw, 40px);
+    padding: clamp(28px, 4.5vw, 48px) 0 clamp(20px, 3vw, 32px);
   }
-  .starts-head{ display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; margin-bottom: 18px; }
+  .starts-head{ display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; margin: 0 clamp(20px, 5vw, 56px) 14px; }
   .starts h2{
     font-size: 0.8125rem; letter-spacing: 0.12em; text-transform: uppercase;
     font-weight: 600; color: rgb(var(--accent)); margin: 0;
   }
   .starts-sub{ margin: 0; font-size: 0.875rem; color: var(--ink-mute); }
-  .starts-board{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  @media (min-width: 900px){
-    .starts-board{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
-    .starts-board .starts-months{ display: none !important; }
-  }
-  .starts-months{ display: none; flex-wrap: wrap; gap: 8px; grid-column: 1 / -1; }
-  .starts-board.is-tabbed .starts-months{ display: flex; }
+  .starts-months{ display: flex; flex-wrap: wrap; gap: 8px; margin: 0 clamp(20px, 5vw, 56px) 16px; }
   .starts-chip{
     font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer;
     padding: 9px 14px; min-height: 44px; border-radius: 999px;
@@ -206,62 +200,90 @@
   .starts-chip b{ font-weight: 600; opacity: .6; margin-left: 4px; }
   .starts-chip[aria-pressed="true"]{ background: rgb(var(--accent)); color: rgb(var(--surface)); border-color: rgb(var(--accent)); }
   .starts-chip[aria-pressed="true"] b{ opacity: .85; }
-  @media (max-width: 899px){
-    .starts-board.is-tabbed .starts-month:not(.is-active){ display: none; }
+  .tl-wrap{
+    overflow-x: auto; overflow-y: hidden; padding: 0 clamp(20px, 5vw, 56px) 10px;
+    scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / .28) transparent;
+    scroll-behavior: smooth;
   }
-  .starts-month{
-    background: rgb(var(--surface)); border: 1px solid var(--line);
-    border-radius: var(--radius-md); padding: 18px 20px 6px;
+  @media (prefers-reduced-motion: reduce){ .tl-wrap{ scroll-behavior: auto; } }
+  .tl-wrap::-webkit-scrollbar{ height: 6px; }
+  .tl-wrap::-webkit-scrollbar-track{ background: rgb(var(--ink) / .08); border-radius: 999px; }
+  .tl-wrap::-webkit-scrollbar-thumb{ background: rgb(var(--ink) / .28); border-radius: 999px; }
+  .tl-wrap:focus-visible{ outline: 3px solid rgb(var(--accent)); outline-offset: 2px; }
+  .tl{
+    --tl-card-h: 96px; --tl-near: 40px; --tl-far: calc(var(--tl-near) + var(--tl-card-h) + 12px);
+    position: relative; height: calc(2 * (var(--tl-far) + var(--tl-card-h)) + 40px); min-width: 100%;
   }
-  .starts-month-title{
-    font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif; font-size: 1.1875rem; font-weight: 600;
-    margin: 0 0 4px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  /* Полосы месяцев: чередующаяся заливка и подпись у левого края. */
+  .tl-month{ position: absolute; top: 0; bottom: 0; border-left: 1px solid rgb(var(--ink) / .14); }
+  .tl-month:nth-child(even){ background: rgb(var(--surface) / .55); }
+  .tl-month-label{
+    position: absolute; left: 10px; top: 2px;
+    font-size: 0.8125rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; color: var(--ink-mute);
+    white-space: nowrap;
   }
-  .starts-month-count{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 0.7812rem; font-weight: 400; color: var(--ink-mute); white-space: nowrap; }
-  .starts-list{ list-style: none; margin: 0; padding: 0; }
-  .starts-slot{
-    display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 12px;
-    align-items: start; padding: 12px 0; border-top: 1px solid var(--line);
+  .tl-month-label b{ font-weight: 600; opacity: .7; margin-left: 4px; }
+  /* Ось со стрелкой и рисками дней. */
+  .tl-axis{ position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgb(var(--accent)); }
+  .tl-axis::after{
+    content: ''; position: absolute; right: -2px; top: 50%; margin-top: -8px;
+    border-left: 18px solid rgb(var(--accent)); border-top: 8px solid transparent; border-bottom: 8px solid transparent;
   }
-  .starts-month:not(.is-expanded) .starts-slot.is-extra{ display: none; }
-  .starts-day{
-    font-family: 'HSE Slab', 'Source Serif 4', Georgia, serif; font-size: 1.625rem; font-weight: 600; line-height: 1;
-    color: rgb(var(--accent)); font-variant-numeric: tabular-nums; padding-top: 2px;
+  .tl-tick{ position: absolute; top: -3px; width: 1px; height: 8px; margin-left: -0.5px; background: rgb(var(--accent) / .45); }
+  .tl-tick.is-week{ top: -6px; height: 14px; background: rgb(var(--accent) / .7); }
+  .tl-tick.is-month{ top: -9px; height: 20px; width: 2px; background: rgb(var(--accent)); }
+  /* Метка «сегодня»: пунктир во всю высоту и подпись у нижнего края. */
+  .tl-today{ position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed rgb(var(--accent) / .6); }
+  .tl-today span{
+    position: absolute; bottom: 4px; left: 6px; white-space: nowrap;
+    font-size: 0.75rem; font-weight: 600; color: rgb(var(--accent));
+    background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
   }
-  .starts-day.is-month{ font-size: 0.7812rem; line-height: 1.2; padding-top: 6px; color: var(--ink-mute); }
-  .starts-link{ display: block; min-width: 0; text-decoration: none; color: inherit; }
-  .starts-name{
-    display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.35; color: rgb(var(--ink));
-    text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
-    transition: color .15s, text-decoration-color .15s;
+  /* Карточка на булавке: left и точка булавки (--tl-pin) считает генератор. */
+  .tl-item{ position: absolute; width: 190px; }
+  .tl-card{
+    position: absolute; left: 0; width: 100%; height: var(--tl-card-h); box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 3px; overflow: hidden;
+    background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: 14px;
+    padding: 9px 12px 8px; text-decoration: none; color: inherit;
+    transition: border-color .15s, transform .32s cubic-bezier(.22,1,.36,1), box-shadow .35s cubic-bezier(.22,1,.36,1);
   }
-  .starts-meta{ display: block; margin-top: 3px; font-size: 0.7812rem; line-height: 1.45; color: var(--ink-mute); }
-  .starts-dot{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: #A39A8C; }
-  .starts-dot[data-sphere="corporate"]{ background: #1658DA; }
-  .starts-dot[data-sphere="digital"]{ background: #7FA6F0; }
-  .starts-dot[data-sphere="international"]{ background: #0B2A69; }
-  .starts-dot[data-sphere="finance"]{ background: #F0B86E; }
-  .starts-dot[data-sphere="language"]{ background: #223B6C; }
-  .starts-dot[data-sphere="practice"]{ background: #C9B291; }
-  .starts-slot .card-apply{ align-self: center; }
-  @media (max-width: 520px){
-    .starts-slot{ grid-template-columns: 40px minmax(0, 1fr); }
-    .starts-slot .card-apply{ grid-column: 2; justify-self: start; }
+  .tl-when{ font-size: 0.75rem; font-weight: 700; color: rgb(var(--accent)); font-variant-numeric: tabular-nums; }
+  .tl-name{
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: 0.8125rem; font-weight: 600; line-height: 1.35; color: rgb(var(--ink));
   }
-  .starts-more{
-    all: unset; display: block; box-sizing: border-box; width: 100%; cursor: pointer;
-    padding: 12px 0; font: inherit; font-size: 0.875rem; font-weight: 600;
-    color: rgb(var(--accent)); border-top: 1px solid var(--line);
-  }
-  .starts-more::after{ content: ' ↓'; }
-  .starts-more[aria-expanded="true"]::after{ content: ' ↑'; }
-  .starts-more:focus-visible, .starts-chip:focus-visible, .starts-link:focus-visible{ outline: 3px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 6px; }
+  .tl-meta{ margin-top: auto; font-size: 0.7188rem; line-height: 1.3; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-dot{ display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: #A39A8C; }
+  .tl-dot[data-sphere="corporate"]{ background: #1658DA; }
+  .tl-dot[data-sphere="digital"]{ background: #7FA6F0; }
+  .tl-dot[data-sphere="international"]{ background: #0B2A69; }
+  .tl-dot[data-sphere="finance"]{ background: #F0B86E; }
+  .tl-dot[data-sphere="language"]{ background: #223B6C; }
+  .tl-dot[data-sphere="practice"]{ background: #C9B291; }
+  .tl-pin{ position: absolute; left: var(--tl-pin); width: 2px; margin-left: -1px; background: rgb(var(--accent) / .5); }
+  .tl-pin::after{ content: ''; position: absolute; left: -4px; width: 10px; height: 10px; border-radius: 999px; background: rgb(var(--accent)); }
+  /* Дорожки: near – у оси, far – за первой карточкой. Булавка тянется от оси
+     до карточки, кружок стоит на оси. */
+  .tl-up1 .tl-card{ bottom: calc(50% + var(--tl-near)); }
+  .tl-up1 .tl-pin{ bottom: 50%; height: var(--tl-near); }
+  .tl-up2 .tl-card{ bottom: calc(50% + var(--tl-far)); }
+  .tl-up2 .tl-pin{ bottom: 50%; height: var(--tl-far); }
+  .tl-down1 .tl-card{ top: calc(50% + var(--tl-near)); }
+  .tl-down1 .tl-pin{ top: 50%; height: var(--tl-near); }
+  .tl-down2 .tl-card{ top: calc(50% + var(--tl-far)); }
+  .tl-down2 .tl-pin{ top: 50%; height: var(--tl-far); }
+  .tl-up1 .tl-pin::after, .tl-up2 .tl-pin::after{ bottom: -5px; }
+  .tl-down1 .tl-pin::after, .tl-down2 .tl-pin::after{ top: -5px; }
+  .tl-item{ top: 0; bottom: 0; }
+  .tl-card:focus-visible, .starts-chip:focus-visible{ outline: 3px solid rgb(var(--accent)); outline-offset: 2px; }
   @media (hover: hover) and (pointer: fine){
-    .starts-link:hover .starts-name{ color: rgb(var(--accent)); text-decoration-color: currentColor; }
-    .starts-more:hover, .starts-chip:hover:not([aria-pressed="true"]){ text-decoration: underline; }
+    .tl-card:hover{ border-color: rgb(var(--accent)); transform: translateY(-3px); box-shadow: 0 12px 28px rgb(var(--ink) / .1); z-index: 2; }
+    .tl-item:hover{ z-index: 3; }
+    .starts-chip:hover:not([aria-pressed="true"]){ text-decoration: underline; }
   }
   html.vi-mode .starts{ border: 2px solid #000 !important; }
-  html.vi-mode .starts-month, html.vi-mode .starts-chip{ border: 2px solid #000 !important; }
+  html.vi-mode .tl-card, html.vi-mode .starts-chip{ border: 2px solid #000 !important; }
 
   .filters{
     display: flex; flex-wrap: wrap; gap: 8px;
@@ -722,7 +744,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 3 сентября 2026 г. в 20:55, программ: 26 -->
+<!-- каталог обновлён: 3 сентября 2026 г. в 21:37, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 
@@ -736,319 +758,213 @@
 <section class="starts" aria-label="Ближайшие старты программ">
   <div class="starts-head">
     <h2>Ближайшие старты</h2>
-    <p class="starts-sub">24 старта в ближайшие месяцы. Нажмите название, чтобы открыть программу, или «Заявка», чтобы записаться сразу.</p>
+    <p class="starts-sub">24 старта с сентября по ноябрь – каждый на своей дате. Прокрутите ось или выберите месяц.</p>
   </div>
-  <div class="starts-board">
-    <div class="starts-months" aria-label="Месяцы">
-    <button type="button" class="starts-chip" data-month="2026-09" aria-pressed="true">Сентябрь <b>10</b></button>
-    <button type="button" class="starts-chip" data-month="2026-10" aria-pressed="false">Октябрь <b>5</b></button>
-    <button type="button" class="starts-chip" data-month="2026-11" aria-pressed="false">Ноябрь <b>9</b></button>
+  <div class="starts-months" aria-label="Месяцы">
+    <button type="button" class="starts-chip" data-scroll="0" aria-pressed="true">Сентябрь <b>10</b></button>
+    <button type="button" class="starts-chip" data-scroll="832" aria-pressed="false">Октябрь <b>5</b></button>
+    <button type="button" class="starts-chip" data-scroll="1700" aria-pressed="false">Ноябрь <b>9</b></button>
+  </div>
+  <div class="tl-wrap" tabindex="0" role="region" aria-label="Ось времени ближайших стартов, прокручивается горизонтально">
+    <div class="tl" style="width:2548px">
+      <div class="tl-month" style="left:0px;width:840px" aria-hidden="true"><span class="tl-month-label">Сентябрь <b>10</b></span></div>
+      <div class="tl-month" style="left:840px;width:868px" aria-hidden="true"><span class="tl-month-label">Октябрь <b>5</b></span></div>
+      <div class="tl-month" style="left:1708px;width:840px" aria-hidden="true"><span class="tl-month-label">Ноябрь <b>9</b></span></div>
+      <div class="tl-axis" aria-hidden="true"><i class="tl-tick is-month" style="left:14px"></i><i class="tl-tick" style="left:42px"></i><i class="tl-tick" style="left:70px"></i><i class="tl-tick" style="left:98px"></i><i class="tl-tick" style="left:126px"></i><i class="tl-tick" style="left:154px"></i><i class="tl-tick is-week" style="left:182px"></i><i class="tl-tick" style="left:210px"></i><i class="tl-tick" style="left:238px"></i><i class="tl-tick" style="left:266px"></i><i class="tl-tick" style="left:294px"></i><i class="tl-tick" style="left:322px"></i><i class="tl-tick" style="left:350px"></i><i class="tl-tick is-week" style="left:378px"></i><i class="tl-tick" style="left:406px"></i><i class="tl-tick" style="left:434px"></i><i class="tl-tick" style="left:462px"></i><i class="tl-tick" style="left:490px"></i><i class="tl-tick" style="left:518px"></i><i class="tl-tick" style="left:546px"></i><i class="tl-tick is-week" style="left:574px"></i><i class="tl-tick" style="left:602px"></i><i class="tl-tick" style="left:630px"></i><i class="tl-tick" style="left:658px"></i><i class="tl-tick" style="left:686px"></i><i class="tl-tick" style="left:714px"></i><i class="tl-tick" style="left:742px"></i><i class="tl-tick is-week" style="left:770px"></i><i class="tl-tick" style="left:798px"></i><i class="tl-tick" style="left:826px"></i><i class="tl-tick is-month" style="left:854px"></i><i class="tl-tick" style="left:882px"></i><i class="tl-tick" style="left:910px"></i><i class="tl-tick" style="left:938px"></i><i class="tl-tick" style="left:966px"></i><i class="tl-tick" style="left:994px"></i><i class="tl-tick is-week" style="left:1022px"></i><i class="tl-tick" style="left:1050px"></i><i class="tl-tick" style="left:1078px"></i><i class="tl-tick" style="left:1106px"></i><i class="tl-tick" style="left:1134px"></i><i class="tl-tick" style="left:1162px"></i><i class="tl-tick" style="left:1190px"></i><i class="tl-tick is-week" style="left:1218px"></i><i class="tl-tick" style="left:1246px"></i><i class="tl-tick" style="left:1274px"></i><i class="tl-tick" style="left:1302px"></i><i class="tl-tick" style="left:1330px"></i><i class="tl-tick" style="left:1358px"></i><i class="tl-tick" style="left:1386px"></i><i class="tl-tick is-week" style="left:1414px"></i><i class="tl-tick" style="left:1442px"></i><i class="tl-tick" style="left:1470px"></i><i class="tl-tick" style="left:1498px"></i><i class="tl-tick" style="left:1526px"></i><i class="tl-tick" style="left:1554px"></i><i class="tl-tick" style="left:1582px"></i><i class="tl-tick is-week" style="left:1610px"></i><i class="tl-tick" style="left:1638px"></i><i class="tl-tick" style="left:1666px"></i><i class="tl-tick" style="left:1694px"></i><i class="tl-tick is-month" style="left:1722px"></i><i class="tl-tick" style="left:1750px"></i><i class="tl-tick" style="left:1778px"></i><i class="tl-tick" style="left:1806px"></i><i class="tl-tick" style="left:1834px"></i><i class="tl-tick" style="left:1862px"></i><i class="tl-tick is-week" style="left:1890px"></i><i class="tl-tick" style="left:1918px"></i><i class="tl-tick" style="left:1946px"></i><i class="tl-tick" style="left:1974px"></i><i class="tl-tick" style="left:2002px"></i><i class="tl-tick" style="left:2030px"></i><i class="tl-tick" style="left:2058px"></i><i class="tl-tick is-week" style="left:2086px"></i><i class="tl-tick" style="left:2114px"></i><i class="tl-tick" style="left:2142px"></i><i class="tl-tick" style="left:2170px"></i><i class="tl-tick" style="left:2198px"></i><i class="tl-tick" style="left:2226px"></i><i class="tl-tick" style="left:2254px"></i><i class="tl-tick is-week" style="left:2282px"></i><i class="tl-tick" style="left:2310px"></i><i class="tl-tick" style="left:2338px"></i><i class="tl-tick" style="left:2366px"></i><i class="tl-tick" style="left:2394px"></i><i class="tl-tick" style="left:2422px"></i><i class="tl-tick" style="left:2450px"></i><i class="tl-tick is-week" style="left:2478px"></i><i class="tl-tick" style="left:2506px"></i><i class="tl-tick" style="left:2534px"></i></div>
+      <div class="tl-today" style="left:70px" aria-hidden="true"><span>Сегодня</span></div>
+      <div class="tl-item tl-up1" style="left:154px;--tl-pin:28px">
+        <a class="tl-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" aria-label="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">7 сентября</span>
+          <span class="tl-name" aria-hidden="true">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн асинхронный · 57 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:238px;--tl-pin:28px">
+        <a class="tl-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики" aria-label="Правовые вопросы банкротства: теории и практики – старт: 10 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">10 сентября</span>
+          <span class="tl-name" aria-hidden="true">Правовые вопросы банкротства: теории и практики</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up2" style="left:350px;--tl-pin:28px">
+        <a class="tl-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)" aria-label="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">14 сентября</span>
+          <span class="tl-name" aria-hidden="true">Французское (европейское) экономическое право / Droit économique français (européen)</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="international" aria-hidden="true"></i>ПП · Смешанный · 180 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:378px;--tl-pin:28px">
+        <a class="tl-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга" aria-label="Контрактное право Гонконга – старт: 15 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">15 сентября</span>
+          <span class="tl-name" aria-hidden="true">Контрактное право Гонконга</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:490px;--tl-pin:28px">
+        <a class="tl-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO" aria-label="Персональный ассистент PRO – старт: 19 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">19 сентября</span>
+          <span class="tl-name" aria-hidden="true">Персональный ассистент PRO</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Смешанный · 47 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down2" style="left:546px;--tl-pin:28px">
+        <a class="tl-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике" aria-label="Интеллектуальная собственность: от закона к практике – старт: 21 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">21 сентября</span>
+          <span class="tl-name" aria-hidden="true">Интеллектуальная собственность: от закона к практике</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 45 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:602px;--tl-pin:28px">
+        <a class="tl-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса" aria-label="Цифровое право для бизнеса – старт: 23 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">23 сентября</span>
+          <span class="tl-name" aria-hidden="true">Цифровое право для бизнеса</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Онлайн синхронный · 55 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up2" style="left:630px;--tl-pin:28px">
+        <a class="tl-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции" aria-label="Международное частное право: трансграничные операции – старт: 24 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">24 сентября</span>
+          <span class="tl-name" aria-hidden="true">Международное частное право: трансграничные операции</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="international" aria-hidden="true"></i>ПК · Смешанный · 50 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:742px;--tl-pin:28px">
+        <a class="tl-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика" aria-label="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">28 сентября</span>
+          <span class="tl-name" aria-hidden="true">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн синхронный · 78 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down2" style="left:798px;--tl-pin:28px">
+        <a class="tl-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English" aria-label="Право на английском / Legal English – старт: 30 сентября 2026 г.">
+          <span class="tl-when" aria-hidden="true">30 сентября</span>
+          <span class="tl-name" aria-hidden="true">Право на английском / Legal English</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="language" aria-hidden="true"></i>ПП · Гибридный · 130 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:938px;--tl-pin:28px">
+        <a class="tl-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе" aria-label="Авторское право в информационном обществе – старт: 5 октября 2026 г.">
+          <span class="tl-when" aria-hidden="true">5 октября</span>
+          <span class="tl-name" aria-hidden="true">Авторское право в информационном обществе</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 75 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:1162px;--tl-pin:28px">
+        <a class="tl-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)" aria-label="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме) – старт: 13 октября 2026 г.">
+          <span class="tl-when" aria-hidden="true">13 октября</span>
+          <span class="tl-name" aria-hidden="true">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Гибридный · 150 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:1190px;--tl-pin:28px">
+        <a class="tl-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация" aria-label="Бизнес-медиация – старт: 14 октября 2026 г.">
+          <span class="tl-when" aria-hidden="true">14 октября</span>
+          <span class="tl-name" aria-hidden="true">Бизнес-медиация</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="practice" aria-hidden="true"></i>ПП · Смешанный · 390 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:1470px;--tl-pin:28px">
+        <a class="tl-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования" aria-label="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования – старт: 24 октября 2026 г.">
+          <span class="tl-when" aria-hidden="true">24 октября</span>
+          <span class="tl-name" aria-hidden="true">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 40 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:1526px;--tl-pin:28px">
+        <a class="tl-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)" aria-label="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation) – старт: 26 октября 2026 г.">
+          <span class="tl-when" aria-hidden="true">26 октября</span>
+          <span class="tl-name" aria-hidden="true">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="language" aria-hidden="true"></i>ПК · Онлайн синхронный · 90 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:1722px;--tl-pin:28px">
+        <a class="tl-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая" aria-label="Введение в правовую систему Китая – старт: 2 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">2 ноября</span>
+          <span class="tl-name" aria-hidden="true">Введение в правовую систему Китая</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="international" aria-hidden="true"></i>ПК · Онлайн синхронный · 125 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:1918px;--tl-pin:28px">
+        <a class="tl-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право" aria-label="Английское контрактное право – старт: 9 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">9 ноября</span>
+          <span class="tl-name" aria-hidden="true">Английское контрактное право</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:1946px;--tl-pin:28px">
+        <a class="tl-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж" aria-label="Морской арбитраж – старт: 10 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">10 ноября</span>
+          <span class="tl-name" aria-hidden="true">Морской арбитраж</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="international" aria-hidden="true"></i>ПК · Онлайн синхронный · 60 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up2" style="left:2114px;--tl-pin:28px">
+        <a class="tl-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы" aria-label="Корпоративное право: основные проблемы – старт: 16 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">16 ноября</span>
+          <span class="tl-name" aria-hidden="true">Корпоративное право: основные проблемы</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 60 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down2" style="left:2114px;--tl-pin:28px">
+        <a class="tl-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов" aria-label="Техники эффективного анализа юридических документов – старт: 16 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">16 ноября</span>
+          <span class="tl-name" aria-hidden="true">Техники эффективного анализа юридических документов</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Онлайн синхронный · 40 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:2142px;--tl-pin:28px">
+        <a class="tl-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии" aria-label="Деловые переговоры: правовые стратегии – старт: 17 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">17 ноября</span>
+          <span class="tl-name" aria-hidden="true">Деловые переговоры: правовые стратегии</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Смешанный · 45 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up1" style="left:2170px;--tl-pin:28px">
+        <a class="tl-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право" aria-label="Транспортное право – старт: 18 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">18 ноября</span>
+          <span class="tl-name" aria-hidden="true">Транспортное право</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Онлайн синхронный · 45 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-down1" style="left:2358px;--tl-pin:36px">
+        <a class="tl-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права" aria-label="Общие вопросы договорного права – старт: 25 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">25 ноября</span>
+          <span class="tl-name" aria-hidden="true">Общие вопросы договорного права</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 40 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
+      <div class="tl-item tl-up2" style="left:2358px;--tl-pin:176px">
+        <a class="tl-card" href="programs/neyropravo-905186485.html" title="Нейроправо" aria-label="Нейроправо – старт: 30 ноября 2026 г.">
+          <span class="tl-when" aria-hidden="true">30 ноября</span>
+          <span class="tl-name" aria-hidden="true">Нейроправо</span>
+          <span class="tl-meta" aria-hidden="true"><i class="tl-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 50 000 ₽</span>
+        </a>
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>
     </div>
-  <section class="starts-month" data-month="2026-09" aria-labelledby="starts-month-2026-09">
-    <h3 class="starts-month-title" id="starts-month-2026-09">Сентябрь <span class="starts-month-count">10 стартов</span></h3>
-    <ol class="starts-list">
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">7</span>
-        <a class="starts-link" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" aria-label="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября 2026 г.">
-          <span class="starts-name">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн асинхронный · 57 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1129129055"
-          data-program-title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса"
-          data-program-url="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html"
-          aria-label="Заявка: Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">10</span>
-        <a class="starts-link" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" aria-label="Правовые вопросы банкротства: теории и практики – старт: 10 сентября 2026 г.">
-          <span class="starts-name">Правовые вопросы банкротства: теории и практики</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1008772871"
-          data-program-title="Правовые вопросы банкротства: теории и практики"
-          data-program-url="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html"
-          aria-label="Заявка: Правовые вопросы банкротства: теории и практики">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">14</span>
-        <a class="starts-link" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" aria-label="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября 2026 г.">
-          <span class="starts-name">Французское (европейское) экономическое право / Droit économique français (européen)</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="international" aria-hidden="true"></i>ПП · Смешанный · 180 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="961021723"
-          data-program-title="Французское (европейское) экономическое право / Droit économique français (européen)"
-          data-program-url="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html"
-          aria-label="Заявка: Французское (европейское) экономическое право / Droit économique français (européen)">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">15</span>
-        <a class="starts-link" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" aria-label="Контрактное право Гонконга – старт: 15 сентября 2026 г.">
-          <span class="starts-name">Контрактное право Гонконга</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1025688553"
-          data-program-title="Контрактное право Гонконга"
-          data-program-url="programs/kontraktnoe-pravo-gonkonga-1025688553.html"
-          aria-label="Заявка: Контрактное право Гонконга">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">19</span>
-        <a class="starts-link" href="programs/personalnyy-assistent-pro-829977883.html" aria-label="Персональный ассистент PRO – старт: 19 сентября 2026 г.">
-          <span class="starts-name">Персональный ассистент PRO</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Смешанный · 47 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="829977883"
-          data-program-title="Персональный ассистент PRO"
-          data-program-url="programs/personalnyy-assistent-pro-829977883.html"
-          aria-label="Заявка: Персональный ассистент PRO">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">21</span>
-        <a class="starts-link" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" aria-label="Интеллектуальная собственность: от закона к практике – старт: 21 сентября 2026 г.">
-          <span class="starts-name">Интеллектуальная собственность: от закона к практике</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 45 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="816497962"
-          data-program-title="Интеллектуальная собственность: от закона к практике"
-          data-program-url="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html"
-          aria-label="Заявка: Интеллектуальная собственность: от закона к практике">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">23</span>
-        <a class="starts-link" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" aria-label="Цифровое право для бизнеса – старт: 23 сентября 2026 г.">
-          <span class="starts-name">Цифровое право для бизнеса</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Онлайн синхронный · 55 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="837181759"
-          data-program-title="Цифровое право для бизнеса"
-          data-program-url="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html"
-          aria-label="Заявка: Цифровое право для бизнеса">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">24</span>
-        <a class="starts-link" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" aria-label="Международное частное право: трансграничные операции – старт: 24 сентября 2026 г.">
-          <span class="starts-name">Международное частное право: трансграничные операции</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="international" aria-hidden="true"></i>ПК · Смешанный · 50 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="474599435"
-          data-program-title="Международное частное право: трансграничные операции"
-          data-program-url="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html"
-          aria-label="Заявка: Международное частное право: трансграничные операции">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">28</span>
-        <a class="starts-link" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" aria-label="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября 2026 г.">
-          <span class="starts-name">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн синхронный · 78 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="814248062"
-          data-program-title="Исламские финансы: правовые основы, комплаенс и бизнес-практика"
-          data-program-url="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html"
-          aria-label="Заявка: Исламские финансы: правовые основы, комплаенс и бизнес-практика">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">30</span>
-        <a class="starts-link" href="programs/pravo-na-angliyskom-legal-english-474776084.html" aria-label="Право на английском / Legal English – старт: 30 сентября 2026 г.">
-          <span class="starts-name">Право на английском / Legal English</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="language" aria-hidden="true"></i>ПП · Гибридный · 130 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="474776084"
-          data-program-title="Право на английском / Legal English"
-          data-program-url="programs/pravo-na-angliyskom-legal-english-474776084.html"
-          aria-label="Заявка: Право на английском / Legal English">Заявка</button>
-      </li>
-    </ol>
-    <button type="button" class="starts-more" aria-expanded="false" data-more="Ещё 5 программ" data-less="Свернуть">Ещё 5 программ</button>
-  </section>
-  <section class="starts-month" data-month="2026-10" aria-labelledby="starts-month-2026-10">
-    <h3 class="starts-month-title" id="starts-month-2026-10">Октябрь <span class="starts-month-count">5 стартов</span></h3>
-    <ol class="starts-list">
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">5</span>
-        <a class="starts-link" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" aria-label="Авторское право в информационном обществе – старт: 5 октября 2026 г.">
-          <span class="starts-name">Авторское право в информационном обществе</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 75 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="472681893"
-          data-program-title="Авторское право в информационном обществе"
-          data-program-url="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html"
-          aria-label="Заявка: Авторское право в информационном обществе">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">13</span>
-        <a class="starts-link" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" aria-label="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме) – старт: 13 октября 2026 г.">
-          <span class="starts-name">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Гибридный · 150 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1163275658"
-          data-program-title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)"
-          data-program-url="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html"
-          aria-label="Заявка: Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">14</span>
-        <a class="starts-link" href="programs/biznes-mediatsiya-494685723.html" aria-label="Бизнес-медиация – старт: 14 октября 2026 г.">
-          <span class="starts-name">Бизнес-медиация</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="practice" aria-hidden="true"></i>ПП · Смешанный · 390 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="494685723"
-          data-program-title="Бизнес-медиация"
-          data-program-url="programs/biznes-mediatsiya-494685723.html"
-          aria-label="Заявка: Бизнес-медиация">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">24</span>
-        <a class="starts-link" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" aria-label="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования – старт: 24 октября 2026 г.">
-          <span class="starts-name">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 40 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1129129056"
-          data-program-title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования"
-          data-program-url="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html"
-          aria-label="Заявка: Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">26</span>
-        <a class="starts-link" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" aria-label="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation) – старт: 26 октября 2026 г.">
-          <span class="starts-name">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="language" aria-hidden="true"></i>ПК · Онлайн синхронный · 90 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="1057557281"
-          data-program-title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)"
-          data-program-url="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html"
-          aria-label="Заявка: Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)">Заявка</button>
-      </li>
-    </ol>
-  </section>
-  <section class="starts-month" data-month="2026-11" aria-labelledby="starts-month-2026-11">
-    <h3 class="starts-month-title" id="starts-month-2026-11">Ноябрь <span class="starts-month-count">9 стартов</span></h3>
-    <ol class="starts-list">
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">2</span>
-        <a class="starts-link" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" aria-label="Введение в правовую систему Китая – старт: 2 ноября 2026 г.">
-          <span class="starts-name">Введение в правовую систему Китая</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="international" aria-hidden="true"></i>ПК · Онлайн синхронный · 125 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="894108285"
-          data-program-title="Введение в правовую систему Китая"
-          data-program-url="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html"
-          aria-label="Заявка: Введение в правовую систему Китая">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">9</span>
-        <a class="starts-link" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" aria-label="Английское контрактное право – старт: 9 ноября 2026 г.">
-          <span class="starts-name">Английское контрактное право</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 50 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="856421092"
-          data-program-title="Английское контрактное право"
-          data-program-url="programs/angliyskoe-kontraktnoe-pravo-856421092.html"
-          aria-label="Заявка: Английское контрактное право">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">10</span>
-        <a class="starts-link" href="programs/morskoy-arbitrazh-906651510.html" aria-label="Морской арбитраж – старт: 10 ноября 2026 г.">
-          <span class="starts-name">Морской арбитраж</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="international" aria-hidden="true"></i>ПК · Онлайн синхронный · 60 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="906651510"
-          data-program-title="Морской арбитраж"
-          data-program-url="programs/morskoy-arbitrazh-906651510.html"
-          aria-label="Заявка: Морской арбитраж">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">16</span>
-        <a class="starts-link" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" aria-label="Корпоративное право: основные проблемы – старт: 16 ноября 2026 г.">
-          <span class="starts-name">Корпоративное право: основные проблемы</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 60 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="474596729"
-          data-program-title="Корпоративное право: основные проблемы"
-          data-program-url="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html"
-          aria-label="Заявка: Корпоративное право: основные проблемы">Заявка</button>
-      </li>
-      <li class="starts-slot">
-        <span class="starts-day" aria-hidden="true">16</span>
-        <a class="starts-link" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" aria-label="Техники эффективного анализа юридических документов – старт: 16 ноября 2026 г.">
-          <span class="starts-name">Техники эффективного анализа юридических документов</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Онлайн синхронный · 40 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="820703080"
-          data-program-title="Техники эффективного анализа юридических документов"
-          data-program-url="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html"
-          aria-label="Заявка: Техники эффективного анализа юридических документов">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">17</span>
-        <a class="starts-link" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" aria-label="Деловые переговоры: правовые стратегии – старт: 17 ноября 2026 г.">
-          <span class="starts-name">Деловые переговоры: правовые стратегии</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Смешанный · 45 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="589527758"
-          data-program-title="Деловые переговоры: правовые стратегии"
-          data-program-url="programs/delovye-peregovory-pravovye-strategii-589527758.html"
-          aria-label="Заявка: Деловые переговоры: правовые стратегии">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">18</span>
-        <a class="starts-link" href="programs/transportnoe-pravo-802031223.html" aria-label="Транспортное право – старт: 18 ноября 2026 г.">
-          <span class="starts-name">Транспортное право</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="practice" aria-hidden="true"></i>ПК · Онлайн синхронный · 45 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="802031223"
-          data-program-title="Транспортное право"
-          data-program-url="programs/transportnoe-pravo-802031223.html"
-          aria-label="Заявка: Транспортное право">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">25</span>
-        <a class="starts-link" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" aria-label="Общие вопросы договорного права – старт: 25 ноября 2026 г.">
-          <span class="starts-name">Общие вопросы договорного права</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="corporate" aria-hidden="true"></i>ПК · Онлайн синхронный · 40 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="907279244"
-          data-program-title="Общие вопросы договорного права"
-          data-program-url="programs/obschie-voprosy-dogovornogo-prava-907279244.html"
-          aria-label="Заявка: Общие вопросы договорного права">Заявка</button>
-      </li>
-      <li class="starts-slot is-extra">
-        <span class="starts-day" aria-hidden="true">30</span>
-        <a class="starts-link" href="programs/neyropravo-905186485.html" aria-label="Нейроправо – старт: 30 ноября 2026 г.">
-          <span class="starts-name">Нейроправо</span>
-          <span class="starts-meta"><i class="starts-dot" data-sphere="digital" aria-hidden="true"></i>ПК · Очный · 50 000 ₽</span>
-        </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="905186485"
-          data-program-title="Нейроправо"
-          data-program-url="programs/neyropravo-905186485.html"
-          aria-label="Заявка: Нейроправо">Заявка</button>
-      </li>
-    </ol>
-    <button type="button" class="starts-more" aria-expanded="false" data-more="Ещё 4 программы" data-less="Свернуть">Ещё 4 программы</button>
-  </section>
   </div>
 </section>
   <!-- /CATALOG:STARTS -->

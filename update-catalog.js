@@ -252,18 +252,22 @@ function pluralPrograms(n) {
   return `${n} программ`;
 }
 
-const STARTS_PREVIEW = 5;
-
 /**
- * «Ближайшие старты» каталога – табло по месяцам (владелец 03.09.2026,
- * вместо «стрелы времени» 20.08: та показывала шесть флажков из 24 и только
- * название). Колонка на месяц: день крупно, название, «ПК · формат · цена»,
- * точка сферы цветом плитки лендинга, кнопка «Заявка». Первые STARTS_PREVIEW
- * строк видны, остальные за «Ещё N программ»; на телефоне месяцы
- * переключаются чипами (js/starts-board.js). Без скрипта – все колонки и
- * все строки. Дата с точностью до месяца попадает в свой месяц с подписью
- * «месяц» вместо дня.
+ * «Ближайшие старты» каталога – настоящая ось времени (владелец 03.09.2026,
+ * вариант 3 после табло по месяцам). Горизонтальная шкала с сентября по
+ * последний месяц стартов, DAY_PX на день: карточка каждого старта висит на
+ * булавке ровно над своей датой, поэтому плотность сезона видна глазом.
+ * Близкие даты разводятся по четырём дорожкам (две над осью, две под):
+ * карточка идёт на первую дорожку, где предыдущая уже закончилась. Полосы
+ * месяцев с подписями, риски дней (каждая седьмая длиннее), метка «сегодня».
+ * Порядок в DOM хронологический – диктор читает по датам. Дорожка
+ * прокручивается горизонтально (tabindex=0, role=region); чипы месяцев
+ * (js/starts-board.js) прокручивают к началу месяца.
  */
+const TL_DAY_PX = 28;
+const TL_CARD_W = 190;
+const TL_GAP_PX = 12;
+
 function buildStartsBlock(items, now = new Date()) {
   const upcoming = items
     .filter((i) => upcomingStartLabel(i, now))
@@ -275,75 +279,105 @@ function buildStartsBlock(items, now = new Date()) {
   if (!upcoming.length) return '';
 
   const fmt = (opts) => new Intl.DateTimeFormat('ru-RU', { timeZone: MOSCOW_TZ, ...opts });
-  const curYear = fmt({ year: 'numeric' }).format(now);
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  // Календарный день по Москве как число дней от эпохи: разница двух таких
+  // чисел – ровно число суток между датами, без сдвигов часовых поясов.
+  const dayNum = (d) => {
+    const p = fmt({ year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+    const get = (t) => Number(p.find((x) => x.type === t).value);
+    return Math.round(Date.UTC(get('year'), get('month') - 1, get('day')) / 86400000);
+  };
+  const ymd = (d) => {
+    const p = fmt({ year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+    const get = (t) => Number(p.find((x) => x.type === t).value);
+    return { y: get('year'), m: get('month'), d: get('day') };
+  };
+  const first = ymd(new Date(upcoming[0].startDate));
+  const last = ymd(new Date(upcoming[upcoming.length - 1].startDate));
+  const axisStart = Math.round(Date.UTC(first.y, first.m - 1, 1) / 86400000);
+  const axisEnd = Math.round(Date.UTC(last.y, last.m, 0) / 86400000); // последний день последнего месяца
+  const totalDays = axisEnd - axisStart + 1;
+  const xOf = (dn) => (dn - axisStart) * TL_DAY_PX + TL_DAY_PX / 2;
+  const totalW = totalDays * TL_DAY_PX;
 
+  // Полосы месяцев
   const months = [];
-  for (const item of upcoming) {
-    const d = new Date(item.startDate);
-    const year = fmt({ year: 'numeric' }).format(d);
-    const key = `${year}-${fmt({ month: '2-digit' }).format(d)}`;
-    let bucket = months.find((m) => m.key === key);
-    if (!bucket) {
-      const label = cap(fmt({ month: 'long' }).format(d)) + (year === curYear ? '' : ` ${year}`);
-      bucket = { key, label, items: [] };
-      months.push(bucket);
-    }
-    bucket.items.push(item);
+  for (let y = first.y, m = first.m; y < last.y || (y === last.y && m <= last.m); m === 12 ? (m = 1, y += 1) : (m += 1)) {
+    const startDn = Math.round(Date.UTC(y, m - 1, 1) / 86400000);
+    const days = Math.round(Date.UTC(y, m, 0) / 86400000) - startDn + 1;
+    const label = cap(fmt({ month: 'long' }).format(new Date(Date.UTC(y, m - 1, 15))));
+    months.push({ key: `${y}-${String(m).padStart(2, '0')}`, label, left: (startDn - axisStart) * TL_DAY_PX, width: days * TL_DAY_PX, count: 0 });
   }
 
-  const slot = (item, idx) => {
+  // Дорожки: карточка встаёт на первую, где предыдущая уже закончилась.
+  const LANES = ['up1', 'down1', 'up2', 'down2'];
+  const laneRight = [-Infinity, -Infinity, -Infinity, -Infinity];
+  const cards = upcoming.map((item) => {
     const d = new Date(item.startDate);
-    const day = item.isStartDateWithoutDay ? 'месяц' : fmt({ day: 'numeric' }).format(d);
+    const dn = dayNum(d);
+    const x = xOf(dn);
+    const cardLeft = Math.max(0, Math.min(x - 28, totalW - TL_CARD_W));
+    let lane = LANES.findIndex((_, i) => cardLeft >= laneRight[i] + TL_GAP_PX);
+    if (lane === -1) lane = laneRight.indexOf(Math.min(...laneRight));
+    laneRight[lane] = cardLeft + TL_CARD_W;
+    const { y, m } = ymd(d);
+    const month = months.find((mo) => mo.key === `${y}-${String(m).padStart(2, '0')}`);
+    if (month) month.count += 1;
+
     const when = item.isStartDateWithoutDay
       ? cap(fmt({ month: 'long' }).format(d))
-      : fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+      : fmt({ day: 'numeric', month: 'long' }).format(d);
+    const whenFull = item.isStartDateWithoutDay ? when : fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
     const kind = (item.type && (item.type.shortTitle || item.type.title)) || '';
-    const price = formatPrice(item);
-    const meta = [kind, shortFormat(item.studyFormat?.title), price].filter(Boolean).join(' · ');
+    const meta = [kind, shortFormat(item.studyFormat?.title), formatPrice(item)].filter(Boolean).join(' · ');
     const sphere = sphereOf(item);
-    const dot = sphere ? `<i class="starts-dot" data-sphere="${escapeHtml(sphere.id)}" aria-hidden="true"></i>` : '';
-    return `      <li class="starts-slot${idx >= STARTS_PREVIEW ? ' is-extra' : ''}">
-        <span class="starts-day${item.isStartDateWithoutDay ? ' is-month' : ''}" aria-hidden="true">${escapeHtml(day)}</span>
-        <a class="starts-link" href="${escapeHtml(programHref(item))}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(when)}">
-          <span class="starts-name">${escapeHtml(item.title)}</span>
-          <span class="starts-meta">${dot}${escapeHtml(meta)}</span>
+    const dot = sphere ? `<i class="tl-dot" data-sphere="${escapeHtml(sphere.id)}" aria-hidden="true"></i>` : '';
+    return `      <div class="tl-item tl-${LANES[lane]}" style="left:${cardLeft}px;--tl-pin:${x - cardLeft}px">
+        <a class="tl-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(whenFull)}">
+          <span class="tl-when" aria-hidden="true">${escapeHtml(when)}</span>
+          <span class="tl-name" aria-hidden="true">${escapeHtml(item.title)}</span>
+          <span class="tl-meta" aria-hidden="true">${dot}${escapeHtml(meta)}</span>
         </a>
-        <button type="button" class="card-apply" data-application
-          data-program-id="${escapeHtml(String(item.id || ''))}"
-          data-program-title="${escapeHtml(item.title)}"
-          data-program-url="${escapeHtml(programHref(item))}"
-          aria-label="Заявка: ${escapeHtml(item.title)}">Заявка</button>
-      </li>`;
-  };
+        <span class="tl-pin" aria-hidden="true"></span>
+      </div>`;
+  });
 
-  const column = (m) => {
-    const extra = m.items.length - STARTS_PREVIEW;
-    const more = extra > 0
-      ? `\n    <button type="button" class="starts-more" aria-expanded="false" data-more="Ещё ${escapeHtml(pluralPrograms(extra))}" data-less="Свернуть">Ещё ${escapeHtml(pluralPrograms(extra))}</button>`
-      : '';
-    return `  <section class="starts-month" data-month="${m.key}" aria-labelledby="starts-month-${m.key}">
-    <h3 class="starts-month-title" id="starts-month-${m.key}">${escapeHtml(m.label)} <span class="starts-month-count">${escapeHtml(pluralStarts(m.items.length))}</span></h3>
-    <ol class="starts-list">
-${m.items.map(slot).join('\n')}
-    </ol>${more}
-  </section>`;
-  };
-
-  const chips = months
-    .map((m, i) => `    <button type="button" class="starts-chip" data-month="${m.key}" aria-pressed="${i === 0 ? 'true' : 'false'}">${escapeHtml(m.label)} <b>${m.items.length}</b></button>`)
+  const bands = months
+    .map((mo) => `      <div class="tl-month" style="left:${mo.left}px;width:${mo.width}px" aria-hidden="true"><span class="tl-month-label">${escapeHtml(mo.label)} <b>${mo.count}</b></span></div>`)
     .join('\n');
+  const ticks = [];
+  for (let i = 0; i < totalDays; i += 1) {
+    const dn = axisStart + i;
+    const dom = new Date(dn * 86400000).getUTCDate();
+    const cls = dom === 1 ? ' is-month' : dom % 7 === 0 ? ' is-week' : '';
+    ticks.push(`<i class="tl-tick${cls}" style="left:${xOf(dn)}px"></i>`);
+  }
+  const todayDn = dayNum(now);
+  const today = todayDn >= axisStart && todayDn <= axisEnd
+    ? `      <div class="tl-today" style="left:${xOf(todayDn)}px" aria-hidden="true"><span>Сегодня</span></div>`
+    : '';
+  const chips = months
+    .map((mo, i) => `    <button type="button" class="starts-chip" data-scroll="${Math.max(0, mo.left - 8)}" aria-pressed="${i === 0 ? 'true' : 'false'}">${escapeHtml(mo.label)} <b>${mo.count}</b></button>`)
+    .join('\n');
+  // Родительный падеж первого месяца («с сентября») берётся из формата «1 сентября».
+  const genitive = (mo) => fmt({ day: 'numeric', month: 'long' }).format(new Date(Date.UTC(Number(mo.key.slice(0, 4)), Number(mo.key.slice(5)) - 1, 1, 12))).replace(/^\d+\s+/, '');
+  const span = months.length > 1 ? `с ${genitive(months[0])} по ${months[months.length - 1].label.toLowerCase()}` : `в ${genitive(months[0]).replace(/я$/, 'е')}`;
 
   return `<section class="starts" aria-label="Ближайшие старты программ">
   <div class="starts-head">
     <h2>Ближайшие старты</h2>
-    <p class="starts-sub">${escapeHtml(pluralStarts(upcoming.length))} в ближайшие месяцы. Нажмите название, чтобы открыть программу, или «Заявка», чтобы записаться сразу.</p>
+    <p class="starts-sub">${escapeHtml(pluralStarts(upcoming.length))} ${escapeHtml(span)} – каждый на своей дате. Прокрутите ось или выберите месяц.</p>
   </div>
-  <div class="starts-board">
-    <div class="starts-months" aria-label="Месяцы">
+  <div class="starts-months" aria-label="Месяцы">
 ${chips}
+  </div>
+  <div class="tl-wrap" tabindex="0" role="region" aria-label="Ось времени ближайших стартов, прокручивается горизонтально">
+    <div class="tl" style="width:${totalW}px">
+${bands}
+      <div class="tl-axis" aria-hidden="true">${ticks.join('')}</div>
+${today}
+${cards.join('\n')}
     </div>
-${months.map(column).join('\n')}
   </div>
 </section>`;
 }

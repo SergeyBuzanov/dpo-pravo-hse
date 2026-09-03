@@ -1,7 +1,7 @@
 /**
- * Табло ближайших стартов каталога: колонка на месяц, строка с днём, метой,
- * точкой сферы и кнопкой заявки; лишние строки за «Ещё N»; прошедшие даты
- * не попадают. Пришло на смену стреле времени 03.09.2026.
+ * Ось времени ближайших стартов каталога: карточка каждого старта стоит на
+ * своей дате (24px на день), близкие даты разведены по дорожкам, полосы
+ * месяцев со счётчиками, метка «сегодня», прошедшие даты не попадают.
  */
 
 'use strict';
@@ -16,28 +16,37 @@ const program = (id, title, iso, price = 50000) => ({
   id, title, startDate: iso, type: { shortTitle: 'ПК' }, studyFormat: { title: 'Онлайн синхронный' }, educationPricing: price,
 });
 
-test('колонки по месяцам со счётчиками, строки с днём, метой, точкой сферы и заявкой', () => {
+test('карточки стоят на своих датах, месяцы подписаны со счётчиками, есть «сегодня»', () => {
   const html = buildStartsBlock([
     program(1, 'Контрактное право Гонконга', '2026-09-14T00:00:00+03:00'),
     program(2, 'Морской арбитраж', '2026-11-09T00:00:00+03:00'),
-    program(3, 'Нейроправо', '2026-11-29T00:00:00+03:00'),
-    program(4, 'Прошедшее', '2026-08-01T00:00:00+03:00'),
+    program(3, 'Прошедшее', '2026-08-01T00:00:00+03:00'),
   ], NOW);
-  assert.match(html, /Сентябрь <span class="starts-month-count">1 старт</);
-  assert.match(html, /Ноябрь <span class="starts-month-count">2 старта</);
   assert.doesNotMatch(html, /Прошедшее/);
-  assert.match(html, /<span class="starts-day" aria-hidden="true">14</);
-  assert.match(html, /<i class="starts-dot" data-sphere="corporate"/);
-  assert.match(html, /class="card-apply" data-application/);
-  assert.match(html, /ПК · Онлайн синхронный · /);
-  assert.doesNotMatch(html, /starts-more/, 'при трёх стартах раскрывать нечего');
+  assert.match(html, /tl-month-label">Сентябрь <b>1<\/b>/);
+  assert.match(html, /tl-month-label">Октябрь <b>0<\/b>/);
+  assert.match(html, /tl-month-label">Ноябрь <b>1<\/b>/);
+  // 14 сентября: 13 дней от начала оси × 28px + 14 = 378; карточка на 28px левее булавки
+  assert.match(html, /class="tl-item tl-up1" style="left:350px;--tl-pin:28px"/);
+  assert.match(html, /<span class="tl-when" aria-hidden="true">14 сентября</);
+  assert.match(html, /tl-dot" data-sphere="corporate"/);
+  assert.match(html, /class="tl-today" style="left:70px"/, 'сегодня 3 сентября – третий день оси');
+  assert.match(html, /style="width:2548px"/, 'сентябрь–ноябрь = 91 день × 28px');
+  assert.match(html, /с сентября по ноябрь/);
 });
 
-test('шестая и дальше строки месяца свёрнуты за «Ещё N программ»', () => {
-  const list = Array.from({ length: 7 }, (_, i) => program(10 + i, `Программа ${i + 1}`, `2026-10-${String(i + 1).padStart(2, '0')}T00:00:00+03:00`));
-  const html = buildStartsBlock(list, NOW);
-  assert.equal(html.split('starts-slot is-extra').length - 1, 2);
-  assert.match(html, /class="starts-more"[^>]*>Ещё 2 программы</);
+test('близкие даты разводятся по дорожкам, дальние возвращаются на первую', () => {
+  const html = buildStartsBlock([
+    program(1, 'А', '2026-10-01T00:00:00+03:00'),
+    program(2, 'Б', '2026-10-02T00:00:00+03:00'),
+    program(3, 'В', '2026-10-03T00:00:00+03:00'),
+    program(4, 'Г', '2026-10-04T00:00:00+03:00'),
+    program(5, 'Д', '2026-10-05T00:00:00+03:00'),
+    program(6, 'Е', '2026-10-25T00:00:00+03:00'),
+  ], NOW);
+  const lanes = [...html.matchAll(/class="tl-item tl-(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual(lanes.slice(0, 4), ['up1', 'down1', 'up2', 'down2']);
+  assert.equal(lanes[5], 'up1', 'через три недели первая дорожка снова свободна');
 });
 
 test('без будущих стартов секции нет', () => {

@@ -1,46 +1,44 @@
 /*
- * Табло ближайших стартов в каталоге: чипы месяцев на телефоне и «Ещё N
- * программ» в колонке. Разметку даёт buildStartsBlock (update-catalog.js);
- * без скрипта видны все колонки и все строки. Слушатели – делегированием
- * по документу, начальное состояние (is-tabbed, активный первый месяц)
- * выставляется, как только табло есть в документе.
+ * Ось времени ближайших стартов в каталоге: чипы месяцев прокручивают
+ * дорожку к началу месяца, при ручной прокрутке активный чип следует за
+ * положением. Разметку и координаты даёт buildStartsBlock (update-catalog.js);
+ * без скрипта дорожка просто прокручивается руками.
  */
 (function () {
   'use strict';
 
-  function activate(board, key) {
-    board.querySelectorAll('.starts-month').forEach(function (m) {
-      m.classList.toggle('is-active', m.getAttribute('data-month') === key);
-    });
-    board.querySelectorAll('.starts-chip').forEach(function (c) {
-      c.setAttribute('aria-pressed', c.getAttribute('data-month') === key ? 'true' : 'false');
-    });
+  var wrap = null;
+  var chips = [];
+
+  function press(chip) {
+    chips.forEach(function (c) { c.setAttribute('aria-pressed', c === chip ? 'true' : 'false'); });
   }
 
   function init() {
-    var board = document.querySelector('.starts-board');
-    if (!board || board.classList.contains('is-tabbed')) return;
-    board.classList.add('is-tabbed');
-    var first = board.querySelector('.starts-month');
-    if (first) activate(board, first.getAttribute('data-month'));
+    wrap = document.querySelector('.tl-wrap');
+    chips = Array.prototype.slice.call(document.querySelectorAll('.starts-chip[data-scroll]'));
+    if (!wrap || !chips.length) return;
+    var ticking = false;
+    wrap.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        ticking = false;
+        var x = wrap.scrollLeft + 24;
+        var current = chips[0];
+        chips.forEach(function (c) { if (Number(c.getAttribute('data-scroll')) <= x) current = c; });
+        // У правого края дорожка дальше не едет – активен последний месяц.
+        if (wrap.scrollLeft >= wrap.scrollWidth - wrap.clientWidth - 2) current = chips[chips.length - 1];
+        press(current);
+      });
+    }, { passive: true });
   }
 
   document.addEventListener('click', function (e) {
-    var t = e.target;
-    if (!t || !t.closest) return;
-    var chip = t.closest('.starts-chip');
-    if (chip) {
-      activate(chip.closest('.starts-board'), chip.getAttribute('data-month'));
-      return;
-    }
-    var more = t.closest('.starts-more');
-    if (more) {
-      var month = more.closest('.starts-month');
-      var open = !month.classList.contains('is-expanded');
-      month.classList.toggle('is-expanded', open);
-      more.setAttribute('aria-expanded', open ? 'true' : 'false');
-      more.textContent = open ? more.getAttribute('data-less') : more.getAttribute('data-more');
-    }
+    var chip = e.target && e.target.closest ? e.target.closest('.starts-chip[data-scroll]') : null;
+    if (!chip || !wrap) return;
+    press(chip);
+    wrap.scrollTo({ left: Number(chip.getAttribute('data-scroll')), behavior: 'smooth' });
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
