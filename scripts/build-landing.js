@@ -33,7 +33,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { extract, inject } = require('./landing-template');
-const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
+const { groupBySphere, pluralPrograms, sphereOf } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
 // Наружу пускаем только https://*.hse.ru – тот же контракт, что у каталога
 // и у генератора страниц программ. Проверка живёт в одном месте.
@@ -918,69 +918,104 @@ function renderTop5Data(template, programs) {
  * фокус, кнопка (WCAG 2.2.2); на тач-экране, при reduced-motion и в
  * vi-mode двигатель автоход не запускает.
  */
+/** «10 стартов» / «2 старта» / «1 старт». */
+function pluralStarts(n) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return `${n} старт`;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return `${n} старта`;
+  return `${n} стартов`;
+}
+
+/**
+ * Табло ближайших стартов (владелец 03.09.2026, вариант «расписание по
+ * месяцам» вместо ленты-билетов с автоходом: та показывала четыре билета из
+ * 24 и только число с названием). Колонка на месяц: день крупно, название,
+ * «ПК · формат · цена», точка сферы цветом плитки, кнопка «Заявка». Видны
+ * первые STARTS_PREVIEW строк, остальные – за «Ещё N программ»; на телефоне
+ * месяцы переключаются чипами (js/starts-board.js). Без скрипта – все
+ * колонки и все строки.
+ */
+const STARTS_PREVIEW = 5;
+
 function renderStarts(programs) {
   const upcoming = programs
     .filter((p) => upcomingStartLabel(p))
-    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-    .slice(0, 30);
+    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
   if (!upcoming.length) return { html: '', count: 0 };
 
-  // Билет ленты стартов – рисунок Claude Design, возвращён 02.09.2026 по
-  // указанию владельца (капсулы-станции от 01.09 отменены: «было лучше»).
-  // Билету нужны день и месяц по отдельности (день – крупно слабом).
-  // У дат с точностью до месяца (isStartDateWithoutDay) дня нет: крупным
-  // элементом становится сам месяц, подписью – год.
-  const dateParts = (p) => {
+  const fmt = (opts) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', ...opts });
+  const months = [];
+  for (const p of upcoming) {
     const d = new Date(p.startDate);
-    if (p.isStartDateWithoutDay) {
-      const mon = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', month: 'long' }).format(d);
-      const year = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(d);
-      return { big: mon, small: year, isMonth: true };
+    const key = fmt({ year: 'numeric', month: '2-digit' }).format(d).split('.').reverse().join('-'); // 2026-09
+    let bucket = months.find((mo) => mo.key === key);
+    if (!bucket) {
+      const raw = fmt({ month: 'long' }).format(d);
+      bucket = { key, label: raw.charAt(0).toUpperCase() + raw.slice(1), items: [] };
+      months.push(bucket);
     }
-    const parts = new Intl.DateTimeFormat('ru-RU', {
-      timeZone: 'Europe/Moscow',
-      day: 'numeric',
-      month: 'long',
-    }).formatToParts(d);
-    const get = (type) => parts.find((x) => x.type === type)?.value || '';
-    return { big: get('day'), small: get('month'), isMonth: false };
-  };
+    bucket.items.push(p);
+  }
 
-  const card = (p, dupe) => {
-    const { big, small, isMonth } = dateParts(p);
-    // formatDate – полная дата для диктора: билет разбирает её на части,
-    // и без подписи скринридер прочёл бы «1 сентября» без года.
+  const slot = (p, idx) => {
+    const d = new Date(p.startDate);
+    const day = p.isStartDateWithoutDay ? '' : fmt({ day: 'numeric' }).format(d);
     const full = formatDate(p) || '';
-    return `      <a class="dpo-start" href="${escapeHtml(programHref(p))}"${dupe ? ' tabindex="-1"' : ''} aria-label="${escapeHtml(`${p.title} – старт ${full}`)}">
-        <span class="dpo-start-date" aria-hidden="true">
-          <span class="dpo-start-day${isMonth ? ' is-month' : ''}">${escapeHtml(big)}</span>
-          <span class="dpo-start-mon">${escapeHtml(small)}</span>
-        </span>
-        <span class="dpo-start-title" aria-hidden="true">${escapeHtml(p.title)}</span>
-      </a>`;
+    const price = p.discountPrice || p.educationPricing;
+    const kind = (p.type && (p.type.shortTitle || p.type.title)) || '';
+    const meta = [kind, shortFormat(p), Number.isFinite(price) && price > 0 ? formatPrice(price) : ''].filter(Boolean).join(' · ');
+    const sphere = sphereOf(p);
+    const dot = sphere ? `<i class="dpo-slot-dot" data-sphere="${escapeHtml(sphere.id)}" aria-hidden="true"></i>` : '';
+    return `          <li class="dpo-slot${idx >= STARTS_PREVIEW ? ' is-extra' : ''}">
+            <span class="dpo-slot-day" aria-hidden="true">${escapeHtml(day || 'мес.')}</span>
+            <a class="dpo-slot-link" href="${escapeHtml(programHref(p))}" aria-label="${escapeHtml(`${p.title} – старт ${full}`)}">
+              <span class="dpo-slot-title">${escapeHtml(p.title)}</span>
+              <span class="dpo-slot-meta">${dot}${escapeHtml(meta)}</span>
+            </a>
+            <button type="button" class="dpo-slot-apply" data-application
+              data-program-id="${escapeHtml(String(p.id || ''))}"
+              data-program-title="${escapeHtml(p.title)}"
+              data-program-url="${escapeHtml(programHref(p))}"
+              aria-label="Заявка: ${escapeHtml(p.title)}">Заявка</button>
+          </li>`;
   };
-  const cards = upcoming.map((p) => card(p, false)).join('\n');
-  const dupes = upcoming.map((p) => card(p, true)).join('\n');
 
-  // Стрелок и кнопки паузы у ленты нет (решение заказчика 20.08:
-  // «листать просто мышкой»). Остановка остаётся: наведение, фокус
-  // внутри дорожки (двигатель) и видимый скроллбар для перемотки;
-  // на таче, при reduced-motion и в vi-mode автохода нет вовсе.
-  const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(32px, 5vw, 52px) clamp(20px, 6vw, 64px); background: #F2ECE1; border-bottom: 1px solid rgba(33, 30, 27, 0.08);">
+  const column = (mo) => {
+    const extra = mo.items.length - STARTS_PREVIEW;
+    const more = extra > 0
+      ? `\n        <button type="button" class="dpo-month-more" aria-expanded="false" data-more="Ещё ${escapeHtml(pluralPrograms(extra))}" data-less="Свернуть">Ещё ${escapeHtml(pluralPrograms(extra))}</button>`
+      : '';
+    return `      <section class="dpo-month" data-month="${mo.key}" aria-labelledby="dpo-month-${mo.key}">
+        <h3 class="dpo-month-title" id="dpo-month-${mo.key}">${escapeHtml(mo.label)} <span class="dpo-month-count">${escapeHtml(pluralStarts(mo.items.length))}</span></h3>
+        <ol class="dpo-month-list">
+${mo.items.map(slot).join('\n')}
+        </ol>${more}
+      </section>`;
+  };
+
+  const chips = months
+    .map((mo, i) => `        <button type="button" class="dpo-month-chip" data-month="${mo.key}" aria-pressed="${i === 0 ? 'true' : 'false'}">${escapeHtml(mo.label)} <b>${mo.items.length}</b></button>`)
+    .join('\n');
+
+  const html = `  <section data-screen-label="Upcoming starts" id="starts" style="padding: clamp(48px, 7vw, 90px) clamp(20px, 6vw, 64px);">
     <div class="dpo-container">
     <div class="dpo-starts-head">
-      <h2 class="dpo-starts-title">Ближайшие старты программ</h2>
+      <div>
+        <span class="dpo-eyebrow">Расписание</span>
+        <h2 class="dpo-starts-title">Ближайшие старты программ</h2>
+      </div>
       <a class="dpo-starts-all" href="Каталог программ.html?sort=start">Все даты стартов</a>
     </div>
-    <div class="dpo-starts-track" id="startsTrack" data-dpo-loop data-dpo-speed="12" aria-label="Ближайшие старты программ">
-${cards}
-      <div class="dpo-starts-dupe" aria-hidden="true">
-${dupes}
+    <div class="dpo-schedule">
+      <div class="dpo-months" aria-label="Месяцы">
+${chips}
       </div>
+${months.map(column).join('\n')}
     </div>
     </div>
   </section>`;
-  return { html, count: upcoming.length };
+  return { html, count: upcoming.length, months: months.length };
 }
 
 /**
@@ -1350,6 +1385,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  renderStarts,
   build,
   buildPanel,
   renderFormats,
