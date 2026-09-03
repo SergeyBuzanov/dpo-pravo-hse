@@ -234,6 +234,36 @@ function renderCard(item) {
  * 2027». Если будущих стартов нет, секция не выводится вовсе – маркеры
  * обнимают её целиком.
  */
+/** «10 стартов» / «2 старта» / «1 старт». */
+function pluralStarts(n) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return `${n} старт`;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return `${n} старта`;
+  return `${n} стартов`;
+}
+
+/** «5 программ» / «2 программы» / «1 программа». */
+function pluralPrograms(n) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return `${n} программа`;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return `${n} программы`;
+  return `${n} программ`;
+}
+
+const STARTS_PREVIEW = 5;
+
+/**
+ * «Ближайшие старты» каталога – табло по месяцам (владелец 03.09.2026,
+ * вместо «стрелы времени» 20.08: та показывала шесть флажков из 24 и только
+ * название). Колонка на месяц: день крупно, название, «ПК · формат · цена»,
+ * точка сферы цветом плитки лендинга, кнопка «Заявка». Первые STARTS_PREVIEW
+ * строк видны, остальные за «Ещё N программ»; на телефоне месяцы
+ * переключаются чипами (js/starts-board.js). Без скрипта – все колонки и
+ * все строки. Дата с точностью до месяца попадает в свой месяц с подписью
+ * «месяц» вместо дня.
+ */
 function buildStartsBlock(items, now = new Date()) {
   const upcoming = items
     .filter((i) => upcomingStartLabel(i, now))
@@ -248,42 +278,72 @@ function buildStartsBlock(items, now = new Date()) {
   const curYear = fmt({ year: 'numeric' }).format(now);
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  // «Стрела времени» (выбор владельца 20.08.2026 из четырёх макетов):
-  // одна хронологическая ось со стрелкой, старты – флажки на булавках,
-  // чередуются над и под осью. Месяц виден в каждой дате, поэтому
-  // группировка по месяцам больше не нужна. Дата с точностью до месяца
-  // подписывается самим месяцем. Дорожка прокручивается горизонтально:
-  // tabindex=0 и role=region – чтобы клавиатура могла прокручивать, а
-  // диктор понимал, что это за область.
-  const flags = upcoming
-    .map((item, i) => {
-      const d = new Date(item.startDate);
-      const year = fmt({ year: 'numeric' }).format(d);
-      const when = item.isStartDateWithoutDay
-        ? cap(fmt({ month: 'long' }).format(d)) + (year === curYear ? '' : ` ${year}`)
-        : fmt({ day: 'numeric', month: 'long' }).format(d) + (year === curYear ? '' : ` ${year} г.`);
-      // title дублирует название: у самых длинных имён видимый текст
-      // обрезается четырьмя строками, подсказка отдаёт его целиком.
-      // Дата живёт НА оси станцией-капсулой (правка владельца 01.09.2026),
-      // а не в карточке, поэтому она вне ссылки и aria-hidden; для диктора
-      // дата продублирована в aria-label ссылки – тот же приём, что у
-      // ленты стартов на лендинге.
-      return `      <div class="flag ${i % 2 ? 'down' : 'up'}">
-        <a class="flag-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(when)}">
-          <span aria-hidden="true">${escapeHtml(item.title)}</span>
+  const months = [];
+  for (const item of upcoming) {
+    const d = new Date(item.startDate);
+    const year = fmt({ year: 'numeric' }).format(d);
+    const key = `${year}-${fmt({ month: '2-digit' }).format(d)}`;
+    let bucket = months.find((m) => m.key === key);
+    if (!bucket) {
+      const label = cap(fmt({ month: 'long' }).format(d)) + (year === curYear ? '' : ` ${year}`);
+      bucket = { key, label, items: [] };
+      months.push(bucket);
+    }
+    bucket.items.push(item);
+  }
+
+  const slot = (item, idx) => {
+    const d = new Date(item.startDate);
+    const day = item.isStartDateWithoutDay ? 'месяц' : fmt({ day: 'numeric' }).format(d);
+    const when = item.isStartDateWithoutDay
+      ? cap(fmt({ month: 'long' }).format(d))
+      : fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+    const kind = (item.type && (item.type.shortTitle || item.type.title)) || '';
+    const price = formatPrice(item);
+    const meta = [kind, shortFormat(item.studyFormat?.title), price].filter(Boolean).join(' · ');
+    const sphere = sphereOf(item);
+    const dot = sphere ? `<i class="starts-dot" data-sphere="${escapeHtml(sphere.id)}" aria-hidden="true"></i>` : '';
+    return `      <li class="starts-slot${idx >= STARTS_PREVIEW ? ' is-extra' : ''}">
+        <span class="starts-day${item.isStartDateWithoutDay ? ' is-month' : ''}" aria-hidden="true">${escapeHtml(day)}</span>
+        <a class="starts-link" href="${escapeHtml(programHref(item))}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(when)}">
+          <span class="starts-name">${escapeHtml(item.title)}</span>
+          <span class="starts-meta">${dot}${escapeHtml(meta)}</span>
         </a>
-        <span class="flag-date" aria-hidden="true">${escapeHtml(when)}</span>
-        <span class="flag-pin" aria-hidden="true"></span>
-      </div>`;
-    })
+        <button type="button" class="card-apply" data-application
+          data-program-id="${escapeHtml(String(item.id || ''))}"
+          data-program-title="${escapeHtml(item.title)}"
+          data-program-url="${escapeHtml(programHref(item))}"
+          aria-label="Заявка: ${escapeHtml(item.title)}">Заявка</button>
+      </li>`;
+  };
+
+  const column = (m) => {
+    const extra = m.items.length - STARTS_PREVIEW;
+    const more = extra > 0
+      ? `\n    <button type="button" class="starts-more" aria-expanded="false" data-more="Ещё ${escapeHtml(pluralPrograms(extra))}" data-less="Свернуть">Ещё ${escapeHtml(pluralPrograms(extra))}</button>`
+      : '';
+    return `  <section class="starts-month" data-month="${m.key}" aria-labelledby="starts-month-${m.key}">
+    <h3 class="starts-month-title" id="starts-month-${m.key}">${escapeHtml(m.label)} <span class="starts-month-count">${escapeHtml(pluralStarts(m.items.length))}</span></h3>
+    <ol class="starts-list">
+${m.items.map(slot).join('\n')}
+    </ol>${more}
+  </section>`;
+  };
+
+  const chips = months
+    .map((m, i) => `    <button type="button" class="starts-chip" data-month="${m.key}" aria-pressed="${i === 0 ? 'true' : 'false'}">${escapeHtml(m.label)} <b>${m.items.length}</b></button>`)
     .join('\n');
 
   return `<section class="starts" aria-label="Ближайшие старты программ">
-  <h2>Ближайшие старты</h2>
-  <div class="starts-arrow-wrap" tabindex="0" role="region" aria-label="Лента ближайших стартов, прокручивается горизонтально">
-    <div class="starts-arrow">
-${flags}
+  <div class="starts-head">
+    <h2>Ближайшие старты</h2>
+    <p class="starts-sub">${escapeHtml(pluralStarts(upcoming.length))} в ближайшие месяцы. Нажмите название, чтобы открыть программу, или «Заявка», чтобы записаться сразу.</p>
+  </div>
+  <div class="starts-board">
+    <div class="starts-months" aria-label="Месяцы">
+${chips}
     </div>
+${months.map(column).join('\n')}
   </div>
 </section>`;
 }
@@ -678,6 +738,7 @@ if (require.main === module) {
 
 module.exports = {
   main,
+  buildStartsBlock,
   writeAtomic,
   applyPrograms,
   writeCatalogHtml,

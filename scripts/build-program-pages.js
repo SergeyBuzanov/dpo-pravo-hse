@@ -1009,20 +1009,24 @@ a:focus-visible,button:focus-visible{outline:2px solid rgb(var(--accent));outlin
   box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:underline}
 .skip-link:focus{left:0}
 
+/* Якоря и фокус не прячутся под липкой шапкой. */
+html{scroll-padding-top:80px}
+a,button,input,select,textarea,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
   gap:16px;padding:16px var(--gutter);background:rgba(251,249,245,0.9);backdrop-filter:blur(10px)}
 /* Scroll-edge вместо жёсткой границы + системные настройки прозрачности
    и контраста (аудит apple-design 03.09.2026). */
 header::after{content:'';position:absolute;left:0;right:0;top:100%;height:14px;
-  background:linear-gradient(rgb(var(--ink) / 0.10),transparent);pointer-events:none}
+  background:linear-gradient(rgb(var(--ink) / 0.10),transparent);pointer-events:none;
+  animation:dpo-scroll-edge linear both;animation-timeline:scroll(root);animation-range:0 24px}
+@keyframes dpo-scroll-edge{from{opacity:0}to{opacity:1}}
 html.vi-mode header{border-bottom:1px solid #000 !important}
 html.vi-mode header::after{display:none !important}
 @media (prefers-reduced-transparency: reduce){
-  header,.buy-bar{background:rgb(var(--surface));backdrop-filter:none}}
+  header{background:rgb(var(--surface));backdrop-filter:none}}
 @media (prefers-contrast: more){
   header{background:rgb(var(--surface));backdrop-filter:none;border-bottom:1px solid rgb(var(--ink))}
-  header::after{display:none}
-  .buy-bar{background:rgb(var(--surface));backdrop-filter:none;border-color:rgb(var(--ink))}}
+  header::after{display:none}}
 .logo{display:flex;flex-direction:column;gap:1px}
 .logo .name{font-weight:700;font-size:0.9375rem;color:rgb(var(--accent))}
 .logo .sub{font-size:0.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
@@ -1055,7 +1059,7 @@ html.vi-mode header::after{display:none !important}
   rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
 .crumbs{font-size:0.8125rem;color:rgb(var(--surface) / .88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .crumbs a{text-decoration:underline}
-.hero h1{font-weight:600;font-size: clamp(1.75rem,3.2vw,2.625rem);line-height:1.15;max-width:20ch;
+.hero h1{font-weight:600;font-size: clamp(1.75rem,3.2vw,2.625rem);line-height:1.15;letter-spacing:-0.01em;max-width:20ch;
   max-width:900px;text-wrap:balance}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .chips span{font-size:0.8125rem;background:rgb(var(--surface) / .14);border-radius:999px;padding:8px 16px}
@@ -1168,7 +1172,7 @@ html.vi-mode header::after{display:none !important}
    же, что у мобильной панели лендинга (js/smooth-ui.js). */
 .buy-bar{display:none}
 @media (max-width:900px){
-  .buy-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;
+  .buy-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:60;
     display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;
     background:rgba(251,249,245,.94);backdrop-filter:blur(12px);
     border:1px solid rgb(var(--ink) / .1);border-radius:18px;
@@ -1178,6 +1182,12 @@ html.vi-mode header::after{display:none !important}
   .buy-bar .cta{flex:1;min-height:44px;padding:12px 18px}
   body{padding-bottom:84px}
 }
+/* Системные настройки прозрачности и контраста для полосы с ценой – ПОСЛЕ
+   базового правила, иначе при той же специфичности их перекрывает base. */
+@media (prefers-reduced-transparency: reduce){
+  .buy-bar{background:rgb(var(--surface));backdrop-filter:none}}
+@media (prefers-contrast: more){
+  .buy-bar{background:rgb(var(--surface));backdrop-filter:none;border-color:rgb(var(--ink))}}
 /* В режиме для слабовидящих фиксированные панели скрываются – как на лендинге. */
 html.vi-mode .buy-bar{display:none !important}
 /* Виньетка-свиток (проба артов 01.09.2026, тот же рисунок, что в панели
