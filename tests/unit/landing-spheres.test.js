@@ -26,16 +26,13 @@ const FINANCE = [
   program('Исламские финансы: правовые основы'),
 ];
 
-test('плитка сферы: анонс не длиннее трёх названий, в списке – все программы, «от» – минимальная цена', () => {
+test('плитка сферы несёт свой id для цвета, в списке – все программы, «от» – минимальная цена', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  const cards = html.split('<div class="dpo-sphere">').slice(1);
+  const cards = html.split('<div class="dpo-sphere" data-sphere="').slice(1);
   assert.equal(cards.length, 2);
-  for (const card of cards) {
-    const preview = card.match(/<p class="dpo-sphere-preview">([^<]*)<\/p>/);
-    assert.ok(preview, 'нет анонса');
-    assert.ok(preview[1].split(' · ').length <= 3, 'в анонсе больше трёх названий');
-    assert.doesNotMatch(card, /is-extra|dpo-sphere-more/);
-  }
+  assert.match(cards[0], /^corporate"/);
+  assert.match(cards[1], /^finance"/);
+  for (const card of cards) assert.doesNotMatch(card, /is-extra|dpo-sphere-more|dpo-sphere-preview/);
   assert.equal(cards[0].split('class="dpo-prog"').length - 1, CORPORATE.length, 'в списке не все программы сферы');
   assert.match(cards[0], /dpo-sphere-count">5 программ · от /);
 });

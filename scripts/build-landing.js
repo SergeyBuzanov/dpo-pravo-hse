@@ -199,8 +199,8 @@ function renderSphereCard(sphere) {
   const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
 
   // Плитка-карта (владелец 03.09.2026): в свёрнутом виде – имя, число
-  // программ, «от N ₽» и три названия анонсом; по клику раскрывается полный
-  // список программ (все, без «ещё N»). Разметка – всех программ сферы.
+  // программ и «от N ₽» на цветной плитке (цвет по data-sphere в CSS шаблона);
+  // по клику раскрывается полный список программ. Разметка – всех программ.
   const rows = sphere.items.map((p) => {
     const price = p.discountPrice || p.educationPricing;
     const priceHtml =
@@ -232,14 +232,12 @@ function renderSphereCard(sphere) {
   const allLabel = `Все ${pluralPrograms(total)} сферы в каталоге`;
   const prices = sphere.items.map((p) => p.discountPrice || p.educationPricing).filter((v) => Number.isFinite(v) && v > 0);
   const fromPrice = prices.length ? ` · от ${formatPrice(Math.min(...prices))}` : '';
-  const preview = sphere.items.slice(0, PREVIEW).map((p) => escapeHtml(p.title)).join(' · ');
 
-  return `        <div class="dpo-sphere">
+  return `        <div class="dpo-sphere" data-sphere="${escapeHtml(sphere.id)}">
           <div class="dpo-sphere-head">
             <h3 class="dpo-sphere-title">${escapeHtml(sphere.title)}</h3>
             <span class="dpo-sphere-count">${escapeHtml(pluralPrograms(total))}${fromPrice}</span>
           </div>
-          <p class="dpo-sphere-preview">${preview}</p>
           <ul class="dpo-sphere-list">
 ${rows.join('\n')}
           </ul>
@@ -260,7 +258,7 @@ function renderSpheres(programs) {
   const style = `      <style>
         /* Плитки не растягиваются по ряду (03.09.2026): раскрытая плитка выше
            соседей, и это нормально – сетка выровнена по верху. */
-        .dpo-spheres { align-items: start; }
+        .dpo-spheres { align-items: stretch; }
         /* Подвал раскрытой плитки: ссылка в каталог с фильтром сферы. */
         .dpo-sphere-foot {
           display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline;
