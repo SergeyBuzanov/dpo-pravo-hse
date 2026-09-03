@@ -8,13 +8,13 @@
  *           data-program-title="Транспортное право">Подать заявку</button>
  *
  * Разметка окна и стили живут ЗДЕСЬ, а не в HTML страниц, и это осознанно:
- * страницы программ собираются генератором, лендинг — визуальным сборщиком,
- * каталог — третьим скриптом. Разложенная по трём источникам форма
+ * страницы программ собираются генератором, лендинг – визуальным сборщиком,
+ * каталог – третьим скриптом. Разложенная по трём источникам форма
  * разъехалась бы при первой же пересборке любого из них. Стили вставляются
  * элементом <style>, что разрешено CSP страниц (style-src 'unsafe-inline').
  *
  * Отправка идёт через fetch на свой домен (connect-src 'self'), а не
- * обычным submit: в CSP стоит form-action 'none', и это правило остаётся —
+ * обычным submit: в CSP стоит form-action 'none', и это правило остаётся –
  * оно запрещает браузеру отправить данные формы куда бы то ни было ещё,
  * даже если на страницу попадёт чужая разметка.
  *
@@ -168,7 +168,7 @@
     '.dpo-app-note{font-size:0.75rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
     '.dpo-app-status{margin:14px 0 0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
-    // Цвет ошибки — системный #B00020; фон и граница выведены из него, а не
+    // Цвет ошибки – системный #B00020; фон и граница выведены из него, а не
     // подобраны глазом (правило производного состояния в DESIGN.md).
     '.dpo-app-status.is-error{background:rgba(176,0,32,.06);color:#B00020;',
     'border:1px solid rgba(176,0,32,.22)}',
@@ -195,7 +195,7 @@
     '.dpo-app-trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}',
     '@media (prefers-reduced-motion:reduce){.dpo-app-backdrop,.dpo-app{transition:none}',
     '.dpo-app-submit:active{transform:none}}',
-    // Режим для слабовидящих: та же логика, что у остальных страниц —
+    // Режим для слабовидящих: та же логика, что у остальных страниц –
     // жирные границы, никакой полупрозрачности.
     // !important здесь ОБЯЗАТЕЛЕН, и это не перестраховка. Глобальное
     // правило витрины `html.vi-mode *{ background: transparent !important }`
@@ -212,7 +212,7 @@
     'html.vi-mode .dpo-app-done-program{background:#fff !important;border:2px solid #000 !important}',
     'html.vi-mode .dpo-app-backdrop{background:rgba(0,0,0,.8) !important}',
     // Глобальное правило vi-mode гасит box-shadow, которым нарисован фокус
-    // формы, — сфокусированное поле было неотличимо от обычного (WCAG 2.4.7).
+    // формы, – сфокусированное поле было неотличимо от обычного (WCAG 2.4.7).
     // Правило то же, что в каталоге и на остальных страницах.
     'html.vi-mode .dpo-app :focus-visible{outline:3px solid #000 !important;outline-offset:2px}',
   ].join('');
@@ -489,7 +489,7 @@
       }),
     ]);
 
-    // «Другое» открывает поле для свободного ввода — и только оно.
+    // «Другое» открывает поле для свободного ввода – и только оно.
     sources.addEventListener('change', function () {
       var other = sources.value === 'other';
       otherField.hidden = !other;
@@ -520,7 +520,7 @@
 
     close.addEventListener('click', closeDialog);
     wrap.addEventListener('mousedown', function (event) {
-      // Закрытие по клику мимо окна — но только если нажатие И началось, и
+      // Закрытие по клику мимо окна – но только если нажатие И началось, и
       // закончилось на подложке: иначе выделение текста, доведённое мышью
       // за край окна, закрывало бы форму с заполненными полями.
       if (event.target === wrap) wrap.dataset.outside = '1';
@@ -694,7 +694,7 @@
     document.addEventListener('keydown', onKeydown, true);
     document.documentElement.style.overflow = 'hidden';
     hideBackground(true);
-    // Перерисовка до снятия начального состояния — иначе переход не
+    // Перерисовка до снятия начального состояния – иначе переход не
     // проигрывается: браузер склеит добавление элемента и смену класса.
     requestAnimationFrame(function () {
       backdrop.classList.add('is-open');

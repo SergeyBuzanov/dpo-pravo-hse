@@ -227,7 +227,9 @@
       if (projected < -h * 0.35 && vel < 100) {
         spring(-(h + 60), 0.3, function () {
           panel.style.transition = '';
-          close(trigger);
+          // Закрытие жестом возвращает фокус на кнопку меню, как Esc: иначе
+          // фокус оставался на body (прогон 03.09.2026).
+          close(trigger, { restoreFocus: true });
           panel.style.opacity = '';
           // Уехавший transform снимет open() при следующем открытии.
         });

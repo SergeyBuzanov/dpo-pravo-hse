@@ -84,7 +84,7 @@
   if (existing === 'declined') return;
 
   const CSS = `
-#cookieBanner{position:fixed;left:16px;right:16px;bottom:16px;z-index:1000;max-width:720px;margin:0 auto;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;font-size:0.9375rem;line-height:1.55}
+#cookieBanner{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:1000;max-width:720px;margin:0 auto;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;font-size:0.9375rem;line-height:1.55}
 #cookieBanner p{margin:0;flex:1 1 320px}
 #cookieBanner a{color:rgb(var(--accent));text-decoration:underline}
 #cookieBanner .cb-actions{display:flex;gap:10px;flex:0 0 auto}
@@ -107,7 +107,7 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
     const banner = document.createElement('div');
     banner.id = 'cookieBanner';
     // role="region", а не "dialog". Диалог подразумевает, что в него переводят
-    // фокус и оттуда его не выпускают; здесь ни того ни другого нет — баннер
+    // фокус и оттуда его не выпускают; здесь ни того ни другого нет – баннер
     // не перекрывает страницу и не требует немедленного ответа. Незакрытый
     // «диалог», в который не увели фокус, часть скринридеров не объявляет
     // вовсе, и незрячий посетитель просто не узнаёт о выборе. Ориентир
@@ -158,7 +158,7 @@ html.vi-mode #cookieBanner button{border:2px solid #000!important}
     document.body.append(banner);
   };
 
-  // Main React landing mounts header asynchronously — wait for it.
+  // Main React landing mounts header asynchronously – wait for it.
   // Показ – после реальной загрузки HSE Sans: баннер прижат к нижнему краю,
   // и если вставить его раньше, приезд шрифта перевёрстывает текст, баннер
   // растёт на строку и «едет» вверх – сдвиг 0.103 в CLS (замер 19.08, 375px).

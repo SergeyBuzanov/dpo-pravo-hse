@@ -36,6 +36,7 @@ a:focus-visible,button:focus-visible{outline:2px solid rgb(var(--accent));outlin
 
 /* Якоря и фокус не прячутся под липкой шапкой. */
 html{scroll-padding-top:80px}
+a,button,input,select,textarea,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
   gap:16px;padding:16px var(--gutter);background:rgba(251,249,245,0.9);backdrop-filter:blur(10px)}
 /* Scroll-edge вместо жёсткой границы + системные настройки прозрачности
@@ -196,7 +197,7 @@ html.vi-mode header::after{display:none !important}
    же, что у мобильной панели лендинга (js/smooth-ui.js). */
 .buy-bar{display:none}
 @media (max-width:900px){
-  .buy-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;
+  .buy-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:60;
     display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;
     background:rgba(251,249,245,.94);backdrop-filter:blur(12px);
     border:1px solid rgb(var(--ink) / .1);border-radius:18px;

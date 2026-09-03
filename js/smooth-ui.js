@@ -19,7 +19,7 @@ html{ scroll-behavior: ${reduce ? 'auto' : 'smooth'}; }
 /* Частотный гейт (см. DESIGN.md, «Правило частотного гейта»).
    Общий переход намеренно не трогает transform и box-shadow: ссылки
    навигации наводят десятки раз за сессию, и движение на таком частом
-   действии читается как задержка. Цвет и граница остаются — они
+   действии читается как задержка. Цвет и граница остаются – они
    объясняют состояние, а не двигают элемент. Движение живёт там, где
    действие редкое: карточки, карусель, появление секций.
 
@@ -85,7 +85,7 @@ header nav:not(.dpo-mobile-nav) a.is-active[href^="#"]:not(.btn):not([class*="bt
     transform: scaleX(1);
   }
 }
-/* CTA «Записаться» — без нижнего подчёркивания */
+/* CTA «Записаться» – без нижнего подчёркивания */
 header nav a.btn::after,
 header a.btn::after,
 header a[class*="btn-"]::after{
@@ -137,7 +137,7 @@ html.vi-mode .dpo-reveal{
   transition: none !important;
 }
 
-/* «Чему мы учим» — Анонсы / Все программы / Предложить идею */
+/* «Чему мы учим» – Анонсы / Все программы / Предложить идею */
 #explore a.explore-card,
 section#explore a[href]{
   display: block !important;
@@ -149,7 +149,7 @@ section#explore a[href]{
   will-change: transform, box-shadow;
   box-shadow: 0 0 0 rgb(var(--ink) / 0);
 }
-/* Подъём и тень — только на устройствах с настоящим курсором. На тач-экране
+/* Подъём и тень – только на устройствах с настоящим курсором. На тач-экране
    :hover срабатывает по тапу и залипает: карточка остаётся поднятой, пока
    не тронут соседнюю. */
 @media (hover: hover) and (pointer: fine){
@@ -187,7 +187,7 @@ section#explore a[href]{
      целиком, и телефон оставался без единственной кнопки заявки. Само
      приглашение при этом приподнимается над панелью, см. keepAboveBottomBars
      там же. */
-  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 940;
+  position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 940;
   gap: 8px; padding: 10px;
   background: rgba(251,249,245,0.94);
   backdrop-filter: blur(12px);
@@ -361,7 +361,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   };
 
   // Функция вызывается из boot-цикла повторно (бандлер может подменить DOM),
-  // поэтому прежние observer и failsafe-таймер обязательно гасим — иначе за
+  // поэтому прежние observer и failsafe-таймер обязательно гасим – иначе за
   // 10 секунд цикла накапливались десятки живых IntersectionObserver.
   let revealObserver = null;
   let revealFailsafe = null;
@@ -433,12 +433,12 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   };
 
   // Функция вызывается из boot-цикла повторно; без снятия прежних листенеров
-  // каждый вызов добавлял бы новую пару scroll/resize — к концу цикла на
+  // каждый вызов добавлял бы новую пару scroll/resize – к концу цикла на
   // каждый кадр скролла выполнялись бы десятки одинаковых обработчиков.
   let activeNavCleanup = null;
 
   const bindActiveNav = () => {
-    // Only text nav links — exclude CTA buttons like «Записаться» (same #contacts href)
+    // Only text nav links – exclude CTA buttons like «Записаться» (same #contacts href)
     // so active underline lands on «Контакты», not the pill button.
     const links = [
       ...document.querySelectorAll(
@@ -484,14 +484,14 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
         if (el.offsetTop <= y && (!zone || el.offsetTop >= zone.offsetTop)) zone = el;
       }
       if (zone) current = map.find((item) => item.el === zone) || null;
-      // Last section (Контакты) is short — pin it when user is at page end
+      // Last section (Контакты) is short – pin it when user is at page end
       if (nearBottom) current = map[map.length - 1];
 
       links.forEach((a) => a.classList.remove('is-active'));
       if (current) current.a.classList.add('is-active');
     };
 
-    // sync читает offsetTop/scrollHeight (форсированный layout) — на каждое
+    // sync читает offsetTop/scrollHeight (форсированный layout) – на каждое
     // событие скролла это лишнее. Схлопываем в один вызов на кадр через rAF.
     let frame = 0;
     const onScrollOrResize = () => {
@@ -541,7 +541,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
    * Обложки тайлов «Топ-5»: путь лежит в data-dpo-cover, а background-image
    * ставится отсюда. Инлайновый url('{{ p.image }}') в разметке нельзя:
    * в placeholder-фазе рантайм отдаёт шаблонную строку буквально, и браузер
-   * ходил за «/%7B%7B p.image %7D%7D» — 404 в консоли на каждой загрузке.
+   * ходил за «/%7B%7B p.image %7D%7D» – 404 в консоли на каждой загрузке.
    */
   const paintCover = (el) => {
     const src = el.getAttribute('data-dpo-cover') || '';
@@ -667,14 +667,14 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     bindTrackCovers();
   };
 
-  // React / bundler shell may mount late — retry a few times
+  // React / bundler shell may mount late – retry a few times
   const boot = () => {
     start();
     let n = 0;
     let lastHtml = null;
     const t = setInterval(() => {
       n += 1;
-      // Bundler replaces <html> — re-inject CSS whenever head is new.
+      // Bundler replaces <html> – re-inject CSS whenever head is new.
       injectCss();
       applyCovers();
       bindTrackCovers();
@@ -683,7 +683,7 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       const htmlNow = document.documentElement;
       if (htmlNow !== lastHtml) {
         lastHtml = htmlNow;
-        // Fresh document after replaceWith — re-bind chrome
+        // Fresh document after replaceWith – re-bind chrome
         markRevealTargets();
         observeReveals();
         bindActiveNav();

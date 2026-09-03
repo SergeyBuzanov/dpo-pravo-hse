@@ -52,7 +52,7 @@
   if (dismissedAt && Date.now() - dismissedAt < DISMISS_DAYS * 24 * 3600 * 1000) return;
 
   var CSS = [
-    '#channelInvite{position:fixed;right:16px;bottom:16px;z-index:900;width:min(340px,calc(100vw - 32px));',
+    '#channelInvite{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:min(340px,calc(100vw - 32px));',
     'background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;',
     'box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px;display:flex;gap:14px;align-items:flex-start;',
     "font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;",
@@ -109,7 +109,7 @@
     // «Подать заявку» у форматов, «Топ-5» и сфер. За пределами героя
     // остаётся только круглый бейдж-аватар, полная карточка – по клику.
     '#channelInvite.ci-collapsed{display:none}',
-    '#channelInviteBadge{position:fixed;right:16px;bottom:16px;z-index:900;width:48px;height:48px;',
+    '#channelInviteBadge{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:48px;height:48px;',
     'border-radius:999px;padding:0;border:1px solid rgb(var(--ink) / .18);background:rgb(var(--surface));',
     'box-shadow:0 8px 24px rgb(var(--ink) / .18);cursor:pointer;display:none;align-items:center;justify-content:center;overflow:hidden;',
     'opacity:0;transform:translateY(8px);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1)}',
