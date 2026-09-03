@@ -24,7 +24,10 @@
   function syncHeaderHeight() {
     var header = document.querySelector('header');
     if (!header) return;
-    var h = Math.round(header.getBoundingClientRect().height);
+    // Сжатая шапка ниже своей раскладки на --hdr-shift: сжатие сделано
+    // transform'ом, и rect обёртки его не знает.
+    var shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-shift')) || 0;
+    var h = Math.round(header.getBoundingClientRect().height - shift);
     if (h > 0) document.documentElement.style.setProperty('--dpo-header-h', h + 'px');
   }
 
@@ -370,7 +373,7 @@
     var root = document.documentElement;
     if (root.classList.contains('dpo-scrolled') !== on) {
       root.classList.toggle('dpo-scrolled', on);
-      // Высота шапки меняется переходом 180мс: панель меню, привязанная к
+      // Сдвиг шапки идёт переходом 180мс: панель меню, привязанная к
       // --dpo-header-h, перемеряется после его окончания.
       window.setTimeout(syncHeaderHeight, 200);
     }
