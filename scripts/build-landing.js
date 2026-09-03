@@ -218,7 +218,7 @@ function renderSphereCard(sphere) {
               data-program-id="${escapeHtml(String(p.id || ''))}"
               data-program-title="${escapeHtml(p.title)}"
               data-program-url="${escapeHtml(programHref(p))}"
-              aria-label="Подать заявку: ${escapeHtml(p.title)}">Заявка</button>
+              aria-label="Заявка: ${escapeHtml(p.title)}">Заявка</button>
           </li>`;
   });
 

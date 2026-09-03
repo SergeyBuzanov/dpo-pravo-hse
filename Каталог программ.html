@@ -130,6 +130,9 @@
   @media (max-width: 460px){
     header a.back .back-full{ display: none; }
     header a.back .back-short{ display: inline; }
+    /* На 320px кнопка «Версия для слабовидящих» и «← Главная» не влезают в
+       одну строку – группа переносится, ссылка не обрезается. */
+    header .header-nav{ flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
   }
 
   /* Герой в ключе Seline (решение владельца 01.09.2026 для внутренних
@@ -425,7 +428,7 @@
   main{ padding: clamp(28px, 5vw, 48px) clamp(20px, 5vw, 56px) clamp(64px, 8vw, 96px); }
   .grid{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: 20px;
     /* Здесь была анимация min-height. Высота — layout-свойство: его
        анимация на каждый набор символов в поиске гоняла пересчёт
@@ -541,18 +544,19 @@
     .card .tag[data-tip]::after{
       content: attr(data-tip);
       position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 5;
-      width: max-content; max-width: 250px;
+      width: max-content; max-width: min(250px, calc(100vw - 40px));
       font-size: 0.7812rem; font-weight: 400; line-height: 1.45;
       background: rgb(var(--ink)); color: rgb(var(--surface));
       padding: 8px 12px; border-radius: var(--radius-md);
       box-shadow: 0 8px 24px rgb(var(--ink) / 0.25);
-      opacity: 0; visibility: hidden; transform: translateY(3px);
-      transition: opacity .16s ease, transform .16s ease, visibility .16s;
+      /* В покое display: none, а не visibility: скрытая подсказка у правого
+         края карточки всё равно расширяла документ и давала горизонтальный
+         скролл на 320/768/1440 (прогон 03.09.2026). Появление – анимацией. */
+      display: none;
       pointer-events: none;
     }
-    .card .tag[data-tip]:hover::after{
-      opacity: 1; visibility: visible; transform: translateY(0);
-    }
+    @keyframes catalog-tip-in { from { opacity: 0; transform: translateY(3px); } }
+    .card .tag[data-tip]:hover::after{ display: block; animation: catalog-tip-in .16s ease both; }
   }
   .card .meta{ font-size: 0.8438rem; color: var(--ink-mute); line-height: 1.5; }
   /* Ссылка карточки (01.09.2026): карточка стала <div>, чтобы в подвале
@@ -689,10 +693,10 @@
     <span class="name">Право</span>
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
-  <span style="display:flex; align-items:center; gap:14px;">
+  <nav class="header-nav" aria-label="Служебная навигация" style="display:flex; align-items:center; gap:14px;">
     <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
     <a href="index.html" class="back"><span class="back-full">← На главную</span><span class="back-short">← Главная</span></a>
-  </span>
+  </nav>
 </header>
 
 <section class="hero">
@@ -981,7 +985,7 @@
             data-program-id="958734693"
             data-program-title="Актуальные вопросы гражданского права"
             data-program-url="programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html"
-            aria-label="Подать заявку: Актуальные вопросы гражданского права">Заявка</button>
+            aria-label="Заявка: Актуальные вопросы гражданского права">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1000,7 +1004,7 @@
             data-program-id="959312137"
             data-program-title="Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers"
             data-program-url="programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html"
-            aria-label="Подать заявку: Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers">Заявка</button>
+            aria-label="Заявка: Мастерство юридического английского: продвинутые навыки для юристов / Legal English Mastery: Advanced Skills for Lawyers">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1020,7 +1024,7 @@
             data-program-id="1129129055"
             data-program-title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса"
             data-program-url="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html"
-            aria-label="Подать заявку: Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса">Заявка</button>
+            aria-label="Заявка: Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1040,7 +1044,7 @@
             data-program-id="1008772871"
             data-program-title="Правовые вопросы банкротства: теории и практики"
             data-program-url="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html"
-            aria-label="Подать заявку: Правовые вопросы банкротства: теории и практики">Заявка</button>
+            aria-label="Заявка: Правовые вопросы банкротства: теории и практики">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1060,7 +1064,7 @@
             data-program-id="961021723"
             data-program-title="Французское (европейское) экономическое право / Droit économique français (européen)"
             data-program-url="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html"
-            aria-label="Подать заявку: Французское (европейское) экономическое право / Droit économique français (européen)">Заявка</button>
+            aria-label="Заявка: Французское (европейское) экономическое право / Droit économique français (européen)">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1080,7 +1084,7 @@
             data-program-id="1025688553"
             data-program-title="Контрактное право Гонконга"
             data-program-url="programs/kontraktnoe-pravo-gonkonga-1025688553.html"
-            aria-label="Подать заявку: Контрактное право Гонконга">Заявка</button>
+            aria-label="Заявка: Контрактное право Гонконга">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1100,7 +1104,7 @@
             data-program-id="829977883"
             data-program-title="Персональный ассистент PRO"
             data-program-url="programs/personalnyy-assistent-pro-829977883.html"
-            aria-label="Подать заявку: Персональный ассистент PRO">Заявка</button>
+            aria-label="Заявка: Персональный ассистент PRO">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1120,7 +1124,7 @@
             data-program-id="816497962"
             data-program-title="Интеллектуальная собственность: от закона к практике"
             data-program-url="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html"
-            aria-label="Подать заявку: Интеллектуальная собственность: от закона к практике">Заявка</button>
+            aria-label="Заявка: Интеллектуальная собственность: от закона к практике">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1140,7 +1144,7 @@
             data-program-id="837181759"
             data-program-title="Цифровое право для бизнеса"
             data-program-url="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html"
-            aria-label="Подать заявку: Цифровое право для бизнеса">Заявка</button>
+            aria-label="Заявка: Цифровое право для бизнеса">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1160,7 +1164,7 @@
             data-program-id="474599435"
             data-program-title="Международное частное право: трансграничные операции"
             data-program-url="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html"
-            aria-label="Подать заявку: Международное частное право: трансграничные операции">Заявка</button>
+            aria-label="Заявка: Международное частное право: трансграничные операции">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1180,7 +1184,7 @@
             data-program-id="814248062"
             data-program-title="Исламские финансы: правовые основы, комплаенс и бизнес-практика"
             data-program-url="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html"
-            aria-label="Подать заявку: Исламские финансы: правовые основы, комплаенс и бизнес-практика">Заявка</button>
+            aria-label="Заявка: Исламские финансы: правовые основы, комплаенс и бизнес-практика">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1200,7 +1204,7 @@
             data-program-id="474776084"
             data-program-title="Право на английском / Legal English"
             data-program-url="programs/pravo-na-angliyskom-legal-english-474776084.html"
-            aria-label="Подать заявку: Право на английском / Legal English">Заявка</button>
+            aria-label="Заявка: Право на английском / Legal English">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1220,7 +1224,7 @@
             data-program-id="472681893"
             data-program-title="Авторское право в информационном обществе"
             data-program-url="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html"
-            aria-label="Подать заявку: Авторское право в информационном обществе">Заявка</button>
+            aria-label="Заявка: Авторское право в информационном обществе">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1240,7 +1244,7 @@
             data-program-id="1163275658"
             data-program-title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)"
             data-program-url="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html"
-            aria-label="Подать заявку: Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)">Заявка</button>
+            aria-label="Заявка: Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1260,7 +1264,7 @@
             data-program-id="494685723"
             data-program-title="Бизнес-медиация"
             data-program-url="programs/biznes-mediatsiya-494685723.html"
-            aria-label="Подать заявку: Бизнес-медиация">Заявка</button>
+            aria-label="Заявка: Бизнес-медиация">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1279,7 +1283,7 @@
             data-program-id="1129129056"
             data-program-title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования"
             data-program-url="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html"
-            aria-label="Подать заявку: Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования">Заявка</button>
+            aria-label="Заявка: Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1299,7 +1303,7 @@
             data-program-id="1057557281"
             data-program-title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)"
             data-program-url="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html"
-            aria-label="Подать заявку: Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)">Заявка</button>
+            aria-label="Заявка: Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1319,7 +1323,7 @@
             data-program-id="894108285"
             data-program-title="Введение в правовую систему Китая"
             data-program-url="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html"
-            aria-label="Подать заявку: Введение в правовую систему Китая">Заявка</button>
+            aria-label="Заявка: Введение в правовую систему Китая">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1339,7 +1343,7 @@
             data-program-id="856421092"
             data-program-title="Английское контрактное право"
             data-program-url="programs/angliyskoe-kontraktnoe-pravo-856421092.html"
-            aria-label="Подать заявку: Английское контрактное право">Заявка</button>
+            aria-label="Заявка: Английское контрактное право">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1359,7 +1363,7 @@
             data-program-id="906651510"
             data-program-title="Морской арбитраж"
             data-program-url="programs/morskoy-arbitrazh-906651510.html"
-            aria-label="Подать заявку: Морской арбитраж">Заявка</button>
+            aria-label="Заявка: Морской арбитраж">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1379,7 +1383,7 @@
             data-program-id="474596729"
             data-program-title="Корпоративное право: основные проблемы"
             data-program-url="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html"
-            aria-label="Подать заявку: Корпоративное право: основные проблемы">Заявка</button>
+            aria-label="Заявка: Корпоративное право: основные проблемы">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1399,7 +1403,7 @@
             data-program-id="820703080"
             data-program-title="Техники эффективного анализа юридических документов"
             data-program-url="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html"
-            aria-label="Подать заявку: Техники эффективного анализа юридических документов">Заявка</button>
+            aria-label="Заявка: Техники эффективного анализа юридических документов">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1419,7 +1423,7 @@
             data-program-id="589527758"
             data-program-title="Деловые переговоры: правовые стратегии"
             data-program-url="programs/delovye-peregovory-pravovye-strategii-589527758.html"
-            aria-label="Подать заявку: Деловые переговоры: правовые стратегии">Заявка</button>
+            aria-label="Заявка: Деловые переговоры: правовые стратегии">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1439,7 +1443,7 @@
             data-program-id="802031223"
             data-program-title="Транспортное право"
             data-program-url="programs/transportnoe-pravo-802031223.html"
-            aria-label="Подать заявку: Транспортное право">Заявка</button>
+            aria-label="Заявка: Транспортное право">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1459,7 +1463,7 @@
             data-program-id="907279244"
             data-program-title="Общие вопросы договорного права"
             data-program-url="programs/obschie-voprosy-dogovornogo-prava-907279244.html"
-            aria-label="Подать заявку: Общие вопросы договорного права">Заявка</button>
+            aria-label="Заявка: Общие вопросы договорного права">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
@@ -1479,7 +1483,7 @@
             data-program-id="905186485"
             data-program-title="Нейроправо"
             data-program-url="programs/neyropravo-905186485.html"
-            aria-label="Подать заявку: Нейроправо">Заявка</button>
+            aria-label="Заявка: Нейроправо">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>

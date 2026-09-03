@@ -212,7 +212,7 @@ function renderCard(item) {
             data-program-id="${escapeHtml(String(item.id || ''))}"
             data-program-title="${escapeHtml(item.title)}"
             data-program-url="${href}"
-            aria-label="Подать заявку: ${escapeHtml(item.title)}">Заявка</button>
+            aria-label="Заявка: ${escapeHtml(item.title)}">Заявка</button>
           <span class="go" aria-hidden="true">Подробнее →</span>
         </span>
       </div>
