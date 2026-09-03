@@ -26,12 +26,13 @@ test('карточки стоят на своих датах, месяцы по�
   assert.match(html, /tl-month-label">Сентябрь <b>1<\/b>/);
   assert.match(html, /tl-month-label">Октябрь <b>0<\/b>/);
   assert.match(html, /tl-month-label">Ноябрь <b>1<\/b>/);
-  // 14 сентября: 13 дней от начала оси × 28px + 14 = 378; карточка на 28px левее булавки
-  assert.match(html, /class="tl-item tl-up1" style="left:350px;--tl-pin:28px"/);
+  // 14 сентября: 13 дней от начала оси × 32px + 16 = 432; карточка висит слева от
+  // булавки (булавка у правого края, 152px от левого) – будущим стартам остаётся место
+  assert.match(html, /class="tl-item tl-up1" style="left:280px;--tl-pin:152px"/);
   assert.match(html, /<span class="tl-when" aria-hidden="true">14 сентября</);
   assert.match(html, /tl-dot" data-sphere="corporate"/);
-  assert.match(html, /class="tl-today" style="left:70px"/, 'сегодня 3 сентября – третий день оси');
-  assert.match(html, /style="width:2548px"/, 'сентябрь–ноябрь = 91 день × 28px');
+  assert.match(html, /class="tl-today" style="left:80px"/, 'сегодня 3 сентября – третий день оси');
+  assert.match(html, /style="width:2912px"/, 'сентябрь–ноябрь = 91 день × 32px');
   assert.match(html, /с сентября по ноябрь/);
 });
 
@@ -47,6 +48,19 @@ test('близкие даты разводятся по дорожкам, дал
   const lanes = [...html.matchAll(/class="tl-item tl-(\w+)"/g)].map((m) => m[1]);
   assert.deepEqual(lanes.slice(0, 4), ['up1', 'down1', 'up2', 'down2']);
   assert.equal(lanes[5], 'up1', 'через три недели первая дорожка снова свободна');
+});
+
+test('булавка дальней карточки не проходит сквозь ближнюю карточку той же стороны', () => {
+  const days = [7, 10, 14, 15, 19, 21, 23, 24, 28, 30]; // живой сентябрь 2026: десять стартов, три пары соседних дней
+  const html = buildStartsBlock(days.map((d) => program(d, `П${d}`, `2026-10-${String(d).padStart(2, '0')}T00:00:00+03:00`)), NOW);
+  const items = [...html.matchAll(/class="tl-item tl-(\w+)" style="left:(\d+)px;--tl-pin:(\d+)px"/g)]
+    .map((m) => ({ lane: m[1], left: Number(m[2]), x: Number(m[2]) + Number(m[3]), right: Number(m[2]) + 180 }));
+  for (const far of items.filter((i) => /2$/.test(i.lane))) {
+    const near = far.lane.replace('2', '1');
+    for (const c of items.filter((i) => i.lane === near)) {
+      assert.ok(far.x < c.left - 6 || far.x > c.right + 6, `булавка ${far.x} дорожки ${far.lane} проходит сквозь карточку ${c.left}–${c.right}`);
+    }
+  }
 });
 
 test('без будущих стартов секции нет', () => {

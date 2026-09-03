@@ -264,8 +264,8 @@ function pluralPrograms(n) {
  * прокручивается горизонтально (tabindex=0, role=region); чипы месяцев
  * (js/starts-board.js) прокручивают к началу месяца.
  */
-const TL_DAY_PX = 28;
-const TL_CARD_W = 190;
+const TL_DAY_PX = 32;
+const TL_CARD_W = 180;
 const TL_GAP_PX = 12;
 
 function buildStartsBlock(items, now = new Date()) {
@@ -309,17 +309,51 @@ function buildStartsBlock(items, now = new Date()) {
     months.push({ key: `${y}-${String(m).padStart(2, '0')}`, label, left: (startDn - axisStart) * TL_DAY_PX, width: days * TL_DAY_PX, count: 0 });
   }
 
-  // Дорожки: карточка встаёт на первую, где предыдущая уже закончилась.
+  // Дорожки: карточка встаёт на первую, где предыдущая уже закончилась И где
+  // булавки не пересекают чужие карточки: булавка дальней дорожки идёт сквозь
+  // полосу ближней, поэтому дальняя карточка не ставится, если её булавка
+  // попадает в ближнюю карточку той же стороны, а ближняя – если накрывает
+  // булавку уже стоящей дальней (замечание владельца 03.09.2026).
   const LANES = ['up1', 'down1', 'up2', 'down2'];
-  const laneRight = [-Infinity, -Infinity, -Infinity, -Infinity];
+  const NEAR_OF = { up2: 'up1', down2: 'down1' };
+  const FAR_OF = { up1: 'up2', down1: 'down2' };
+  const placed = { up1: [], down1: [], up2: [], down2: [] }; // {left, right, x}
+  const PIN_PAD = 6;
+  const lastRight = (lane) => (placed[lane].length ? placed[lane][placed[lane].length - 1].right : -Infinity);
+  const pinHits = (x, lane) => placed[lane].some((c) => x >= c.left - PIN_PAD && x <= c.right + PIN_PAD);
+  const spanHitsPins = (left, right, lane) => placed[lane].some((c) => c.x >= left - PIN_PAD && c.x <= right + PIN_PAD);
+  const fits = (lane, left, right, x) => {
+    if (left < lastRight(lane) + TL_GAP_PX) return false;
+    if (NEAR_OF[lane]) return !pinHits(x, NEAR_OF[lane]);
+    return !spanHitsPins(left, right, FAR_OF[lane]);
+  };
   const cards = upcoming.map((item) => {
     const d = new Date(item.startDate);
     const dn = dayNum(d);
     const x = xOf(dn);
-    const cardLeft = Math.max(0, Math.min(x - 28, totalW - TL_CARD_W));
-    let lane = LANES.findIndex((_, i) => cardLeft >= laneRight[i] + TL_GAP_PX);
-    if (lane === -1) lane = laneRight.indexOf(Math.min(...laneRight));
-    laneRight[lane] = cardLeft + TL_CARD_W;
+    // Булавка может стоять в любом месте карточки (не ближе 14px к краю):
+    // карточка скользит вдоль своей даты, пока не найдёт положение без
+    // пересечений; порядок смещений – от привычного левого к правому краю.
+    // Сначала пробуем повесить карточку СЛЕВА от булавки (булавка у правого
+    // края): будущие старты идут правее, и так им остаётся место. К левому
+    // краю сдвигаемся, только если слева занято.
+    const OFFSETS = [TL_CARD_W - 28, 136, 116, 90, 64, 44, 28];
+    let cardLeft = Math.max(0, Math.min(x - 28, totalW - TL_CARD_W));
+    let laneName = null;
+    outer: for (const l of LANES) {
+      for (const off of OFFSETS) {
+        const left = Math.max(0, Math.min(x - off, totalW - TL_CARD_W));
+        if (x - left < 14 || x - left > TL_CARD_W - 14) continue;
+        if (fits(l, left, left + TL_CARD_W, x)) { laneName = l; cardLeft = left; break outer; }
+      }
+    }
+    if (!laneName) {
+      // Некуда без пересечений – берём дорожку, освободившуюся раньше всех.
+      laneName = LANES.slice().sort((a, b) => lastRight(a) - lastRight(b))[0];
+    }
+    const cardRight = cardLeft + TL_CARD_W;
+    placed[laneName].push({ left: cardLeft, right: cardRight, x });
+    const lane = LANES.indexOf(laneName);
     const { y, m } = ymd(d);
     const month = months.find((mo) => mo.key === `${y}-${String(m).padStart(2, '0')}`);
     if (month) month.count += 1;

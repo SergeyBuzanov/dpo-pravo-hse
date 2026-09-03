@@ -246,8 +246,10 @@
   /* Станция занимает всю высоту оси, чтобы позиционировать карточку и булавку,
      но сама для указателя прозрачна: иначе поздняя станция накрывала карточку
      ранней и та не нажималась (замер 03.09.2026: семь из 24). */
-  .tl-item{ position: absolute; width: 190px; pointer-events: none; }
-  .tl-card{ pointer-events: auto; }
+  .tl-item{ position: absolute; width: 180px; pointer-events: none; }
+  /* Карточки выше всех булавок: линия чужой станции не рисуется поверх текста. */
+  .tl-card{ pointer-events: auto; z-index: 2; }
+  .tl-pin{ z-index: 1; }
   .tl-card{
     position: absolute; left: 0; width: 100%; height: var(--tl-card-h); box-sizing: border-box;
     display: flex; flex-direction: column; gap: 3px; overflow: hidden;
@@ -751,7 +753,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 3 сентября 2026 г. в 21:37, программ: 26 -->
+<!-- каталог обновлён: 3 сентября 2026 г. в 22:37, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 
@@ -769,17 +771,17 @@
   </div>
   <div class="starts-months" aria-label="Месяцы">
     <button type="button" class="starts-chip" data-scroll="0" aria-pressed="true">Сентябрь <b>10</b></button>
-    <button type="button" class="starts-chip" data-scroll="832" aria-pressed="false">Октябрь <b>5</b></button>
-    <button type="button" class="starts-chip" data-scroll="1700" aria-pressed="false">Ноябрь <b>9</b></button>
+    <button type="button" class="starts-chip" data-scroll="952" aria-pressed="false">Октябрь <b>5</b></button>
+    <button type="button" class="starts-chip" data-scroll="1944" aria-pressed="false">Ноябрь <b>9</b></button>
   </div>
   <div class="tl-wrap" tabindex="0" role="region" aria-label="Ось времени ближайших стартов, прокручивается горизонтально">
-    <div class="tl" style="width:2548px">
-      <div class="tl-month" style="left:0px;width:840px" aria-hidden="true"><span class="tl-month-label">Сентябрь <b>10</b></span></div>
-      <div class="tl-month" style="left:840px;width:868px" aria-hidden="true"><span class="tl-month-label">Октябрь <b>5</b></span></div>
-      <div class="tl-month" style="left:1708px;width:840px" aria-hidden="true"><span class="tl-month-label">Ноябрь <b>9</b></span></div>
-      <div class="tl-axis" aria-hidden="true"><i class="tl-tick is-month" style="left:14px"></i><i class="tl-tick" style="left:42px"></i><i class="tl-tick" style="left:70px"></i><i class="tl-tick" style="left:98px"></i><i class="tl-tick" style="left:126px"></i><i class="tl-tick" style="left:154px"></i><i class="tl-tick is-week" style="left:182px"></i><i class="tl-tick" style="left:210px"></i><i class="tl-tick" style="left:238px"></i><i class="tl-tick" style="left:266px"></i><i class="tl-tick" style="left:294px"></i><i class="tl-tick" style="left:322px"></i><i class="tl-tick" style="left:350px"></i><i class="tl-tick is-week" style="left:378px"></i><i class="tl-tick" style="left:406px"></i><i class="tl-tick" style="left:434px"></i><i class="tl-tick" style="left:462px"></i><i class="tl-tick" style="left:490px"></i><i class="tl-tick" style="left:518px"></i><i class="tl-tick" style="left:546px"></i><i class="tl-tick is-week" style="left:574px"></i><i class="tl-tick" style="left:602px"></i><i class="tl-tick" style="left:630px"></i><i class="tl-tick" style="left:658px"></i><i class="tl-tick" style="left:686px"></i><i class="tl-tick" style="left:714px"></i><i class="tl-tick" style="left:742px"></i><i class="tl-tick is-week" style="left:770px"></i><i class="tl-tick" style="left:798px"></i><i class="tl-tick" style="left:826px"></i><i class="tl-tick is-month" style="left:854px"></i><i class="tl-tick" style="left:882px"></i><i class="tl-tick" style="left:910px"></i><i class="tl-tick" style="left:938px"></i><i class="tl-tick" style="left:966px"></i><i class="tl-tick" style="left:994px"></i><i class="tl-tick is-week" style="left:1022px"></i><i class="tl-tick" style="left:1050px"></i><i class="tl-tick" style="left:1078px"></i><i class="tl-tick" style="left:1106px"></i><i class="tl-tick" style="left:1134px"></i><i class="tl-tick" style="left:1162px"></i><i class="tl-tick" style="left:1190px"></i><i class="tl-tick is-week" style="left:1218px"></i><i class="tl-tick" style="left:1246px"></i><i class="tl-tick" style="left:1274px"></i><i class="tl-tick" style="left:1302px"></i><i class="tl-tick" style="left:1330px"></i><i class="tl-tick" style="left:1358px"></i><i class="tl-tick" style="left:1386px"></i><i class="tl-tick is-week" style="left:1414px"></i><i class="tl-tick" style="left:1442px"></i><i class="tl-tick" style="left:1470px"></i><i class="tl-tick" style="left:1498px"></i><i class="tl-tick" style="left:1526px"></i><i class="tl-tick" style="left:1554px"></i><i class="tl-tick" style="left:1582px"></i><i class="tl-tick is-week" style="left:1610px"></i><i class="tl-tick" style="left:1638px"></i><i class="tl-tick" style="left:1666px"></i><i class="tl-tick" style="left:1694px"></i><i class="tl-tick is-month" style="left:1722px"></i><i class="tl-tick" style="left:1750px"></i><i class="tl-tick" style="left:1778px"></i><i class="tl-tick" style="left:1806px"></i><i class="tl-tick" style="left:1834px"></i><i class="tl-tick" style="left:1862px"></i><i class="tl-tick is-week" style="left:1890px"></i><i class="tl-tick" style="left:1918px"></i><i class="tl-tick" style="left:1946px"></i><i class="tl-tick" style="left:1974px"></i><i class="tl-tick" style="left:2002px"></i><i class="tl-tick" style="left:2030px"></i><i class="tl-tick" style="left:2058px"></i><i class="tl-tick is-week" style="left:2086px"></i><i class="tl-tick" style="left:2114px"></i><i class="tl-tick" style="left:2142px"></i><i class="tl-tick" style="left:2170px"></i><i class="tl-tick" style="left:2198px"></i><i class="tl-tick" style="left:2226px"></i><i class="tl-tick" style="left:2254px"></i><i class="tl-tick is-week" style="left:2282px"></i><i class="tl-tick" style="left:2310px"></i><i class="tl-tick" style="left:2338px"></i><i class="tl-tick" style="left:2366px"></i><i class="tl-tick" style="left:2394px"></i><i class="tl-tick" style="left:2422px"></i><i class="tl-tick" style="left:2450px"></i><i class="tl-tick is-week" style="left:2478px"></i><i class="tl-tick" style="left:2506px"></i><i class="tl-tick" style="left:2534px"></i></div>
-      <div class="tl-today" style="left:70px" aria-hidden="true"><span>Сегодня</span></div>
-      <div class="tl-item tl-up1" style="left:154px;--tl-pin:28px">
+    <div class="tl" style="width:2912px">
+      <div class="tl-month" style="left:0px;width:960px" aria-hidden="true"><span class="tl-month-label">Сентябрь <b>10</b></span></div>
+      <div class="tl-month" style="left:960px;width:992px" aria-hidden="true"><span class="tl-month-label">Октябрь <b>5</b></span></div>
+      <div class="tl-month" style="left:1952px;width:960px" aria-hidden="true"><span class="tl-month-label">Ноябрь <b>9</b></span></div>
+      <div class="tl-axis" aria-hidden="true"><i class="tl-tick is-month" style="left:16px"></i><i class="tl-tick" style="left:48px"></i><i class="tl-tick" style="left:80px"></i><i class="tl-tick" style="left:112px"></i><i class="tl-tick" style="left:144px"></i><i class="tl-tick" style="left:176px"></i><i class="tl-tick is-week" style="left:208px"></i><i class="tl-tick" style="left:240px"></i><i class="tl-tick" style="left:272px"></i><i class="tl-tick" style="left:304px"></i><i class="tl-tick" style="left:336px"></i><i class="tl-tick" style="left:368px"></i><i class="tl-tick" style="left:400px"></i><i class="tl-tick is-week" style="left:432px"></i><i class="tl-tick" style="left:464px"></i><i class="tl-tick" style="left:496px"></i><i class="tl-tick" style="left:528px"></i><i class="tl-tick" style="left:560px"></i><i class="tl-tick" style="left:592px"></i><i class="tl-tick" style="left:624px"></i><i class="tl-tick is-week" style="left:656px"></i><i class="tl-tick" style="left:688px"></i><i class="tl-tick" style="left:720px"></i><i class="tl-tick" style="left:752px"></i><i class="tl-tick" style="left:784px"></i><i class="tl-tick" style="left:816px"></i><i class="tl-tick" style="left:848px"></i><i class="tl-tick is-week" style="left:880px"></i><i class="tl-tick" style="left:912px"></i><i class="tl-tick" style="left:944px"></i><i class="tl-tick is-month" style="left:976px"></i><i class="tl-tick" style="left:1008px"></i><i class="tl-tick" style="left:1040px"></i><i class="tl-tick" style="left:1072px"></i><i class="tl-tick" style="left:1104px"></i><i class="tl-tick" style="left:1136px"></i><i class="tl-tick is-week" style="left:1168px"></i><i class="tl-tick" style="left:1200px"></i><i class="tl-tick" style="left:1232px"></i><i class="tl-tick" style="left:1264px"></i><i class="tl-tick" style="left:1296px"></i><i class="tl-tick" style="left:1328px"></i><i class="tl-tick" style="left:1360px"></i><i class="tl-tick is-week" style="left:1392px"></i><i class="tl-tick" style="left:1424px"></i><i class="tl-tick" style="left:1456px"></i><i class="tl-tick" style="left:1488px"></i><i class="tl-tick" style="left:1520px"></i><i class="tl-tick" style="left:1552px"></i><i class="tl-tick" style="left:1584px"></i><i class="tl-tick is-week" style="left:1616px"></i><i class="tl-tick" style="left:1648px"></i><i class="tl-tick" style="left:1680px"></i><i class="tl-tick" style="left:1712px"></i><i class="tl-tick" style="left:1744px"></i><i class="tl-tick" style="left:1776px"></i><i class="tl-tick" style="left:1808px"></i><i class="tl-tick is-week" style="left:1840px"></i><i class="tl-tick" style="left:1872px"></i><i class="tl-tick" style="left:1904px"></i><i class="tl-tick" style="left:1936px"></i><i class="tl-tick is-month" style="left:1968px"></i><i class="tl-tick" style="left:2000px"></i><i class="tl-tick" style="left:2032px"></i><i class="tl-tick" style="left:2064px"></i><i class="tl-tick" style="left:2096px"></i><i class="tl-tick" style="left:2128px"></i><i class="tl-tick is-week" style="left:2160px"></i><i class="tl-tick" style="left:2192px"></i><i class="tl-tick" style="left:2224px"></i><i class="tl-tick" style="left:2256px"></i><i class="tl-tick" style="left:2288px"></i><i class="tl-tick" style="left:2320px"></i><i class="tl-tick" style="left:2352px"></i><i class="tl-tick is-week" style="left:2384px"></i><i class="tl-tick" style="left:2416px"></i><i class="tl-tick" style="left:2448px"></i><i class="tl-tick" style="left:2480px"></i><i class="tl-tick" style="left:2512px"></i><i class="tl-tick" style="left:2544px"></i><i class="tl-tick" style="left:2576px"></i><i class="tl-tick is-week" style="left:2608px"></i><i class="tl-tick" style="left:2640px"></i><i class="tl-tick" style="left:2672px"></i><i class="tl-tick" style="left:2704px"></i><i class="tl-tick" style="left:2736px"></i><i class="tl-tick" style="left:2768px"></i><i class="tl-tick" style="left:2800px"></i><i class="tl-tick is-week" style="left:2832px"></i><i class="tl-tick" style="left:2864px"></i><i class="tl-tick" style="left:2896px"></i></div>
+      <div class="tl-today" style="left:80px" aria-hidden="true"><span>Сегодня</span></div>
+      <div class="tl-item tl-up1" style="left:56px;--tl-pin:152px">
         <a class="tl-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" aria-label="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">7 сентября</span>
           <span class="tl-name" aria-hidden="true">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
@@ -787,7 +789,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:238px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:260px;--tl-pin:44px">
         <a class="tl-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики" aria-label="Правовые вопросы банкротства: теории и практики – старт: 10 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">10 сентября</span>
           <span class="tl-name" aria-hidden="true">Правовые вопросы банкротства: теории и практики</span>
@@ -795,7 +797,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:350px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:280px;--tl-pin:152px">
         <a class="tl-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen)" aria-label="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">14 сентября</span>
           <span class="tl-name" aria-hidden="true">Французское (европейское) экономическое право / Droit économique français (européen)</span>
@@ -803,7 +805,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:378px;--tl-pin:28px">
+      <div class="tl-item tl-up2" style="left:312px;--tl-pin:152px">
         <a class="tl-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга" aria-label="Контрактное право Гонконга – старт: 15 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">15 сентября</span>
           <span class="tl-name" aria-hidden="true">Контрактное право Гонконга</span>
@@ -811,7 +813,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:490px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:476px;--tl-pin:116px">
         <a class="tl-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO" aria-label="Персональный ассистент PRO – старт: 19 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">19 сентября</span>
           <span class="tl-name" aria-hidden="true">Персональный ассистент PRO</span>
@@ -819,7 +821,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down2" style="left:546px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:504px;--tl-pin:152px">
         <a class="tl-card" href="programs/intellektualnaya-sobstvennost-ot-zakona-k-praktike-816497962.html" title="Интеллектуальная собственность: от закона к практике" aria-label="Интеллектуальная собственность: от закона к практике – старт: 21 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">21 сентября</span>
           <span class="tl-name" aria-hidden="true">Интеллектуальная собственность: от закона к практике</span>
@@ -827,7 +829,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:602px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:676px;--tl-pin:44px">
         <a class="tl-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса" aria-label="Цифровое право для бизнеса – старт: 23 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">23 сентября</span>
           <span class="tl-name" aria-hidden="true">Цифровое право для бизнеса</span>
@@ -835,7 +837,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:630px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:708px;--tl-pin:44px">
         <a class="tl-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции" aria-label="Международное частное право: трансграничные операции – старт: 24 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">24 сентября</span>
           <span class="tl-name" aria-hidden="true">Международное частное право: трансграничные операции</span>
@@ -843,7 +845,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:742px;--tl-pin:28px">
+      <div class="tl-item tl-up2" style="left:728px;--tl-pin:152px">
         <a class="tl-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика" aria-label="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">28 сентября</span>
           <span class="tl-name" aria-hidden="true">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
@@ -851,7 +853,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down2" style="left:798px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:900px;--tl-pin:44px">
         <a class="tl-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English" aria-label="Право на английском / Legal English – старт: 30 сентября 2026 г.">
           <span class="tl-when" aria-hidden="true">30 сентября</span>
           <span class="tl-name" aria-hidden="true">Право на английском / Legal English</span>
@@ -859,7 +861,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:938px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:952px;--tl-pin:152px">
         <a class="tl-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе" aria-label="Авторское право в информационном обществе – старт: 5 октября 2026 г.">
           <span class="tl-when" aria-hidden="true">5 октября</span>
           <span class="tl-name" aria-hidden="true">Авторское право в информационном обществе</span>
@@ -867,7 +869,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:1162px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:1208px;--tl-pin:152px">
         <a class="tl-card" href="programs/pravovye-mehanizmy-i-strategii-effektivnogo-vzaimodeystviya-1163275658.html" title="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)" aria-label="Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме) – старт: 13 октября 2026 г.">
           <span class="tl-when" aria-hidden="true">13 октября</span>
           <span class="tl-name" aria-hidden="true">Правовые механизмы и стратегии эффективного взаимодействия фармацевтических компаний с органами государственной власти (GR в фарме)</span>
@@ -875,7 +877,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:1190px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:1240px;--tl-pin:152px">
         <a class="tl-card" href="programs/biznes-mediatsiya-494685723.html" title="Бизнес-медиация" aria-label="Бизнес-медиация – старт: 14 октября 2026 г.">
           <span class="tl-when" aria-hidden="true">14 октября</span>
           <span class="tl-name" aria-hidden="true">Бизнес-медиация</span>
@@ -883,7 +885,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:1470px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:1560px;--tl-pin:152px">
         <a class="tl-card" href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" title="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования" aria-label="Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования – старт: 24 октября 2026 г.">
           <span class="tl-when" aria-hidden="true">24 октября</span>
           <span class="tl-name" aria-hidden="true">Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</span>
@@ -891,7 +893,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:1526px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:1624px;--tl-pin:152px">
         <a class="tl-card" href="programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html" title="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)" aria-label="Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation) – старт: 26 октября 2026 г.">
           <span class="tl-when" aria-hidden="true">26 октября</span>
           <span class="tl-name" aria-hidden="true">Французский юридический язык: право, терминология и аргументация (Le français juridique: droit, terminologie et argumentation)</span>
@@ -899,7 +901,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:1722px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:1848px;--tl-pin:152px">
         <a class="tl-card" href="programs/vvedenie-v-pravovuyu-sistemu-kitaya-894108285.html" title="Введение в правовую систему Китая" aria-label="Введение в правовую систему Китая – старт: 2 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">2 ноября</span>
           <span class="tl-name" aria-hidden="true">Введение в правовую систему Китая</span>
@@ -907,7 +909,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:1918px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:2072px;--tl-pin:152px">
         <a class="tl-card" href="programs/angliyskoe-kontraktnoe-pravo-856421092.html" title="Английское контрактное право" aria-label="Английское контрактное право – старт: 9 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">9 ноября</span>
           <span class="tl-name" aria-hidden="true">Английское контрактное право</span>
@@ -915,7 +917,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:1946px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:2104px;--tl-pin:152px">
         <a class="tl-card" href="programs/morskoy-arbitrazh-906651510.html" title="Морской арбитраж" aria-label="Морской арбитраж – старт: 10 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">10 ноября</span>
           <span class="tl-name" aria-hidden="true">Морской арбитраж</span>
@@ -923,7 +925,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:2114px;--tl-pin:28px">
+      <div class="tl-item tl-up1" style="left:2296px;--tl-pin:152px">
         <a class="tl-card" href="programs/korporativnoe-pravo-osnovnye-problemy-474596729.html" title="Корпоративное право: основные проблемы" aria-label="Корпоративное право: основные проблемы – старт: 16 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">16 ноября</span>
           <span class="tl-name" aria-hidden="true">Корпоративное право: основные проблемы</span>
@@ -931,7 +933,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down2" style="left:2114px;--tl-pin:28px">
+      <div class="tl-item tl-down1" style="left:2296px;--tl-pin:152px">
         <a class="tl-card" href="programs/tehniki-effektivnogo-analiza-yuridicheskih-dokumentov-820703080.html" title="Техники эффективного анализа юридических документов" aria-label="Техники эффективного анализа юридических документов – старт: 16 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">16 ноября</span>
           <span class="tl-name" aria-hidden="true">Техники эффективного анализа юридических документов</span>
@@ -939,7 +941,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:2142px;--tl-pin:28px">
+      <div class="tl-item tl-down2" style="left:2452px;--tl-pin:28px">
         <a class="tl-card" href="programs/delovye-peregovory-pravovye-strategii-589527758.html" title="Деловые переговоры: правовые стратегии" aria-label="Деловые переговоры: правовые стратегии – старт: 17 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">17 ноября</span>
           <span class="tl-name" aria-hidden="true">Деловые переговоры: правовые стратегии</span>
@@ -947,7 +949,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:2170px;--tl-pin:28px">
+      <div class="tl-item tl-up2" style="left:2360px;--tl-pin:152px">
         <a class="tl-card" href="programs/transportnoe-pravo-802031223.html" title="Транспортное право" aria-label="Транспортное право – старт: 18 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">18 ноября</span>
           <span class="tl-name" aria-hidden="true">Транспортное право</span>
@@ -955,7 +957,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:2358px;--tl-pin:36px">
+      <div class="tl-item tl-up1" style="left:2584px;--tl-pin:152px">
         <a class="tl-card" href="programs/obschie-voprosy-dogovornogo-prava-907279244.html" title="Общие вопросы договорного права" aria-label="Общие вопросы договорного права – старт: 25 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">25 ноября</span>
           <span class="tl-name" aria-hidden="true">Общие вопросы договорного права</span>
@@ -963,7 +965,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:2358px;--tl-pin:176px">
+      <div class="tl-item tl-down1" style="left:2732px;--tl-pin:164px">
         <a class="tl-card" href="programs/neyropravo-905186485.html" title="Нейроправо" aria-label="Нейроправо – старт: 30 ноября 2026 г.">
           <span class="tl-when" aria-hidden="true">30 ноября</span>
           <span class="tl-name" aria-hidden="true">Нейроправо</span>
