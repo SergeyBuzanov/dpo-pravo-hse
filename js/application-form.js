@@ -325,6 +325,33 @@
       });
   }
 
+  // Живая подсказка при уходе с поля – только для телефона и почты, где опечатка
+  // типична и заметна без сервера. Правила и тексты ДОСЛОВНО из
+  // lib/application-form.js (тест application-form-live-check держит их равными);
+  // окончательное слово остаётся за сервером.
+  var LIVE_RULES = {
+    phone: function (v) {
+      if (!/^[0-9+()\-\s.]+$/.test(v)) return 'В телефоне допустимы только цифры, пробелы и знаки + ( ) -';
+      var digits = v.replace(/\D/g, '').length;
+      if (digits < 10 || digits > 15) return 'Проверьте телефон: нужен номер с кодом страны или города.';
+      return '';
+    },
+    email: function (v) {
+      return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(v) ? '' : 'Проверьте адрес почты: похоже, в нём опечатка.';
+    },
+  };
+
+  function liveCheck(input) {
+    var rule = LIVE_RULES[input.name];
+    var box = document.getElementById('dpo-app-' + input.name + '-err');
+    if (!rule || !box) return;
+    var value = input.value.trim();
+    var message = value ? rule(value) : '';
+    box.textContent = message;
+    if (message) input.setAttribute('aria-invalid', 'true');
+    else input.removeAttribute('aria-invalid');
+  }
+
   function field(name, label, type, required, autocomplete) {
     var input = el('input', {
       type: type,
@@ -334,6 +361,12 @@
       required: required ? 'required' : null,
       'aria-describedby': 'dpo-app-' + name + '-err',
     });
+    if (LIVE_RULES[name]) {
+      input.addEventListener('blur', function () { liveCheck(input); });
+      // Пока человек правит поле с ошибкой, подсказка исчезает сразу, как
+      // только значение стало верным – не заставляем уходить с поля.
+      input.addEventListener('input', function () { if (input.hasAttribute('aria-invalid')) liveCheck(input); });
+    }
     return el('div', { class: 'dpo-app-field' }, [
       el('label', { for: 'dpo-app-' + name, html: label + (required ? ' <span class="req">*</span>' : '') }),
       input,

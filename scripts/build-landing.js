@@ -198,7 +198,10 @@ function renderSphereCard(sphere) {
 
   const catalogHref = 'Каталог программ.html?sphere=' + encodeURIComponent(sphere.id);
 
-  const rows = sphere.items.slice(0, PREVIEW).map((p) => {
+  // В разметку идут ВСЕ программы сферы: первые PREVIEW видны, остальные
+  // раскрываются кнопкой «Ещё N программ» прямо в карточке (критика 03.09.2026:
+  // ссылка в каталог под карточкой, где показаны все три, вела в никуда).
+  const rows = sphere.items.map((p, idx) => {
     const price = p.discountPrice || p.educationPricing;
     const priceHtml =
       Number.isFinite(price) && price > 0
@@ -209,7 +212,7 @@ function renderSphereCard(sphere) {
     // невалидная разметка и ломает обход с клавиатуры. Место под неё
     // резервирует padding-right у самой ссылки, поэтому строка не растёт
     // в высоту и меню сфер не удлиняется.
-    return `          <li class="dpo-prog-row">
+    return `          <li class="dpo-prog-row${idx >= PREVIEW ? ' is-extra' : ''}">
             <a class="dpo-prog" href="${escapeHtml(programHref(p))}">
               <span class="dpo-prog-title">${escapeHtml(p.title)}</span>${priceHtml}
               <span class="dpo-prog-meta">${escapeHtml(meta)}</span>
@@ -226,7 +229,13 @@ function renderSphereCard(sphere) {
   // сетке соседствовали два разных имени ссылки). Число не обманывает и
   // при полностью показанной сфере: в каталоге будут ровно эти N программ,
   // просто карточками с фильтрами.
-  const allLabel = `Все ${pluralPrograms(total)} сферы`;
+  const allLabel = `Все ${pluralPrograms(total)} сферы в каталоге`;
+  const extra = total - PREVIEW;
+  const moreBtn =
+    extra > 0
+      ? `
+          <button type="button" class="dpo-sphere-more" aria-expanded="false" data-more="Ещё ${escapeHtml(pluralPrograms(extra))}" data-less="Свернуть">Ещё ${escapeHtml(pluralPrograms(extra))}</button>`
+      : '';
 
   return `        <div class="dpo-sphere">
           <div class="dpo-sphere-head">
@@ -236,7 +245,9 @@ function renderSphereCard(sphere) {
           <ul class="dpo-sphere-list">
 ${rows.join('\n')}
           </ul>
+          <div class="dpo-sphere-foot">${moreBtn}
           <a class="dpo-sphere-all" href="${escapeHtml(catalogHref)}">${escapeHtml(allLabel)}</a>
+          </div>
         </div>`;
 }
 
@@ -265,11 +276,16 @@ function renderSpheres(programs) {
            каталога длинные названия обрежутся. */
         .dpo-spheres { align-items: stretch; }
         .dpo-sphere { display: flex; flex-direction: column; padding-bottom: 0; }
-        .dpo-sphere-all {
-          display: block;
+        /* Подвал карточки: «Ещё N программ» и ссылка в каталог в одной строке –
+           раскрытие в карточке не добавляет карточке высоты. */
+        .dpo-sphere-foot {
+          display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline;
+          gap: 8px 16px;
           margin: auto -24px 0;
           padding: 14px 24px 18px;
           border-top: 1px solid rgba(33, 30, 27, 0.1);
+        }
+        .dpo-sphere-all {
           font-size: 15px;
           font-weight: 600;
           color: var(--dpo-accent, #1658DA);

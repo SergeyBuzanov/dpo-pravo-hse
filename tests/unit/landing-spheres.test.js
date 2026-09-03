@@ -26,17 +26,21 @@ const FINANCE = [
   program('Исламские финансы: правовые основы'),
 ];
 
-test('в карточке сферы не больше трёх программ', () => {
+test('в карточке сферы видны не больше трёх программ, остальные свёрнуты за кнопкой', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
   for (const card of html.split('<div class="dpo-sphere">').slice(1)) {
-    const shown = card.split('class="dpo-prog"').length - 1;
-    assert.ok(shown >= 1 && shown <= 3, `в карточке ${shown} программ`);
+    const total = card.split('class="dpo-prog"').length - 1;
+    const hidden = card.split('dpo-prog-row is-extra').length - 1;
+    const shown = total - hidden;
+    assert.ok(shown >= 1 && shown <= 3, `в карточке видно ${shown} программ`);
+    if (hidden) assert.match(card, new RegExp(`class="dpo-sphere-more"[^>]*>Ещё ${hidden} программ`), 'нет кнопки раскрытия');
+    else assert.doesNotMatch(card, /dpo-sphere-more/, 'кнопка без скрытых строк');
   }
 });
 
 test('сфера с избытком программ ведёт в каталог со своим фильтром', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  assert.match(html, /href="Каталог программ\.html\?sphere=corporate">Все 5 программ сферы</);
+  assert.match(html, /href="Каталог программ\.html\?sphere=corporate">Все 5 программ сферы в каталоге</);
 });
 
 // Правило сменилось 02.09.2026 (финальная критика: в одной сетке
@@ -45,7 +49,7 @@ test('сфера с избытком программ ведёт в катало
 // количеством программ сферы – и когда часть скрыта, и когда показаны все.
 test('ярлык сферы един и не врёт про число программ', () => {
   const { html } = renderSpheres([...CORPORATE, ...FINANCE]);
-  assert.match(html, /href="Каталог программ\.html\?sphere=finance">Все 2 программы сферы</);
+  assert.match(html, /href="Каталог программ\.html\?sphere=finance">Все 2 программы сферы в каталоге</);
   assert.doesNotMatch(html, /Открыть сферу в каталоге/);
 });
 

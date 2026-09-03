@@ -60,6 +60,19 @@
     else disable();
   }
 
+  // «Ещё N программ»: раскрытие свёрнутых строк прямо в карточке, на любой
+  // ширине. Кнопка приходит из генератора (build-landing), без aria-controls
+  // по той же причине, что и заголовок аккордеона.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.dpo-sphere-more') : null;
+    if (!btn) return;
+    var sphere = btn.closest('.dpo-sphere');
+    var open = !sphere.classList.contains('is-expanded');
+    sphere.classList.toggle('is-expanded', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.textContent = open ? btn.getAttribute('data-less') : btn.getAttribute('data-more');
+  });
+
   if (mq.addEventListener) mq.addEventListener('change', apply);
   else mq.addListener(apply);
   apply();
