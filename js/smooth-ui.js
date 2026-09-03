@@ -145,7 +145,7 @@ section#explore a[href]{
     border-color .32s cubic-bezier(.22,1,.36,1),
     box-shadow .35s cubic-bezier(.22,1,.36,1),
     transform .32s cubic-bezier(.22,1,.36,1),
-    background .32s ease !important;
+    background .32s cubic-bezier(.22,1,.36,1) !important;
   will-change: transform, box-shadow;
   box-shadow: 0 0 0 rgb(var(--ink) / 0);
 }
@@ -242,7 +242,9 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
 
   const headerOffset = () => {
     const h = document.querySelector('header');
-    return (h ? h.offsetHeight : 0) + 12;
+    // Сжатая шапка лендинга ниже своей раскладки на --hdr-shift (transform).
+    const shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-shift')) || 0;
+    return (h ? h.offsetHeight - shift : 0) + 12;
   };
 
   const smoothScrollTo = (el) => {
