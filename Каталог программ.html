@@ -212,7 +212,10 @@
   .tl-wrap:focus-visible{ outline: 3px solid rgb(var(--accent)); outline-offset: 2px; }
   .tl{
     --tl-card-h: 96px; --tl-near: 40px; --tl-far: calc(var(--tl-near) + var(--tl-card-h) + 12px);
-    position: relative; height: calc(2 * (var(--tl-far) + var(--tl-card-h)) + 40px); min-width: 100%;
+    /* Ось не по центру: над дальней дорожкой 32px под подпись месяца, под
+       нижней – ещё 28px под метку «Сегодня». */
+    --tl-axis: calc(var(--tl-far) + var(--tl-card-h) + 32px);
+    position: relative; height: calc(var(--tl-axis) * 2 + 28px); min-width: 100%;
   }
   /* Полосы месяцев: чередующаяся заливка и подпись у левого края. */
   .tl-month{ position: absolute; top: 0; bottom: 0; border-left: 1px solid rgb(var(--ink) / .14); }
@@ -224,7 +227,7 @@
   }
   .tl-month-label b{ font-weight: 600; opacity: .7; margin-left: 4px; }
   /* Ось со стрелкой и рисками дней. */
-  .tl-axis{ position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgb(var(--accent)); }
+  .tl-axis{ position: absolute; left: 0; right: 0; top: var(--tl-axis); height: 2px; margin-top: -1px; background: rgb(var(--accent)); }
   .tl-axis::after{
     content: ''; position: absolute; right: -2px; top: 50%; margin-top: -8px;
     border-left: 18px solid rgb(var(--accent)); border-top: 8px solid transparent; border-bottom: 8px solid transparent;
@@ -240,7 +243,11 @@
     background: rgb(var(--surface)); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
   }
   /* Карточка на булавке: left и точка булавки (--tl-pin) считает генератор. */
-  .tl-item{ position: absolute; width: 190px; }
+  /* Станция занимает всю высоту оси, чтобы позиционировать карточку и булавку,
+     но сама для указателя прозрачна: иначе поздняя станция накрывала карточку
+     ранней и та не нажималась (замер 03.09.2026: семь из 24). */
+  .tl-item{ position: absolute; width: 190px; pointer-events: none; }
+  .tl-card{ pointer-events: auto; }
   .tl-card{
     position: absolute; left: 0; width: 100%; height: var(--tl-card-h); box-sizing: border-box;
     display: flex; flex-direction: column; gap: 3px; overflow: hidden;
@@ -265,14 +272,14 @@
   .tl-pin::after{ content: ''; position: absolute; left: -4px; width: 10px; height: 10px; border-radius: 999px; background: rgb(var(--accent)); }
   /* Дорожки: near – у оси, far – за первой карточкой. Булавка тянется от оси
      до карточки, кружок стоит на оси. */
-  .tl-up1 .tl-card{ bottom: calc(50% + var(--tl-near)); }
-  .tl-up1 .tl-pin{ bottom: 50%; height: var(--tl-near); }
-  .tl-up2 .tl-card{ bottom: calc(50% + var(--tl-far)); }
-  .tl-up2 .tl-pin{ bottom: 50%; height: var(--tl-far); }
-  .tl-down1 .tl-card{ top: calc(50% + var(--tl-near)); }
-  .tl-down1 .tl-pin{ top: 50%; height: var(--tl-near); }
-  .tl-down2 .tl-card{ top: calc(50% + var(--tl-far)); }
-  .tl-down2 .tl-pin{ top: 50%; height: var(--tl-far); }
+  .tl-up1 .tl-card{ bottom: calc(100% - var(--tl-axis) + var(--tl-near)); }
+  .tl-up1 .tl-pin{ bottom: calc(100% - var(--tl-axis)); height: var(--tl-near); }
+  .tl-up2 .tl-card{ bottom: calc(100% - var(--tl-axis) + var(--tl-far)); }
+  .tl-up2 .tl-pin{ bottom: calc(100% - var(--tl-axis)); height: var(--tl-far); }
+  .tl-down1 .tl-card{ top: calc(var(--tl-axis) + var(--tl-near)); }
+  .tl-down1 .tl-pin{ top: var(--tl-axis); height: var(--tl-near); }
+  .tl-down2 .tl-card{ top: calc(var(--tl-axis) + var(--tl-far)); }
+  .tl-down2 .tl-pin{ top: var(--tl-axis); height: var(--tl-far); }
   .tl-up1 .tl-pin::after, .tl-up2 .tl-pin::after{ bottom: -5px; }
   .tl-down1 .tl-pin::after, .tl-down2 .tl-pin::after{ top: -5px; }
   .tl-item{ top: 0; bottom: 0; }
