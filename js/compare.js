@@ -398,6 +398,12 @@
       btn.setAttribute('data-program-url', hrefOf(card));
       btn.setAttribute('aria-label', 'Заявка: ' + titleOf(card));
       btn.textContent = 'Подать заявку';
+      // Окно заявки открывает js/application-form.js делегированием по
+      // document, то есть ПОСЛЕ этого слушателя. Сравнение к тому моменту
+      // должно закрыться: два окна друг на друге делят Escape и оставляют
+      // под верхним живой фон. Фокус не возвращаем – его сейчас заберёт
+      // заголовок формы.
+      btn.addEventListener('click', function () { shut({ keepFocus: true }); });
       td.appendChild(btn);
       actions.appendChild(td);
     });
@@ -485,8 +491,9 @@
     }
   }
 
-  function shut() {
+  function shut(opts) {
     if (!backdrop) return;
+    var keepFocus = !!(opts && opts.keepFocus);
     var node = backdrop;
     backdrop = null;
     document.removeEventListener('keydown', onKey, true);
@@ -499,8 +506,13 @@
     hidden = [];
     document.documentElement.style.overflow = '';
     node.classList.remove('is-open');
-    var done = function () { if (node.parentNode) node.parentNode.removeChild(node); };
-    setTimeout(done, 240);
+    // Уходя под другое окно, исчезаем сразу: полсекунды растворения под
+    // формой заявки видно как мигание, а узел всё это время ещё в body.
+    if (keepFocus) {
+      if (node.parentNode) node.parentNode.removeChild(node);
+      return;
+    }
+    setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 240);
     if (lastTrigger && document.contains(lastTrigger)) lastTrigger.focus();
   }
 
