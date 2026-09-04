@@ -37,7 +37,12 @@ test('карточка формата: номер ступени, водяной
   list.forEach((card, i) => {
     const n = String(i + 1).padStart(2, '0');
     assert.match(card, new RegExp(`<span class="dpo-format-index">${n}</span>`), `нет номера ${n}`);
-    assert.match(card, /<span class="dpo-format-doc" aria-hidden="true" style="top: -\d+px">/, 'нет скана бланка со своим сдвигом кадра');
+    assert.match(card, /<span class="dpo-format-doc" aria-hidden="true">/, 'нет скана бланка');
+    assert.doesNotMatch(card, /dpo-format-doc[^>]*style=/, 'бланк снова со сдвигом кадра – он больше не обрезается');
+    assert.ok(
+      card.indexOf('dpo-format-doc') < card.indexOf('dpo-format-facts'),
+      'бланк должен стоять НАД строкой «Итоговый документ», он её иллюстрирует',
+    );
     assert.match(card, /<source srcset="images\/document-[a-z]+\.webp" type="image\/webp">/, 'бланк без webp');
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt="" src="images\/document-[a-z]+\.(?:png|jpg)">/, 'бланк без размеров или запасного формата');
     assert.doesNotMatch(card, /dpo-format-vignette/, 'водяной знак остался вместе с бланком');
