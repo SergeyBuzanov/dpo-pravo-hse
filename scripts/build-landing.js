@@ -324,20 +324,17 @@ const FORMATS = [
 ];
 
 /**
- * Рисунки форматов для водяных знаков ступеней; ключ – название формата
- * из FORMATS. Знаки рисуют не документ, а движение: ступени вверх (ПК),
- * поворот траектории (ПП), раскрытая книга (ДО для взрослых), шапочка
- * выпускника (второе высшее). Документ и так назван словами в карточке.
+ * Бланк итогового документа для каждой ступени: `images/document-*`, те же
+ * сканы, что в секции «Документ» ниже по странице. Карточка отвечает на
+ * главный вопрос картинкой, а не только словами; рисунки-виньетки сняты –
+ * их работу делает бланк. Ключ – название формата из FORMATS, `ext` –
+ * запасной формат рядом с webp (у двух сканов png, у двух jpg).
  */
-const FORMAT_GLYPHS = {
-  'Повышение квалификации':
-    '<path d="M28 128 H60 V102 H92 V76 H124 V50"/><path d="M110 64 L124 50 L138 64"/>',
-  'Профессиональная переподготовка':
-    '<path d="M26 122 H70 Q104 122 104 86 V46"/><path d="M88 62 L104 46 L120 62"/><circle cx="26" cy="122" r="7"/>',
-  'Дополнительное образование для взрослых':
-    '<path d="M80 48 Q56 34 28 38 V116 Q56 112 80 126 Q104 112 132 116 V38 Q104 34 80 48 Z"/><path d="M80 48 V126"/>',
-  'Второе высшее образование':
-    '<path d="M20 62 L80 36 L140 62 L80 88 Z"/><path d="M44 74 V106 Q80 126 116 106 V74"/><path d="M140 62 V100"/>',
+const FORMAT_DOCS = {
+  'Повышение квалификации': { file: 'document-pk', ext: 'png', height: 848, top: -34 },
+  'Профессиональная переподготовка': { file: 'document-pp', ext: 'png', height: 848, top: -34 },
+  'Дополнительное образование для взрослых': { file: 'document-cert', ext: 'jpg', height: 848, top: -6 },
+  'Второе высшее образование': { file: 'document-vo', ext: 'jpg', height: 847, top: -2 },
 };
 
 /**
@@ -482,13 +479,23 @@ function renderFormats(programs) {
           )
           .join('')}\n          </ul>`
       : '';
-    const glyph = FORMAT_GLYPHS[fmt.title] || '';
+    // Бланк лежит уголком за шапкой карточки и обрезается её краем. Он
+    // декоративен для диктора (alt пуст, aria-hidden): какой именно документ
+    // выдают, сказано словами строкой «Итоговый документ: …» в этой же
+    // карточке, и второй раз это читать незачем. Размеры проставлены, чтобы
+    // ленивая загрузка не двигала раскладку.
+    const blank = FORMAT_DOCS[fmt.title];
+    const scan = blank
+      ? `\n          <span class="dpo-format-doc" aria-hidden="true" style="top: ${blank.top}px"><picture>` +
+        `<source srcset="images/${blank.file}.webp" type="image/webp">` +
+        `<img loading="lazy" decoding="async" width="1200" height="${blank.height}" alt="" src="images/${blank.file}.${blank.ext}">` +
+        `</picture></span>`
+      : '';
 
     return `        <li class="dpo-format">
-          <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>
+          <span class="dpo-format-head"><span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span></span>${scan}
           <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
           <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}${stats}${foot}
-          <svg class="dpo-format-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
         </li>`;
   });
 
@@ -547,10 +554,25 @@ function renderFormats(programs) {
           content: ''; display: inline-block; vertical-align: middle;
           width: 28px; height: 1px; margin-left: 10px; background: currentColor; opacity: .6;
         }
-        .dpo-format-vignette {
-          position: absolute; right: -14px; top: 8px; width: 112px; height: 112px;
-          color: var(--dpo-accent, #1658DA); opacity: .1; pointer-events: none; z-index: 0;
+        /* Бланк итогового документа уголком: лежит за шапкой карточки с
+           лёгким наклоном и обрезается её краем (overflow у .dpo-format).
+           Глубина – волосяной линией и белой подложкой, а не тенью: в покое
+           теней на этой странице нет. Шапка держит высоту под бланк, чтобы
+           заголовок никогда не заходил под него. */
+        .dpo-format-head { display: block; position: relative; min-height: 98px; }
+        /* Вертикальный сдвиг у каждого бланка свой (инлайном из FORMAT_DOCS):
+           узнаваемая часть у них на разной высоте – у удостоверения и диплома
+           ПП это синяя полоса с гербом и надписью, у свидетельства логотип с
+           заголовком, у диплома ВО орнамент с гербом. Общий сдвиг обрезал
+           двум бланкам ровно то, по чему их узнают. */
+        .dpo-format-doc {
+          position: absolute; right: -48px; width: 198px;
+          transform: rotate(-5deg); transform-origin: 100% 0;
+          border: 1px solid rgba(33, 30, 27, 0.14); border-radius: 4px;
+          overflow: hidden; line-height: 0; background: #fff;
+          pointer-events: none; z-index: 0;
         }
+        .dpo-format-doc img { display: block; width: 100%; height: auto; }
         .dpo-format-stats {
           list-style: none; margin: 0; padding: 12px 0 0;
           border-top: 1px solid rgba(33, 30, 27, 0.1);
@@ -561,8 +583,14 @@ function renderFormats(programs) {
           display: block; color: #6B6459; font-size: 12.5px;
           letter-spacing: .02em; margin-bottom: 1px;
         }
-        .dpo-format-title { font-size: 19px; line-height: 1.25; }
-        .dpo-format-desc { font-size: 14.5px; line-height: 1.55; }
+        /* Заголовок и описание подняты (04.09.2026): блок был набран 19px и
+           14.5px – мельче всего вокруг. Описание встало на системную ступень
+           ui, а заголовок – на ступень card-title, заведённую ради него:
+           между title (19px) и headline-compact (до 34px) в лестнице пусто, а
+           34px в колонке 250px рвут слово «Профессиональная». Ступень описана
+           в DESIGN.md, чтобы не быть разовым числом. */
+        .dpo-format-title { font-size: clamp(1.25rem, 1.8vw, 1.4375rem); line-height: 1.2; }
+        .dpo-format-desc { font-size: 0.9375rem; line-height: 1.55; }
         .dpo-format-foot {
           margin-top: auto;
           padding-top: 12px;
@@ -581,9 +609,32 @@ function renderFormats(programs) {
         }
         @media (max-width: 640px) {
           .dpo-formats { grid-template-columns: minmax(0, 1fr); }
+          /* На телефоне карточка втрое шире колонки, и бланк того же размера
+             начинает главенствовать над шапкой – кадр уменьшен. */
+          .dpo-format-doc { width: 172px; right: -54px; }
+          .dpo-format-head { min-height: 88px; }
         }
+        /* Подъём ступеней (владелец 04.09.2026). Свой момент, не повтор
+           вылета плиток сфер: те влетают с боков по пружине, эти ПОДНИМАЮТСЯ
+           снизу по очереди, начиная с нижней ступени, на обычной кривой
+           замедления – то же движение, что описывает сам блок. Пружина
+           остаётся подписью плиток сфер и второй раз не используется.
+           Класс dpo-fly ставит скрипт, is-in – при появлении в кадре;
+           reduced-motion и vi-mode показывают всё сразу. */
+        .dpo-format:nth-child(1) { --i: 0; } .dpo-format:nth-child(2) { --i: 1; }
+        .dpo-format:nth-child(3) { --i: 2; } .dpo-format:nth-child(n+4) { --i: 3; }
+        @media (prefers-reduced-motion: no-preference) {
+          .dpo-formats.dpo-fly .dpo-format { opacity: 0; transform: translate3d(0, 38px, 0); }
+          .dpo-formats.dpo-fly.is-in .dpo-format {
+            animation: dpo-format-rise .7s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1)) both;
+            animation-delay: calc(var(--i) * 90ms);
+          }
+        }
+        @keyframes dpo-format-rise { to { opacity: 1; transform: none; } }
         html.vi-mode .dpo-format { border: 2px solid #000 !important; }
-        html.vi-mode .dpo-format-vignette { display: none !important; }
+        html.vi-mode .dpo-format { animation: none !important; opacity: 1 !important; transform: none !important; }
+        html.vi-mode .dpo-format-doc { display: none !important; }
+        html.vi-mode .dpo-format-head { min-height: 0 !important; }
         html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
         html.vi-mode .dpo-formats-line { display: none !important; }
       </style>
