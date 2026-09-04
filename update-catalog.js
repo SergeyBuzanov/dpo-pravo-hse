@@ -388,11 +388,18 @@ function buildStartsBlock(items, now = new Date()) {
     const meta = [kind, shortFormat(item.studyFormat?.title), formatPrice(item)].filter(Boolean).join(' · ');
     const sphere = sphereOf(item);
     const dot = sphere ? `<i class="tl-dot" data-sphere="${escapeHtml(sphere.id)}" aria-hidden="true"></i>` : '';
+    // Имя ссылки собирается из ВИДИМОГО текста, а не из aria-label.
+    // Раньше содержимое было спрятано (aria-hidden), а имя задавал
+    // aria-label «Название – старт: …»: диктор читал одно, на экране
+    // стояло другое («14 сентября», название, «ПК · Онлайн · 50 000 ₽»),
+    // и Lighthouse справедливо ругался – label-content-name-mismatch,
+    // WCAG 2.5.3. Год, которого нет на карточке, ушёл в title: он
+    // остаётся и подсказкой, и доступным описанием.
     return `      <div class="tl-item tl-${LANES[lane]}" style="left:${cardLeft}px;--tl-pin:${x - cardLeft}px">
-        <a class="tl-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)}" aria-label="${escapeHtml(item.title)} – старт: ${escapeHtml(whenFull)}">
-          <span class="tl-when" aria-hidden="true">${escapeHtml(when)}</span>
-          <span class="tl-name" aria-hidden="true">${escapeHtml(item.title)}</span>
-          <span class="tl-meta" aria-hidden="true">${dot}${escapeHtml(meta)}</span>
+        <a class="tl-card" href="${escapeHtml(programHref(item))}" title="${escapeHtml(item.title)} – старт: ${escapeHtml(whenFull)}">
+          <span class="tl-when">${escapeHtml(when)}</span>
+          <span class="tl-name">${escapeHtml(item.title)}</span>
+          <span class="tl-meta">${dot}${escapeHtml(meta)}</span>
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>`;

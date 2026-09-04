@@ -29,7 +29,9 @@ test('карточки стоят на своих датах, месяцы по�
   // 14 сентября: 13 дней от начала оси × 32px + 16 = 432; карточка висит слева от
   // булавки (булавка у правого края, 152px от левого) – будущим стартам остаётся место
   assert.match(html, /class="tl-item tl-up1" style="left:280px;--tl-pin:152px"/);
-  assert.match(html, /<span class="tl-when" aria-hidden="true">14 сентября</);
+  // Содержимое карточки НЕ прячется от диктора: имя ссылки собирается
+  // из него (см. renderStarts), aria-label там больше нет.
+  assert.match(html, /<span class="tl-when">14 сентября</);
   assert.match(html, /tl-dot" data-sphere="corporate"/);
   assert.match(html, /class="tl-today" style="left:80px"/, 'сегодня 3 сентября – третий день оси');
   assert.match(html, /style="width:2912px"/, 'сентябрь–ноябрь = 91 день × 32px');
