@@ -334,10 +334,22 @@ const FORMATS = [
  * ему не понравилась) – официальный документ в обрезке выглядит небрежно.
  */
 const FORMAT_DOCS = {
-  'Повышение квалификации': { file: 'document-pk', ext: 'png', height: 848, chip: 'Удостоверение' },
-  'Профессиональная переподготовка': { file: 'document-pp', ext: 'png', height: 848, chip: 'Диплом о переподготовке' },
-  'Дополнительное образование для взрослых': { file: 'document-cert', ext: 'jpg', height: 848, chip: 'Свидетельство' },
-  'Второе высшее образование': { file: 'document-vo', ext: 'jpg', height: 847, chip: 'Диплом о высшем' },
+  'Повышение квалификации': {
+    file: 'document-pk', ext: 'png', height: 848,
+    name: 'Удостоверение о повышении квалификации',
+  },
+  'Профессиональная переподготовка': {
+    file: 'document-pp', ext: 'png', height: 848,
+    name: 'Диплом о профессиональной переподготовке',
+  },
+  'Дополнительное образование для взрослых': {
+    file: 'document-cert', ext: 'jpg', height: 848,
+    name: 'Свидетельство об обучении',
+  },
+  'Второе высшее образование': {
+    file: 'document-vo', ext: 'jpg', height: 847,
+    name: 'Диплом о высшем образовании',
+  },
 };
 
 /**
@@ -441,11 +453,6 @@ function renderFormats(programs) {
     // остаётся в теле карточки даже теперь, когда над ней стоит чип с тем же
     // коротко: сокращать канон нельзя, а чип его не заменяет, а называет.
     const doc = `\n            <p class="dpo-format-facts"><span>${escapeHtml(fmt.document)}</span></p>`;
-    const prices = items
-      .map((p) => p.discountPrice || p.educationPricing)
-      .filter((n) => Number.isFinite(n) && n > 0)
-      .sort((a, b) => a - b);
-
     // Главное число карточки – СКОЛЬКО ПРОГРАММ в этом формате (владелец
     // 05.09.2026: «меньше акцента на цену, больше на количество программ»).
     // Это сознательная отмена решения заказчика от 18.08.2026, который убрал
@@ -456,14 +463,9 @@ function renderFormats(programs) {
     const count = items.length
       ? `\n            <span class="dpo-format-count">${escapeHtml(pluralPrograms(items.length))}</span>`
       : '';
-    // Цена ушла в подпись под числом: диапазон одной строкой, мелко.
-    const price = prices.length
-      ? `\n            <span class="dpo-format-price">${escapeHtml(
-          prices[prices.length - 1] > prices[0]
-            ? 'от ' + formatPrice(prices[0]) + ' до ' + formatPrice(prices[prices.length - 1])
-            : 'от ' + formatPrice(prices[0]),
-        )}</span>`
-      : `\n            <span class="dpo-format-noprice">${fmt.url ? 'Стоимость – на странице программы' : 'Стоимость – по запросу'}</span>`;
+    // Цены в блоке нет вовсе (владелец 05.09.2026: «не пиши вообще ценник
+    // там»). Она у каждой программы в каталоге и на её странице; здесь блок
+    // о выборе траектории, а не о деньгах.
 
     // Кнопка ведёт в каталог с уже применённым фильтром по типу: механика
     // чтения фильтров из адреса в каталоге уже работает. У формата без типа
@@ -490,7 +492,7 @@ function renderFormats(programs) {
     const ask = cta
       ? ''
       : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Подать заявку</a>`;
-    const foot = `\n          <div class="dpo-format-foot">${count}${price}${cta}${ask}\n          </div>`;
+    const foot = `\n          <div class="dpo-format-foot">${count}${cta}${ask}\n          </div>`;
 
     // Факты из каталога и только там, где данные есть: у второго высшего и
     // ДО для взрослых своих программ в каталоге нет, и выдумывать им
@@ -517,24 +519,24 @@ function renderFormats(programs) {
       ? `\n            <p class="dpo-format-start"><span class="dpo-format-dot" aria-hidden="true"></span>Ближайший старт – ${escapeHtml(start)}</p>`
       : '';
 
-    // Образец итогового документа – кнопка во всю ширину карточки: клик или
-    // Enter открывает бланк крупно в окне (js/doc-preview.js). Бланк виден
-    // ЦЕЛИКОМ (владелец 04.09.2026: обрезка углом ему не понравилась).
+    // Образец итогового документа – обложка во всю ширину карточки, без
+    // полей и рамки (владелец 05.09.2026). Подпись «Смотреть образец» снята
+    // по его же указанию; кнопка осталась – клик или Enter открывает бланк
+    // ЦЕЛИКОМ и крупно в окне (js/doc-preview.js), и это тем нужнее, что на
+    // обложке документ показан кадром. Название документа написано полностью
+    // и пометкой поверх обложки, и строкой заказчика в теле карточки.
     // Картинка для диктора пуста – имя действия несёт aria-label кнопки.
     const blank = FORMAT_DOCS[fmt.title];
-    const docName = fmt.document.replace(/^Итоговый документ:\s*/i, '').replace(/\s*\(.*\)\s*$/, '');
     const scan = blank
       ? `\n          <button type="button" class="dpo-format-doc" data-doc-preview="images/${blank.file}"` +
         ` data-doc-ext="${blank.ext}" data-doc-height="${blank.height}"` +
-        ` data-doc-label="${escapeHtml(docName)}"` +
-        ` aria-label="${escapeHtml('Показать образец крупно: ' + docName)}">` +
+        ` data-doc-label="${escapeHtml(blank.name)}"` +
+        ` aria-label="${escapeHtml('Показать образец крупно: ' + blank.name)}">` +
         `<span class="dpo-format-scan"><picture>` +
         `<source srcset="images/${blank.file}.webp" type="image/webp">` +
         `<img loading="lazy" decoding="async" width="1200" height="${blank.height}" alt="" src="images/${blank.file}.${blank.ext}">` +
         `</picture></span>` +
-        `<span class="dpo-format-cap">` +
-        `<span class="dpo-format-chip">${escapeHtml(blank.chip)}</span>` +
-        `<span class="dpo-format-zoom">Смотреть образец</span></span>` +
+        `<span class="dpo-format-chip">${escapeHtml(blank.name)}</span>` +
         `</button>`
       : '';
 
@@ -584,34 +586,34 @@ function renderFormats(programs) {
         /* Образец документа – кнопка во всю ширину карточки. Внутри бланк с
            волосяной рамкой и подпись: слева тип документа, справа приглашение
            открыть крупно. Кнопка, а не ссылка: никуда не ведёт, а показывает. */
+        /* Обложка: бланк во всю ширину карточки, без полей и рамки (владелец
+           05.09.2026). Кадр берётся ближе к верху документа – там у всех
+           четырёх бланков герб, логотип и собственное название. Название
+           документа целиком стоит пометкой в нижнем углу обложки. */
         .dpo-format-doc {
-          display: block; width: 100%; text-align: left;
-          padding: 14px 14px 0; border: none; background: #fff;
+          display: block; width: 100%; text-align: left; position: relative;
+          padding: 0; border: none; background: #fff;
           cursor: zoom-in; touch-action: manipulation; font: inherit; color: inherit;
         }
         .dpo-format-scan {
-          display: block; border: 1px solid rgba(33, 30, 27, 0.12);
-          border-radius: 4px; overflow: hidden; line-height: 0; background: #fff;
+          display: block; overflow: hidden; line-height: 0; background: #fff;
+          border-bottom: 1px solid rgba(33, 30, 27, 0.1);
         }
         .dpo-format-scan img {
-          display: block; width: 100%; height: auto;
+          display: block; width: 100%; height: 178px; object-fit: cover; object-position: 50% 24%;
           transition: transform .45s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1));
         }
-        .dpo-format-cap {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 10px; padding: 10px 0 12px;
-        }
         .dpo-format-chip {
-          font-size: 11px; font-weight: 600; letter-spacing: .02em; line-height: 1.1;
-          padding: 5px 10px; border-radius: 999px;
-          border: 1px solid rgba(33, 30, 27, 0.14); color: #211E1B; background: #fff;
+          position: absolute; left: 14px; bottom: 14px; max-width: calc(100% - 28px);
+          font-size: 11px; font-weight: 600; letter-spacing: .02em; line-height: 1.2;
+          padding: 6px 11px; border-radius: 999px; text-align: left;
+          border: 1px solid rgba(33, 30, 27, 0.14); color: #211E1B;
+          background: rgba(255, 255, 255, 0.94);
         }
-        .dpo-format-zoom { font-size: 0.8125rem; line-height: 1.2; color: #6B6459; }
         .dpo-format-doc:focus-visible { outline: 3px solid var(--dpo-accent, #1658DA); outline-offset: -3px; }
         @media (hover: hover) and (pointer: fine) {
           .dpo-format-doc:hover .dpo-format-scan img,
           .dpo-format-doc:focus-visible .dpo-format-scan img { transform: scale(1.04); }
-          .dpo-format-doc:hover .dpo-format-zoom { color: var(--dpo-accent, #1658DA); }
         }
         /* Плашка ступени: цвет приходит инлайном из FORMAT_STEPS. */
         /* Плашка держит общую высоту на весь ряд: названия форматов ложатся
@@ -664,8 +666,7 @@ function renderFormats(programs) {
           font-family: 'HSE Slab', 'Source Serif 4', serif;
           font-weight: 600; font-size: 1.5rem; line-height: 1.1; color: #211E1B;
         }
-        .dpo-format-price { font-size: 13px; line-height: 1.4; color: #6B6459; }
-        .dpo-format-noprice { font-size: 13px; line-height: 1.4; color: #6B6459; }
+
         /* Действие – сплошная кнопка во всю ширину: текстовая ссылка со
            стрелкой терялась среди подписей (владелец 05.09.2026). */
         .dpo-format-cta {
@@ -709,8 +710,7 @@ function renderFormats(programs) {
           background: #fff !important; color: #000 !important;
           border-bottom: 2px solid #000 !important;
         }
-        html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key,
-        html.vi-mode .dpo-format-zoom, html.vi-mode .dpo-format-upto { color: #000 !important; }
+        html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
         html.vi-mode .dpo-format-chip { border: 2px solid #000 !important; color: #000 !important; }
       </style>
       <ul class="dpo-formats">

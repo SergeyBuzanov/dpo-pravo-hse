@@ -38,7 +38,11 @@ test('карточка формата: номер ступени, водяной
     const n = String(i + 1).padStart(2, '0');
     assert.match(card, new RegExp(`<span class="dpo-format-index">${n}</span>`), `нет номера ${n}`);
     assert.match(card, /<button type="button" class="dpo-format-doc" data-doc-preview="images\/document-[a-z]+"/, 'образец не кнопка');
-    assert.match(card, /aria-label="Показать образец крупно: [^"]+"/, 'у кнопки образца нет имени действия');
+    assert.match(
+      card,
+      /aria-label="Показать образец крупно: (Удостоверение о повышении квалификации|Диплом о профессиональной переподготовке|Свидетельство об обучении|Диплом о высшем образовании)"/,
+      'имя действия у кнопки образца не полное название документа',
+    );
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt=""/, 'картинка образца не пуста для диктора');
     // Порядок ярусов афиши: бланк, цветная плашка ступени, тело карточки.
     assert.ok(
@@ -47,7 +51,11 @@ test('карточка формата: номер ступени, водяной
       'ярусы карточки идут не в порядке: бланк, плашка, тело',
     );
     assert.match(card, /<div class="dpo-format-band" style="--step-bg: #[0-9A-F]{6}; --step-ink: #[0-9A-F]{6}; --step-soft: [^"]+">/, 'у плашки нет своей ступени палитры');
-    assert.match(card, /<span class="dpo-format-chip">[^<]+<\/span>/, 'нет чипа с типом документа');
+    assert.match(card, /<span class="dpo-format-chip">[^<]+<\/span>/, 'нет пометки с названием документа');
+    // Названия документов пишутся ПОЛНОСТЬЮ везде: и в пометке, и в имени
+    // действия у кнопки (владелец 05.09.2026).
+    assert.doesNotMatch(card, /dpo-format-zoom|Смотреть образец/, 'подпись «Смотреть образец» вернулась');
+    assert.doesNotMatch(card, /dpo-format-price|dpo-format-noprice|Стоимость|₽/, 'в блок вернулся ценник');
     assert.match(card, /<source srcset="images\/document-[a-z]+\.webp" type="image\/webp">/, 'бланк без webp');
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt="" src="images\/document-[a-z]+\.(?:png|jpg)">/, 'бланк без размеров или запасного формата');
     assert.doesNotMatch(card, /dpo-format-vignette/, 'водяной знак остался вместе с бланком');
