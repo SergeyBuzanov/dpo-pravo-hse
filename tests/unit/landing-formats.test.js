@@ -40,16 +40,28 @@ test('карточка формата: номер ступени, водяной
     assert.match(card, /<button type="button" class="dpo-format-doc" data-doc-preview="images\/document-[a-z]+"/, 'образец не кнопка');
     assert.match(card, /aria-label="Показать образец крупно: [^"]+"/, 'у кнопки образца нет имени действия');
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt=""/, 'картинка образца не пуста для диктора');
-    assert.match(card, /<div class="dpo-format-step">[\s\S]*<div class="dpo-format-body">[\s\S]*<div class="dpo-format-side">/, 'строка не разложена на три колонки');
+    // Порядок ярусов афиши: бланк, цветная плашка ступени, тело карточки.
+    assert.ok(
+      card.indexOf('dpo-format-doc') < card.indexOf('dpo-format-band') &&
+        card.indexOf('dpo-format-band') < card.indexOf('dpo-format-body'),
+      'ярусы карточки идут не в порядке: бланк, плашка, тело',
+    );
+    assert.match(card, /<div class="dpo-format-band" style="--step-bg: #[0-9A-F]{6}; --step-ink: #[0-9A-F]{6}; --step-soft: [^"]+">/, 'у плашки нет своей ступени палитры');
+    assert.match(card, /<span class="dpo-format-chip">[^<]+<\/span>/, 'нет чипа с типом документа');
     assert.match(card, /<source srcset="images\/document-[a-z]+\.webp" type="image\/webp">/, 'бланк без webp');
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt="" src="images\/document-[a-z]+\.(?:png|jpg)">/, 'бланк без размеров или запасного формата');
     assert.doesNotMatch(card, /dpo-format-vignette/, 'водяной знак остался вместе с бланком');
   });
-  // Проверяем РАЗМЕТКУ, а не стиль: в комментарии внутри <style> числа
-  // программ упоминаются как объяснение раскладки, и наивная проверка
-  // ловила их – та же ловушка, что уже дважды стоила времени в этом проекте.
+  // Число программ ВЕРНУЛОСЬ в блок 05.09.2026 по решению владельца, прямо
+  // отменившему решение заказчика от 18.08. Проверяем РАЗМЕТКУ, а не стиль:
+  // в комментарии внутри <style> числа тоже упоминаются, и наивная проверка
+  // ловила их – ловушка, уже трижды стоившая времени в этом проекте.
   const markup = html.replace(/<style>[\s\S]*?<\/style>/g, '');
-  assert.doesNotMatch(markup, /\d+ программ/, 'в блок вернулось число программ');
+  assert.match(markup, /<span class="dpo-format-count">4 программы<\/span>/, 'нет числа программ у ПК');
+  assert.match(markup, /<span class="dpo-format-count">2 программы<\/span>/, 'нет числа программ у ПП');
+  // У форматов без программ в каталоге числа нет и быть не может.
+  const noCatalog = cards(html).slice(2).join('');
+  assert.doesNotMatch(noCatalog, /dpo-format-count/, 'выдуманное число программ у формата вне каталога');
 
   // Длительность: единица одна на обе границы, если совпадает. «Обычно» –
   // потому что в каталоге длительность заполнена не у всех программ.

@@ -334,11 +334,37 @@ const FORMATS = [
  * ему не понравилась) – официальный документ в обрезке выглядит небрежно.
  */
 const FORMAT_DOCS = {
-  'Повышение квалификации': { file: 'document-pk', ext: 'png', height: 848 },
-  'Профессиональная переподготовка': { file: 'document-pp', ext: 'png', height: 848 },
-  'Дополнительное образование для взрослых': { file: 'document-cert', ext: 'jpg', height: 848 },
-  'Второе высшее образование': { file: 'document-vo', ext: 'jpg', height: 847 },
+  'Повышение квалификации': { file: 'document-pk', ext: 'png', height: 848, chip: 'Удостоверение' },
+  'Профессиональная переподготовка': { file: 'document-pp', ext: 'png', height: 848, chip: 'Диплом о переподготовке' },
+  'Дополнительное образование для взрослых': { file: 'document-cert', ext: 'jpg', height: 848, chip: 'Свидетельство' },
+  'Второе высшее образование': { file: 'document-vo', ext: 'jpg', height: 847, chip: 'Диплом о высшем' },
 };
+
+/**
+ * Ступени палитры для плашек форматов (владелец 05.09.2026, гибрид вариантов
+ * «афиша» и «цветные ступени»). Это НЕ новые цвета: те же ступени тональной
+ * лестницы, что у плиток сфер. Владелец видел оба блока рядом на макете и
+ * согласился на перекличку – здесь цвет дозирован полоской, а не заливкой.
+ * Тушь на светлых ступенях и белый на тёмных дают контраст от 4,6:1.
+ */
+const FORMAT_STEPS = [
+  { bg: '#1658DA', ink: '#FFFFFF', soft: 'rgba(255,255,255,.86)' },
+  { bg: '#0B2A69', ink: '#FFFFFF', soft: 'rgba(255,255,255,.86)' },
+  { bg: '#E6D4BF', ink: '#211E1B', soft: '#5A5248' },
+  { bg: '#CEDFFD', ink: '#211E1B', soft: '#48423A' },
+];
+
+/**
+ * Ближайший старт по программам формата. Берутся только будущие даты – та же
+ * проверка upcomingStartLabel, что на всех витринах сайта; формат подписи –
+ * общий formatDate, чтобы плитки сфер и ступени не разъезжались.
+ */
+function nearestStart(items) {
+  const upcoming = items
+    .filter((p) => upcomingStartLabel(p))
+    .sort((x, y) => new Date(x.startDate) - new Date(y.startDate));
+  return upcoming.length ? formatDate(upcoming[0]) : '';
+}
 
 /**
  * Разбор длительности из источника: «2 недели», «1,5 месяца», «8 месяцев».
@@ -411,30 +437,38 @@ function renderFormats(programs) {
   })).filter(({ fmt, items }) => !(fmt.type && !items.length));
 
   const rows = shown.map(({ fmt, items }, i) => {
+    // Строка про итоговый документ – текст заказчика слово в слово, поэтому
+    // остаётся в теле карточки даже теперь, когда над ней стоит чип с тем же
+    // коротко: сокращать канон нельзя, а чип его не заменяет, а называет.
+    const doc = `\n            <p class="dpo-format-facts"><span>${escapeHtml(fmt.document)}</span></p>`;
     const prices = items
       .map((p) => p.discountPrice || p.educationPricing)
       .filter((n) => Number.isFinite(n) && n > 0)
       .sort((a, b) => a - b);
 
-    // Строка про итоговый документ стоит под описанием, а не в правой
-    // колонке: в тексте заказчика она – часть описания формата, и на широком
-    // экране прижатая направо она рвалась на две строки посередине фразы.
-    // Направо уходит только то, что не проза: цена и кнопка.
-    const doc = `\n            <p class="dpo-format-facts"><span>${escapeHtml(fmt.document)}</span></p>`;
-    // Пустой слот цены под разделителем читался дырой сравнительной
-    // таблицы (финальная критика 02.09). Чисел не выдумываем – в слоте
-    // честная подпись: у второго высшего цена живёт на его странице,
-    // у ДО для взрослых считается по запросу.
+    // Главное число карточки – СКОЛЬКО ПРОГРАММ в этом формате (владелец
+    // 05.09.2026: «меньше акцента на цену, больше на количество программ»).
+    // Это сознательная отмена решения заказчика от 18.08.2026, который убрал
+    // числа из блока со словами «форматы равнозначны, это выбор траектории,
+    // а не рейтинг»; отмена – владельца, записана в docs/design-log.md.
+    // У второго высшего и ДО для взрослых своих программ в каталоге нет,
+    // и числа у них не будет: выдуманное число хуже его отсутствия.
+    const count = items.length
+      ? `\n            <span class="dpo-format-count">${escapeHtml(pluralPrograms(items.length))}</span>`
+      : '';
+    // Цена ушла в подпись под числом: диапазон одной строкой, мелко.
     const price = prices.length
-      ? `\n            <span class="dpo-format-price">от ${escapeHtml(formatPrice(prices[0]))}</span>`
+      ? `\n            <span class="dpo-format-price">${escapeHtml(
+          prices[prices.length - 1] > prices[0]
+            ? 'от ' + formatPrice(prices[0]) + ' до ' + formatPrice(prices[prices.length - 1])
+            : 'от ' + formatPrice(prices[0]),
+        )}</span>`
       : `\n            <span class="dpo-format-noprice">${fmt.url ? 'Стоимость – на странице программы' : 'Стоимость – по запросу'}</span>`;
 
     // Кнопка ведёт в каталог с уже применённым фильтром по типу: механика
     // чтения фильтров из адреса в каталоге уже работает. У формата без типа
     // (второе высшее) своей страницы в каталоге нет, поэтому ссылка ведёт
     // на официальную страницу программы – и только если она задана.
-    // Числа в подписи кнопки («Смотреть 23 программы») сняты вместе с
-    // колонкой числа: заказчик убирал из блока цифры целиком.
     let cta = '';
     if (fmt.type) {
       cta = `\n            <a class="dpo-format-cta" href="Каталог программ.html?type=${encodeURIComponent(
@@ -449,25 +483,18 @@ function renderFormats(programs) {
       }
     }
 
-    // Формат без цены и без адреса страницы («Дополнительное образование для
-    // взрослых») раньше оставался строкой-тупиком: человек дочитывал описание,
-    // и идти ему было некуда (аудит 21.08.2026). Теперь у него есть действие –
-    // та же форма заявки, что у остальных кнопок сайта; href на контакты
-    // остаётся фолбэком без JavaScript.
-    // Действие обязано быть в каждой карточке. Условие проверяет именно
-    // cta, а не price: с 02.09 слот цены всегда заполнен (числом или
-    // подписью «по запросу»), и прежняя проверка price||cta оставила бы
-    // карточку без кнопки вовсе.
+    // Действие обязано быть в каждой карточке. Формат без цены и без адреса
+    // страницы («Дополнительное образование для взрослых») иначе остаётся
+    // тупиком: человек дочитывает описание, и идти ему некуда (аудит
+    // 21.08.2026). href на контакты – фолбэк без JavaScript.
     const ask = cta
       ? ''
       : `\n            <a class="dpo-format-cta" href="#contacts" data-application>Подать заявку</a>`;
-    // Подвал карточки: цена (число – слэбом, по правилу двух гарнитур)
-    // и действие на общей нижней оси, как у карточек каталога.
-    const foot = `\n          <div class="dpo-format-foot">${price}${cta}${ask}\n          </div>`;
+    const foot = `\n          <div class="dpo-format-foot">${count}${price}${cta}${ask}\n          </div>`;
 
-    // Строка фактов – из каталога и только там, где данные есть: у второго
-    // высшего и ДО для взрослых своих программ в каталоге нет, и выдумывать
-    // им длительность нельзя. Числа программ здесь нет намеренно – заказчик
+    // Факты из каталога и только там, где данные есть: у второго высшего и
+    // ДО для взрослых своих программ в каталоге нет, и выдумывать им
+    // длительность нельзя. Числа программ здесь нет намеренно – заказчик
     // убрал их из блока 18.08.2026: форматы равнозначны, это выбор
     // траектории, а не рейтинг.
     const statRows = [
@@ -475,49 +502,55 @@ function renderFormats(programs) {
       ['Занятия', studyLabel(items)],
     ].filter(([, value]) => value);
     const stats = statRows.length
-      ? `\n          <ul class="dpo-format-stats">${statRows
+      ? `\n            <ul class="dpo-format-stats">${statRows
           .map(
             ([key, value]) =>
-              `\n            <li><span class="dpo-format-stat-key">${escapeHtml(key)}</span>${escapeHtml(value)}</li>`,
+              `\n              <li><span class="dpo-format-stat-key">${escapeHtml(key)}</span>${escapeHtml(value)}</li>`,
           )
-          .join('')}\n          </ul>`
+          .join('')}\n            </ul>`
       : '';
-    // Образец итогового документа – кнопка: клик или Enter открывает бланк
-    // крупно в окне (js/doc-preview.js). Кнопка, а не ссылка: никуда не
-    // ведёт, а показывает. Картинка внутри для диктора пуста – имя действия
-    // несёт aria-label кнопки, иначе диктор прочитал бы документ дважды.
-    // Размеры проставлены, чтобы ленивая загрузка не двигала раскладку.
+
+    // Ближайший старт – живая дата из каталога, с золотой точкой: единственное
+    // место в карточке, где нужен взгляд «когда это начнётся».
+    const start = nearestStart(items);
+    const startLine = start
+      ? `\n            <p class="dpo-format-start"><span class="dpo-format-dot" aria-hidden="true"></span>Ближайший старт – ${escapeHtml(start)}</p>`
+      : '';
+
+    // Образец итогового документа – кнопка во всю ширину карточки: клик или
+    // Enter открывает бланк крупно в окне (js/doc-preview.js). Бланк виден
+    // ЦЕЛИКОМ (владелец 04.09.2026: обрезка углом ему не понравилась).
+    // Картинка для диктора пуста – имя действия несёт aria-label кнопки.
     const blank = FORMAT_DOCS[fmt.title];
     const docName = fmt.document.replace(/^Итоговый документ:\s*/i, '').replace(/\s*\(.*\)\s*$/, '');
     const scan = blank
-      ? `\n            <button type="button" class="dpo-format-doc" data-doc-preview="images/${blank.file}"` +
+      ? `\n          <button type="button" class="dpo-format-doc" data-doc-preview="images/${blank.file}"` +
         ` data-doc-ext="${blank.ext}" data-doc-height="${blank.height}"` +
         ` data-doc-label="${escapeHtml(docName)}"` +
         ` aria-label="${escapeHtml('Показать образец крупно: ' + docName)}">` +
-        `<picture>` +
+        `<span class="dpo-format-scan"><picture>` +
         `<source srcset="images/${blank.file}.webp" type="image/webp">` +
         `<img loading="lazy" decoding="async" width="1200" height="${blank.height}" alt="" src="images/${blank.file}.${blank.ext}">` +
-        `</picture>` +
-        `<span class="dpo-format-doc-zoom" aria-hidden="true">` +
-        `<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
-        `<circle cx="9" cy="9" r="5.5"/><path d="M13 13 17 17M9 6.6v4.8M6.6 9h4.8"/></svg></span>` +
+        `</picture></span>` +
+        `<span class="dpo-format-cap">` +
+        `<span class="dpo-format-chip">${escapeHtml(blank.chip)}</span>` +
+        `<span class="dpo-format-zoom">Смотреть образец</span></span>` +
         `</button>`
       : '';
 
-    // Строка-ступень: слева номер и образец, в середине тексты заказчика,
-    // справа факты, цена и действие. Три колонки вместо четырёх карточек
-    // (владелец 05.09.2026: «картинка маленькая»): в колонке 260px бланку
-    // было тесно, а форматы и не равнозначны по объёму – у второго высшего
-    // нет ни фактов, ни цены, и в равных колонках это читалось дырой.
-    return `        <li class="dpo-format">
-          <div class="dpo-format-step">
-            <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>${scan}
+    // Ступень-афиша (владелец 05.09.2026, гибрид «афиши» и «цветных
+    // ступеней»): сверху бланк целиком, под ним цветная плашка ступени с
+    // номером и названием, ниже описание заказчика, факты, старт, цена и
+    // сплошная кнопка. Строка «Итоговый документ: …» осталась в теле –
+    // это текст заказчика, канон; чип над ней даёт то же короче.
+    const step = FORMAT_STEPS[i % FORMAT_STEPS.length];
+    return `        <li class="dpo-format">${scan}
+          <div class="dpo-format-band" style="--step-bg: ${step.bg}; --step-ink: ${step.ink}; --step-soft: ${step.soft}">
+            <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>
+            <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
           </div>
           <div class="dpo-format-body">
-            <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
-            <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}
-          </div>
-          <div class="dpo-format-side">${stats}${foot}
+            <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}${stats}${startLine}${foot}
           </div>
         </li>`;
   });
@@ -525,96 +558,83 @@ function renderFormats(programs) {
   // Стиль живёт в регионе, потому что шаблонный <style> отсюда недостижим,
   // а регион пересобирается целиком.
   return `      <style>
-        /* «Траектория развития». Четыре формата – ступени пути, но с
-           05.09.2026 это широкие СТРОКИ, а не колонки (владелец: «картинка
-           маленькая»). Диагноз был структурный: четыре равные колонки –
-           дефолт сетки, а не свойство содержимого. У ПК 23 программы, факты,
-           цена и кнопка в каталог, у второго высшего – ни одной своей
-           программы, ни фактов, ни цены; в равных колонках это давало и
-           тесноту бланку (260px), и пустоту в двух карточках из четырёх.
-           Строка: слева номер и образец документа, в середине тексты
-           заказчика, справа факты, цена и действие. Лесенка сохранена
-           сдвигом каждой следующей строки вправо. Тексты заказчика не
-           тронуты. До 1100px – две колонки, до 700px – столбец. */
+        /* «Траектория развития», ступень-афиша (владелец 05.09.2026, гибрид
+           вариантов «афиша» и «цветные ступени»). Сверху бланк итогового
+           документа ЦЕЛИКОМ – он и есть главный аргумент блока; под ним
+           цветная плашка ступени с номером и названием; ниже описание
+           заказчика, факты, ближайший старт, цена с потолком диапазона и
+           СПЛОШНАЯ кнопка вместо прежней текстовой ссылки. Тексты заказчика
+           не тронуты. До 1100px – две колонки, до 640px – столбец.
+           Стиль живёт в регионе: шаблонный <style> отсюда недостижим. */
         .dpo-formats {
           border-top: none;
           display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: clamp(16px, 1.8vw, 24px);
-          position: relative;
-          z-index: 1;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: clamp(14px, 1.6vw, 22px);
+          align-items: stretch;
         }
         .dpo-format {
-          display: grid;
-          grid-template-columns: 340px minmax(0, 1fr) 260px;
-          grid-template-areas: "step body side";
-          gap: clamp(20px, 2.4vw, 34px);
-          align-items: start;
+          display: flex; flex-direction: column;
           background: #fff;
           border: 1px solid rgba(33, 30, 27, 0.1);
-          border-radius: 16px;
-          padding: clamp(20px, 2vw, 28px);
-          /* Ступень: каждая следующая строка сдвинута вправо. Сдвиг мал
-             (34px), потому что забирает ширину у самой строки. */
-          margin-left: calc(var(--i) * 34px);
+          border-radius: 18px;
+          overflow: hidden;
+          padding: 0;
         }
-        /* Высоту строки задаёт образец документа – он самый крупный элемент.
-           Текст и правый столбик короче, поэтому они центрируются по
-           вертикали: прижатые к верху они оставляли под собой провал в
-           треть строки, а подвал на нижней оси – ещё один провал сверху. */
-        .dpo-format-step { grid-area: step; display: flex; flex-direction: column; gap: 12px; }
-        .dpo-format-body {
-          grid-area: body; display: flex; flex-direction: column; gap: 10px;
-          align-self: stretch; justify-content: center;
-        }
-        .dpo-format-side {
-          grid-area: side; display: flex; flex-direction: column; gap: 16px;
-          align-self: stretch; justify-content: center;
-        }
-        .dpo-format-index {
-          font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
-          color: #6B6459; font-variant-numeric: tabular-nums;
-        }
-        .dpo-format-index::after {
-          content: ''; display: inline-block; vertical-align: middle;
-          width: 28px; height: 1px; margin-left: 10px; background: currentColor; opacity: .6;
-        }
-        /* Образец документа – кнопка во всю ширину своей колонки. Глубина
-           волосяной линией и белой подложкой, теней в покое нет. По
-           наведению и с клавиатуры бланк чуть подрастает внутри рамки –
-           подсказка, что он открывается крупно; лупа в углу стоит всегда,
-           потому что на телефоне наведения нет вовсе. */
+        /* Образец документа – кнопка во всю ширину карточки. Внутри бланк с
+           волосяной рамкой и подпись: слева тип документа, справа приглашение
+           открыть крупно. Кнопка, а не ссылка: никуда не ведёт, а показывает. */
         .dpo-format-doc {
-          display: block; position: relative; width: 100%; padding: 0;
-          border: 1px solid rgba(33, 30, 27, 0.14); border-radius: 4px;
-          overflow: hidden; line-height: 0; background: #fff;
-          cursor: zoom-in; touch-action: manipulation;
+          display: block; width: 100%; text-align: left;
+          padding: 14px 14px 0; border: none; background: #fff;
+          cursor: zoom-in; touch-action: manipulation; font: inherit; color: inherit;
         }
-        .dpo-format-doc img {
+        .dpo-format-scan {
+          display: block; border: 1px solid rgba(33, 30, 27, 0.12);
+          border-radius: 4px; overflow: hidden; line-height: 0; background: #fff;
+        }
+        .dpo-format-scan img {
           display: block; width: 100%; height: auto;
           transition: transform .45s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1));
         }
-        .dpo-format-doc-zoom {
-          position: absolute; right: 8px; bottom: 8px;
-          width: 30px; height: 30px; border-radius: 999px;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(255, 255, 255, 0.92); color: #211E1B;
-          border: 1px solid rgba(33, 30, 27, 0.14);
+        .dpo-format-cap {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; padding: 10px 0 12px;
         }
-        .dpo-format-doc:focus-visible { outline: 3px solid var(--dpo-accent, #1658DA); outline-offset: 2px; }
-        .dpo-format-doc:active { transform: scale(0.99); }
+        .dpo-format-chip {
+          font-size: 11px; font-weight: 600; letter-spacing: .02em; line-height: 1.1;
+          padding: 5px 10px; border-radius: 999px;
+          border: 1px solid rgba(33, 30, 27, 0.14); color: #211E1B; background: #fff;
+        }
+        .dpo-format-zoom { font-size: 0.8125rem; line-height: 1.2; color: #6B6459; }
+        .dpo-format-doc:focus-visible { outline: 3px solid var(--dpo-accent, #1658DA); outline-offset: -3px; }
         @media (hover: hover) and (pointer: fine) {
-          .dpo-format-doc:hover img { transform: scale(1.04); }
-          .dpo-format-doc:focus-visible img { transform: scale(1.04); }
-          .dpo-format-doc:hover { border-color: var(--dpo-accent, #1658DA); }
+          .dpo-format-doc:hover .dpo-format-scan img,
+          .dpo-format-doc:focus-visible .dpo-format-scan img { transform: scale(1.04); }
+          .dpo-format-doc:hover .dpo-format-zoom { color: var(--dpo-accent, #1658DA); }
         }
-        /* Заголовок и описание подняты (04.09.2026): блок был набран 19px и
-           14.5px – мельче всего вокруг. Описание встало на системную ступень
-           ui, а заголовок – на ступень card-title из DESIGN.md. Мера строки
-           держится в 62ch: в широкой строке текст иначе растянулся бы. */
-        .dpo-format-title { font-size: clamp(1.25rem, 1.8vw, 1.4375rem); line-height: 1.2; }
-        .dpo-format-desc { font-size: 0.9375rem; line-height: 1.55; max-width: 62ch; }
-        .dpo-format-facts { max-width: 62ch; }
+        /* Плашка ступени: цвет приходит инлайном из FORMAT_STEPS. */
+        /* Плашка держит общую высоту на весь ряд: названия форматов ложатся
+           в две и в три строки, и без этого цветные полосы съезжали бы одна
+           относительно другой. */
+        .dpo-format-band {
+          background: var(--step-bg); color: var(--step-ink);
+          display: flex; align-items: baseline; gap: 12px;
+          padding: 14px clamp(16px, 1.4vw, 20px);
+          min-height: 104px;
+        }
+        .dpo-format-index {
+          font-family: 'HSE Slab', 'Source Serif 4', serif;
+          font-size: 1.75rem; font-weight: 600; line-height: 1;
+          color: var(--step-soft); font-variant-numeric: tabular-nums;
+        }
+        .dpo-format-title { font-size: 1.1875rem; line-height: 1.2; color: inherit; }
+        .dpo-format-body {
+          display: flex; flex-direction: column; gap: 12px; flex: 1;
+          padding: 18px clamp(16px, 1.4vw, 20px) 20px;
+        }
+        .dpo-format-desc { font-size: 0.9375rem; line-height: 1.5; color: #48423A; }
+        .dpo-format-facts { font-size: 12.5px; line-height: 1.4; color: #6B6459; }
         .dpo-format-stats {
           list-style: none; margin: 0; padding: 0;
           display: flex; flex-direction: column; gap: 8px;
@@ -624,53 +644,55 @@ function renderFormats(programs) {
           display: block; color: #6B6459; font-size: 12.5px;
           letter-spacing: .02em; margin-bottom: 1px;
         }
+        .dpo-format-start {
+          display: flex; align-items: center; gap: 8px;
+          margin: 0; font-size: 13px; color: #211E1B;
+        }
+        .dpo-format-dot {
+          width: 8px; height: 8px; border-radius: 999px; flex: none;
+          background: var(--dpo-gold, #F0B86E);
+        }
         .dpo-format-foot {
-          padding-top: 14px;
+          margin-top: auto; padding-top: 14px;
           border-top: 1px solid rgba(33, 30, 27, 0.1);
-          display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+          display: flex; flex-direction: column; gap: 6px; align-items: stretch;
         }
-        .dpo-format-price {
+        /* Главное число подвала – количество программ (владелец 05.09.2026);
+           цена ушла в подпись под ним. Слэбом набирается ровно одно число на
+           карточку, иначе два крупных числа спорят друг с другом. */
+        .dpo-format-count {
           font-family: 'HSE Slab', 'Source Serif 4', serif;
-          font-weight: 600; font-size: 17px; color: #211E1B;
+          font-weight: 600; font-size: 1.5rem; line-height: 1.1; color: #211E1B;
         }
-        .dpo-format-noprice { font-size: 13.5px; line-height: 1.4; color: #6B6459; }
+        .dpo-format-price { font-size: 13px; line-height: 1.4; color: #6B6459; }
+        .dpo-format-noprice { font-size: 13px; line-height: 1.4; color: #6B6459; }
+        /* Действие – сплошная кнопка во всю ширину: текстовая ссылка со
+           стрелкой терялась среди подписей (владелец 05.09.2026). */
+        .dpo-format-cta {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-height: 44px; margin-top: 6px; padding: 0 16px; border-radius: 999px;
+          font-size: 0.9375rem; font-weight: 600; text-decoration: none;
+          background: var(--dpo-accent, #1658DA); color: #fff;
+          transition: background .18s var(--dpo-ease, ease), transform .18s var(--dpo-ease, ease);
+        }
+        .dpo-format-cta::after { content: none; }
+        .dpo-format-cta:active { transform: scale(0.98); }
+        @media (hover: hover) and (pointer: fine) {
+          .dpo-format-cta:hover { background: var(--dpo-accent-dark, #1145AA); text-decoration: none; }
+        }
         @media (max-width: 1100px) {
-          /* Факты и цена уходят ПОД ТЕКСТ, образец остаётся слева: он и есть
-             повод для этой раскладки. Сдвиг ступеней снят – на узком экране
-             он съедает строку. Выравнивание обязано вернуться к началу:
-             в строке он главная ось, и центрирование, нужное в колонке,
-             здесь сдвигало бы факты к середине пустой строки. */
-          .dpo-format {
-            grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-            grid-template-areas: "step body" "step side";
-            gap: 16px clamp(20px, 2.4vw, 32px);
-            margin-left: 0;
-            align-items: start;
-          }
-          .dpo-format-body { justify-content: flex-start; }
-          .dpo-format-side {
-            flex-direction: row; flex-wrap: wrap; gap: 16px 32px;
-            align-items: flex-end; justify-content: flex-start;
-          }
-          .dpo-format-foot { padding-top: 0; border-top: none; }
+          .dpo-formats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
-        @media (max-width: 700px) {
-          .dpo-format {
-            grid-template-columns: minmax(0, 1fr);
-            grid-template-areas: "step" "body" "side";
-            gap: 16px;
-          }
-          .dpo-format-step { max-width: 420px; }
-          .dpo-format-side {
-            flex-direction: column; align-items: flex-start;
-            justify-content: flex-start; gap: 14px;
-          }
-          .dpo-format-foot { padding-top: 14px; border-top: 1px solid rgba(33, 30, 27, 0.1); }
+        @media (max-width: 640px) {
+          .dpo-formats { grid-template-columns: minmax(0, 1fr); }
+          /* В столбец название умещается в одну строку, и общая высота
+             плашки, нужная для выравнивания ряда, превращается в пустое
+             цветное поле. Ряда здесь нет – выравнивать нечего. */
+          .dpo-format-band { min-height: 0; }
         }
-        /* Подъём ступеней (владелец 04.09.2026). Свой момент, не повтор
-           вылета плиток сфер: те влетают с боков по пружине, эти
-           ПОДНИМАЮТСЯ снизу по очереди, начиная с первой ступени, на обычной
-           кривой замедления. Пружина остаётся подписью плиток сфер. */
+        /* Подъём ступеней (владелец 04.09.2026): свой момент, не повтор
+           вылета плиток сфер – те влетают с боков по пружине, эти поднимаются
+           снизу по очереди на обычной кривой замедления. */
         .dpo-format:nth-child(1) { --i: 0; } .dpo-format:nth-child(2) { --i: 1; }
         .dpo-format:nth-child(3) { --i: 2; } .dpo-format:nth-child(n+4) { --i: 3; }
         @media (prefers-reduced-motion: no-preference) {
@@ -681,10 +703,15 @@ function renderFormats(programs) {
           }
         }
         @keyframes dpo-format-rise { to { opacity: 1; transform: none; } }
-        html.vi-mode .dpo-format { border: 2px solid #000 !important; margin-left: 0 !important; }
+        html.vi-mode .dpo-format { border: 2px solid #000 !important; }
         html.vi-mode .dpo-format { animation: none !important; opacity: 1 !important; transform: none !important; }
-        html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
-        html.vi-mode .dpo-format-doc { border: 2px solid #000 !important; }
+        html.vi-mode .dpo-format-band {
+          background: #fff !important; color: #000 !important;
+          border-bottom: 2px solid #000 !important;
+        }
+        html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key,
+        html.vi-mode .dpo-format-zoom, html.vi-mode .dpo-format-upto { color: #000 !important; }
+        html.vi-mode .dpo-format-chip { border: 2px solid #000 !important; color: #000 !important; }
       </style>
       <ul class="dpo-formats">
 ${rows.join('\n')}
