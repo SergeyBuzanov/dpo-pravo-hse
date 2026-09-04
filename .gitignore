@@ -47,3 +47,6 @@ scripts/cutout/cutout
 scripts/cutout/stylize
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Пререндер лендинга: артефакт scripts/prerender-landing.js, собирается заново.
+.prerender/

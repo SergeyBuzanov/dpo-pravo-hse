@@ -44,6 +44,7 @@ const {
   DATA_DIRS,
   DATA_EXT,
 } = require('../lib/static-http');
+const { prerender } = require('./prerender-landing');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, '.public');
@@ -149,9 +150,37 @@ function publish() {
   console.log('Если источник Pages ещё не переключён: Settings → Pages → Branch: gh-pages / (root).');
 }
 
+/**
+ * Пререндер лендинга поверх скопированного index.html.
+ *
+ * Ошибка здесь ОСТАНАВЛИВАЕТ сборку, а не пропускается: молча выложенная
+ * клиентская версия отличается от статичной только скоростью, заметить
+ * подмену на витрине нечем, а разница – LCP 3,3 с против 0,8 с (замер
+ * 04.09.2026, локально, без троттлинга). Если Chrome на машине нет и
+ * выложить надо всё равно – `--no-prerender`, но это видимое решение.
+ */
+function prerenderLanding() {
+  return prerender({ out: path.join(OUT, 'index.html') }).then(({ bytes }) => {
+    console.log(`  лендинг: статичный HTML, ${(bytes / 1024).toFixed(0)} КБ (пререндер)`);
+  });
+}
+
 if (require.main === module) {
   build();
-  if (process.argv.includes('--publish')) publish();
+  const landing = process.argv.includes('--no-prerender')
+    ? Promise.resolve(console.log('  лендинг: БЕЗ пререндера (--no-prerender)'))
+    : prerenderLanding();
+  landing.then(
+    () => {
+      if (process.argv.includes('--publish')) publish();
+    },
+    (err) => {
+      console.error('\nПререндер лендинга не удался, выкладка остановлена:');
+      console.error('  ' + String(err.message || err));
+      console.error('  Собрать без него: node scripts/build-public.js --no-prerender');
+      process.exit(1);
+    }
+  );
 }
 
 module.exports = { build, OUT, NEVER_PUBLISH };
