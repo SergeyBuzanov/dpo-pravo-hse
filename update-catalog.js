@@ -201,7 +201,29 @@ function renderCard(item) {
   // карточку псевдоэлементом (клик в любом месте – переход на страницу
   // программы, как раньше), кнопка лежит выше по z-index. Решение
   // владельца 19.08 «Подать заявку везде» доехало и до каталога.
-  return `    <div class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}">
+  // Данные для сравнения (решение владельца 04.09.2026: полоса снизу и
+  // таблица поверх страницы, до трёх программ). Строки таблицы читаются
+  // из карточки, а не из второго JSON на странице: два источника одних и
+  // тех же чисел неминуемо разъедутся, а лишний JSON – это ещё 15 КБ.
+  // Название и адрес берутся из h3 и .card-link – их дублировать незачем.
+  const audience = Array.isArray(item.audience?.items) ? item.audience.items.filter(Boolean) : [];
+  const cmp = [
+    `data-cmp-format="${escapeHtml(shortFormat(format) || bucket.label)}"`,
+    `data-cmp-duration="${escapeHtml(item.duration || '')}"`,
+    `data-cmp-start="${escapeHtml(date || '')}"`,
+    `data-cmp-modules="${(item.modules || []).length}"`,
+    `data-cmp-teachers="${(item.teachers || []).length}"`,
+    `data-cmp-audience="${escapeHtml(audience.join(' · '))}"`,
+  ].join(' ');
+
+  // Отметка «Сравнить» лежит в углу карточки поверх растянутой ссылки:
+  // в подвале карточки уже стоят цена, «Заявка» и «Подробнее», четвёртый
+  // орган там не помещается ни на одной ширине.
+  const compareToggle = `
+      <button type="button" class="card-compare" data-compare-toggle aria-pressed="false"
+        aria-label="Сравнить: ${escapeHtml(item.title)}"><span class="card-compare-box" aria-hidden="true"></span>Сравнить</button>`;
+
+  return `    <div class="card" data-type="${typeShort}" data-format="${bucket.value}" data-sphere="${escapeHtml(sphere ? sphere.id : 'other')}" data-duration="${duration.value}" data-price="${Number(item.educationPricing) || 0}" data-start="${item.startDate || 0}" data-title="${escapeHtml(String(item.title || '').toLowerCase())}" data-search="${search}" data-id="${escapeHtml(String(item.id || ''))}" ${cmp}>${compareToggle}
       <a href="${href}" class="card-link">${thumbLine}${sphereLine}
       <h3>${escapeHtml(item.title)}</h3>${tagsLine}${metaLine}
       </a>
