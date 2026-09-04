@@ -32,6 +32,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { execFileSync } = require('node:child_process');
 
 const {
@@ -45,6 +46,7 @@ const {
   DATA_EXT,
 } = require('../lib/static-http');
 const { prerender } = require('./prerender-landing');
+const { strip, sameLiterals } = require('./strip-comments');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, '.public');
@@ -87,6 +89,43 @@ function copyDir(dir, allowedExt, { recursive = false } = {}) {
   return n;
 }
 
+/**
+ * Комментарии и отступы снимаются с НАШИХ скриптов в выкладке.
+ *
+ * Только js/ верхнего уровня: js/vendor и js/bundle – чужой уже сжатый код,
+ * трогать его нечем и незачем. Исходники в репозитории не меняются –
+ * комментарии там и должны остаться.
+ *
+ * Каждый файл после чистки проверяется дважды: набор литералов обязан
+ * совпасть с исходным до символа, и результат обязан компилироваться.
+ * Ошибка любой из проверок роняет сборку: выложенный сломанный скрипт –
+ * это неработающая форма заявки, и заметить это по виду страницы нельзя.
+ */
+function minifyOwnScripts() {
+  const dir = path.join(OUT, 'js');
+  let files = 0;
+  let was = 0;
+  let now = 0;
+  for (const name of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const file = path.join(dir, name);
+    const src = fs.readFileSync(file, 'utf8');
+    const out = strip(src);
+    const drift = sameLiterals(src, out);
+    if (drift) throw new Error(`js/${name}: чистка изменила содержимое (${drift})`);
+    try {
+      new vm.Script(out, { filename: name });
+    } catch (err) {
+      throw new Error(`js/${name}: после чистки не компилируется – ${err.message}`);
+    }
+    fs.writeFileSync(file, out, 'utf8');
+    files++;
+    was += Buffer.byteLength(src);
+    now += Buffer.byteLength(out);
+  }
+  const kb = (n) => (n / 1024).toFixed(0);
+  return { files, was: kb(was), now: kb(now) };
+}
+
 function build() {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
@@ -109,6 +148,9 @@ function build() {
   let assets = 0;
   for (const dir of ASSET_DIRS) assets += copyDir(dir, ASSET_EXT, { recursive: true });
   report.push(`ассеты: ${assets}`);
+
+  const lighter = minifyOwnScripts();
+  report.push(`наши скрипты: ${lighter.files} шт., ${lighter.was} → ${lighter.now} КБ`);
 
   let programs = 0;
   for (const dir of PAGE_DIRS) programs += copyDir(dir, PAGE_EXT);
