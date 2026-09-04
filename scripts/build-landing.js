@@ -482,74 +482,95 @@ function renderFormats(programs) {
           )
           .join('')}\n          </ul>`
       : '';
-    // Бланк стоит НАД строкой «Итоговый документ: …» и иллюстрирует именно
-    // её: сначала образец, под ним подпись. Показывается целиком – в узкой
-    // колонке (198px под текст на 1280) картинка и строка бок о бок не
-    // помещаются, строка разлезлась бы на восемь строк. Для диктора бланк
-    // декоративен (alt пуст, aria-hidden): документ назван словами тут же.
+    // Образец итогового документа – кнопка: клик или Enter открывает бланк
+    // крупно в окне (js/doc-preview.js). Кнопка, а не ссылка: никуда не
+    // ведёт, а показывает. Картинка внутри для диктора пуста – имя действия
+    // несёт aria-label кнопки, иначе диктор прочитал бы документ дважды.
     // Размеры проставлены, чтобы ленивая загрузка не двигала раскладку.
     const blank = FORMAT_DOCS[fmt.title];
+    const docName = fmt.document.replace(/^Итоговый документ:\s*/i, '').replace(/\s*\(.*\)\s*$/, '');
     const scan = blank
-      ? `\n          <span class="dpo-format-doc" aria-hidden="true"><picture>` +
+      ? `\n            <button type="button" class="dpo-format-doc" data-doc-preview="images/${blank.file}"` +
+        ` data-doc-ext="${blank.ext}" data-doc-height="${blank.height}"` +
+        ` data-doc-label="${escapeHtml(docName)}"` +
+        ` aria-label="${escapeHtml('Показать образец крупно: ' + docName)}">` +
+        `<picture>` +
         `<source srcset="images/${blank.file}.webp" type="image/webp">` +
         `<img loading="lazy" decoding="async" width="1200" height="${blank.height}" alt="" src="images/${blank.file}.${blank.ext}">` +
-        `</picture></span>`
+        `</picture>` +
+        `<span class="dpo-format-doc-zoom" aria-hidden="true">` +
+        `<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
+        `<circle cx="9" cy="9" r="5.5"/><path d="M13 13 17 17M9 6.6v4.8M6.6 9h4.8"/></svg></span>` +
+        `</button>`
       : '';
 
+    // Строка-ступень: слева номер и образец, в середине тексты заказчика,
+    // справа факты, цена и действие. Три колонки вместо четырёх карточек
+    // (владелец 05.09.2026: «картинка маленькая»): в колонке 260px бланку
+    // было тесно, а форматы и не равнозначны по объёму – у второго высшего
+    // нет ни фактов, ни цены, и в равных колонках это читалось дырой.
     return `        <li class="dpo-format">
-          <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>
-          <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
-          <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${scan}${doc}${stats}${foot}
+          <div class="dpo-format-step">
+            <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>${scan}
+          </div>
+          <div class="dpo-format-body">
+            <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
+            <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}
+          </div>
+          <div class="dpo-format-side">${stats}${foot}
+          </div>
         </li>`;
   });
 
-  // Колонка цены и ссылки добавлена генератором, а не шаблоном: описание
-  // ограничено 62ch, и на широком экране правая половина строки пустовала.
   // Стиль живёт в регионе, потому что шаблонный <style> отсюда недостижим,
   // а регион пересобирается целиком.
-  //
-  // Колонки с числом программ больше нет (заказчик убрал цифры), поэтому
-  // вторая колонка появляется только с 980px: до этой ширины описание
-  // заказчика в три-четыре строки и правый столбик не уживаются.
   return `      <style>
-        /* «Траектория развития» (редизайн владельца 01.09.2026): четыре
-           формата – ступени восходящего пути. Белые карточки поднимаются
-           слева направо, за ними восходящая линия акцента (2px держит
-           vector-effect при любой ширине; карточки перекрывают её своим
-           z-index, линия живёт в зазорах). Тексты заказчика не тронуты.
-           До 1100px – сетка 2×2 без ступеней и линии, до 640px – столбец.
-           Стиль живёт в регионе: шаблонный <style> отсюда недостижим. */
-        .dpo-formats-wrap { position: relative; }
-        .dpo-formats-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-        .dpo-formats-line line { stroke: var(--dpo-accent, #1658DA); stroke-width: 2px; vector-effect: non-scaling-stroke; opacity: .3; }
+        /* «Траектория развития». Четыре формата – ступени пути, но с
+           05.09.2026 это широкие СТРОКИ, а не колонки (владелец: «картинка
+           маленькая»). Диагноз был структурный: четыре равные колонки –
+           дефолт сетки, а не свойство содержимого. У ПК 23 программы, факты,
+           цена и кнопка в каталог, у второго высшего – ни одной своей
+           программы, ни фактов, ни цены; в равных колонках это давало и
+           тесноту бланку (260px), и пустоту в двух карточках из четырёх.
+           Строка: слева номер и образец документа, в середине тексты
+           заказчика, справа факты, цена и действие. Лесенка сохранена
+           сдвигом каждой следующей строки вправо. Тексты заказчика не
+           тронуты. До 1100px – две колонки, до 700px – столбец. */
         .dpo-formats {
           border-top: none;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: clamp(14px, 1.6vw, 22px);
-          align-items: start;
+          grid-template-columns: minmax(0, 1fr);
+          gap: clamp(16px, 1.8vw, 24px);
           position: relative;
           z-index: 1;
         }
         .dpo-format {
-          display: flex; flex-direction: column; gap: 10px;
+          display: grid;
+          grid-template-columns: 340px minmax(0, 1fr) 260px;
+          grid-template-areas: "step body side";
+          gap: clamp(20px, 2.4vw, 34px);
+          align-items: start;
           background: #fff;
           border: 1px solid rgba(33, 30, 27, 0.1);
-          border-bottom: 1px solid rgba(33, 30, 27, 0.1);
           border-radius: 16px;
-          padding: clamp(20px, 2vw, 26px);
-          align-self: stretch;
+          padding: clamp(20px, 2vw, 28px);
+          /* Ступень: каждая следующая строка сдвинута вправо. Сдвиг мал
+             (34px), потому что забирает ширину у самой строки. */
+          margin-left: calc(var(--i) * 34px);
         }
-        .dpo-format:nth-child(1) { margin-top: 96px; }
-        .dpo-format:nth-child(2) { margin-top: 64px; }
-        .dpo-format:nth-child(3) { margin-top: 32px; }
-        /* Ступень подробнее (пожелание владельца 03.09.2026, сделано 04.09):
-           номер, водяной знак и строка фактов – по образцу плиток сфер.
-           Плитки остались белыми и на лесенке: цветное поле рядом с картой
-           сфер читалось бы как её повтор. Знак приглушён до 0.1 и лежит под
-           текстом (z-index), поэтому под буквами фон остаётся почти белым. */
-        .dpo-format { position: relative; overflow: hidden; }
-        .dpo-format > * { position: relative; z-index: 1; }
+        /* Высоту строки задаёт образец документа – он самый крупный элемент.
+           Текст и правый столбик короче, поэтому они центрируются по
+           вертикали: прижатые к верху они оставляли под собой провал в
+           треть строки, а подвал на нижней оси – ещё один провал сверху. */
+        .dpo-format-step { grid-area: step; display: flex; flex-direction: column; gap: 12px; }
+        .dpo-format-body {
+          grid-area: body; display: flex; flex-direction: column; gap: 10px;
+          align-self: stretch; justify-content: center;
+        }
+        .dpo-format-side {
+          grid-area: side; display: flex; flex-direction: column; gap: 16px;
+          align-self: stretch; justify-content: center;
+        }
         .dpo-format-index {
           font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
           color: #6B6459; font-variant-numeric: tabular-nums;
@@ -558,20 +579,44 @@ function renderFormats(programs) {
           content: ''; display: inline-block; vertical-align: middle;
           width: 28px; height: 1px; margin-left: 10px; background: currentColor; opacity: .6;
         }
-        /* Бланк итогового документа – образец над своей подписью: целиком,
-           без наклона и без обрезки (владелец 04.09.2026). Ширина – по
-           колонке, но не больше 190px: дальше бланк начинает спорить с
-           заголовком. Глубина – волосяной линией и белой подложкой, а не
-           тенью: в покое теней на этой странице нет. */
+        /* Образец документа – кнопка во всю ширину своей колонки. Глубина
+           волосяной линией и белой подложкой, теней в покое нет. По
+           наведению и с клавиатуры бланк чуть подрастает внутри рамки –
+           подсказка, что он открывается крупно; лупа в углу стоит всегда,
+           потому что на телефоне наведения нет вовсе. */
         .dpo-format-doc {
-          display: block; width: min(100%, 190px); margin: 4px 0 -2px;
+          display: block; position: relative; width: 100%; padding: 0;
           border: 1px solid rgba(33, 30, 27, 0.14); border-radius: 4px;
           overflow: hidden; line-height: 0; background: #fff;
+          cursor: zoom-in; touch-action: manipulation;
         }
-        .dpo-format-doc img { display: block; width: 100%; height: auto; }
+        .dpo-format-doc img {
+          display: block; width: 100%; height: auto;
+          transition: transform .45s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1));
+        }
+        .dpo-format-doc-zoom {
+          position: absolute; right: 8px; bottom: 8px;
+          width: 30px; height: 30px; border-radius: 999px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255, 255, 255, 0.92); color: #211E1B;
+          border: 1px solid rgba(33, 30, 27, 0.14);
+        }
+        .dpo-format-doc:focus-visible { outline: 3px solid var(--dpo-accent, #1658DA); outline-offset: 2px; }
+        .dpo-format-doc:active { transform: scale(0.99); }
+        @media (hover: hover) and (pointer: fine) {
+          .dpo-format-doc:hover img { transform: scale(1.04); }
+          .dpo-format-doc:focus-visible img { transform: scale(1.04); }
+          .dpo-format-doc:hover { border-color: var(--dpo-accent, #1658DA); }
+        }
+        /* Заголовок и описание подняты (04.09.2026): блок был набран 19px и
+           14.5px – мельче всего вокруг. Описание встало на системную ступень
+           ui, а заголовок – на ступень card-title из DESIGN.md. Мера строки
+           держится в 62ch: в широкой строке текст иначе растянулся бы. */
+        .dpo-format-title { font-size: clamp(1.25rem, 1.8vw, 1.4375rem); line-height: 1.2; }
+        .dpo-format-desc { font-size: 0.9375rem; line-height: 1.55; max-width: 62ch; }
+        .dpo-format-facts { max-width: 62ch; }
         .dpo-format-stats {
-          list-style: none; margin: 0; padding: 12px 0 0;
-          border-top: 1px solid rgba(33, 30, 27, 0.1);
+          list-style: none; margin: 0; padding: 0;
           display: flex; flex-direction: column; gap: 8px;
           font-size: 13.5px; line-height: 1.4; color: #211E1B;
         }
@@ -579,17 +624,8 @@ function renderFormats(programs) {
           display: block; color: #6B6459; font-size: 12.5px;
           letter-spacing: .02em; margin-bottom: 1px;
         }
-        /* Заголовок и описание подняты (04.09.2026): блок был набран 19px и
-           14.5px – мельче всего вокруг. Описание встало на системную ступень
-           ui, а заголовок – на ступень card-title, заведённую ради него:
-           между title (19px) и headline-compact (до 34px) в лестнице пусто, а
-           34px в колонке 250px рвут слово «Профессиональная». Ступень описана
-           в DESIGN.md, чтобы не быть разовым числом. */
-        .dpo-format-title { font-size: clamp(1.25rem, 1.8vw, 1.4375rem); line-height: 1.2; }
-        .dpo-format-desc { font-size: 0.9375rem; line-height: 1.55; }
         .dpo-format-foot {
-          margin-top: auto;
-          padding-top: 12px;
+          padding-top: 14px;
           border-top: 1px solid rgba(33, 30, 27, 0.1);
           display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
         }
@@ -599,41 +635,60 @@ function renderFormats(programs) {
         }
         .dpo-format-noprice { font-size: 13.5px; line-height: 1.4; color: #6B6459; }
         @media (max-width: 1100px) {
-          .dpo-formats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .dpo-format:nth-child(n) { margin-top: 0; }
-          .dpo-formats-line { display: none; }
+          /* Факты и цена уходят ПОД ТЕКСТ, образец остаётся слева: он и есть
+             повод для этой раскладки. Сдвиг ступеней снят – на узком экране
+             он съедает строку. Выравнивание обязано вернуться к началу:
+             в строке он главная ось, и центрирование, нужное в колонке,
+             здесь сдвигало бы факты к середине пустой строки. */
+          .dpo-format {
+            grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+            grid-template-areas: "step body" "step side";
+            gap: 16px clamp(20px, 2.4vw, 32px);
+            margin-left: 0;
+            align-items: start;
+          }
+          .dpo-format-body { justify-content: flex-start; }
+          .dpo-format-side {
+            flex-direction: row; flex-wrap: wrap; gap: 16px 32px;
+            align-items: flex-end; justify-content: flex-start;
+          }
+          .dpo-format-foot { padding-top: 0; border-top: none; }
         }
-        @media (max-width: 640px) {
-          .dpo-formats { grid-template-columns: minmax(0, 1fr); }
+        @media (max-width: 700px) {
+          .dpo-format {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-areas: "step" "body" "side";
+            gap: 16px;
+          }
+          .dpo-format-step { max-width: 420px; }
+          .dpo-format-side {
+            flex-direction: column; align-items: flex-start;
+            justify-content: flex-start; gap: 14px;
+          }
+          .dpo-format-foot { padding-top: 14px; border-top: 1px solid rgba(33, 30, 27, 0.1); }
         }
         /* Подъём ступеней (владелец 04.09.2026). Свой момент, не повтор
-           вылета плиток сфер: те влетают с боков по пружине, эти ПОДНИМАЮТСЯ
-           снизу по очереди, начиная с нижней ступени, на обычной кривой
-           замедления – то же движение, что описывает сам блок. Пружина
-           остаётся подписью плиток сфер и второй раз не используется.
-           Класс dpo-fly ставит скрипт, is-in – при появлении в кадре;
-           reduced-motion и vi-mode показывают всё сразу. */
+           вылета плиток сфер: те влетают с боков по пружине, эти
+           ПОДНИМАЮТСЯ снизу по очереди, начиная с первой ступени, на обычной
+           кривой замедления. Пружина остаётся подписью плиток сфер. */
         .dpo-format:nth-child(1) { --i: 0; } .dpo-format:nth-child(2) { --i: 1; }
         .dpo-format:nth-child(3) { --i: 2; } .dpo-format:nth-child(n+4) { --i: 3; }
         @media (prefers-reduced-motion: no-preference) {
-          .dpo-formats.dpo-fly .dpo-format { opacity: 0; transform: translate3d(0, 38px, 0); }
+          .dpo-formats.dpo-fly .dpo-format { opacity: 0; transform: translate3d(0, 30px, 0); }
           .dpo-formats.dpo-fly.is-in .dpo-format {
             animation: dpo-format-rise .7s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1)) both;
             animation-delay: calc(var(--i) * 90ms);
           }
         }
         @keyframes dpo-format-rise { to { opacity: 1; transform: none; } }
-        html.vi-mode .dpo-format { border: 2px solid #000 !important; }
+        html.vi-mode .dpo-format { border: 2px solid #000 !important; margin-left: 0 !important; }
         html.vi-mode .dpo-format { animation: none !important; opacity: 1 !important; transform: none !important; }
         html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
-        html.vi-mode .dpo-formats-line { display: none !important; }
+        html.vi-mode .dpo-format-doc { border: 2px solid #000 !important; }
       </style>
-      <div class="dpo-formats-wrap">
-      <svg class="dpo-formats-line" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="1" y1="97" x2="99" y2="3"/></svg>
       <ul class="dpo-formats">
 ${rows.join('\n')}
-      </ul>
-      </div>`;
+      </ul>`;
 }
 
 /**

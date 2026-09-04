@@ -37,17 +37,19 @@ test('карточка формата: номер ступени, водяной
   list.forEach((card, i) => {
     const n = String(i + 1).padStart(2, '0');
     assert.match(card, new RegExp(`<span class="dpo-format-index">${n}</span>`), `нет номера ${n}`);
-    assert.match(card, /<span class="dpo-format-doc" aria-hidden="true">/, 'нет скана бланка');
-    assert.doesNotMatch(card, /dpo-format-doc[^>]*style=/, 'бланк снова со сдвигом кадра – он больше не обрезается');
-    assert.ok(
-      card.indexOf('dpo-format-doc') < card.indexOf('dpo-format-facts'),
-      'бланк должен стоять НАД строкой «Итоговый документ», он её иллюстрирует',
-    );
+    assert.match(card, /<button type="button" class="dpo-format-doc" data-doc-preview="images\/document-[a-z]+"/, 'образец не кнопка');
+    assert.match(card, /aria-label="Показать образец крупно: [^"]+"/, 'у кнопки образца нет имени действия');
+    assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt=""/, 'картинка образца не пуста для диктора');
+    assert.match(card, /<div class="dpo-format-step">[\s\S]*<div class="dpo-format-body">[\s\S]*<div class="dpo-format-side">/, 'строка не разложена на три колонки');
     assert.match(card, /<source srcset="images\/document-[a-z]+\.webp" type="image\/webp">/, 'бланк без webp');
     assert.match(card, /<img loading="lazy" decoding="async" width="1200" height="84[78]" alt="" src="images\/document-[a-z]+\.(?:png|jpg)">/, 'бланк без размеров или запасного формата');
     assert.doesNotMatch(card, /dpo-format-vignette/, 'водяной знак остался вместе с бланком');
   });
-  assert.doesNotMatch(html, /\d+ программ/, 'в блок вернулось число программ');
+  // Проверяем РАЗМЕТКУ, а не стиль: в комментарии внутри <style> числа
+  // программ упоминаются как объяснение раскладки, и наивная проверка
+  // ловила их – та же ловушка, что уже дважды стоила времени в этом проекте.
+  const markup = html.replace(/<style>[\s\S]*?<\/style>/g, '');
+  assert.doesNotMatch(markup, /\d+ программ/, 'в блок вернулось число программ');
 
   // Длительность: единица одна на обе границы, если совпадает. «Обычно» –
   // потому что в каталоге длительность заполнена не у всех программ.
@@ -62,7 +64,7 @@ test('формат без программ в каталоге остаётся 
   for (const card of list.slice(2)) {
     assert.doesNotMatch(card, /dpo-format-stats/, 'выдуманные факты у формата вне каталога');
     assert.match(card, /<span class="dpo-format-index">0[34]<\/span>/);
-    assert.match(card, /<span class="dpo-format-doc"/);
+    assert.match(card, /class="dpo-format-doc"/);
   }
 });
 
