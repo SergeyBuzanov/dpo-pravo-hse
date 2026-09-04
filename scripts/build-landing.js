@@ -323,17 +323,94 @@ const FORMATS = [
   },
 ];
 
-function renderFormats(programs) {
-  const rows = FORMATS.map((fmt) => {
-    const items = fmt.type
-      ? programs.filter((p) => (p.type && (p.type.shortTitle || p.type.title)) === fmt.type)
-      : [];
-    // Формат с типом, но без программ в каталоге, показывать нечем: кнопка
-    // увела бы в фильтр с пустым результатом. Форматы без типа (второе высшее,
-    // дополнительное образование для взрослых) в каталоге не считаются и
-    // стоят всегда.
-    if (fmt.type && !items.length) return '';
+/**
+ * Рисунки форматов для водяных знаков ступеней; ключ – название формата
+ * из FORMATS. Знаки рисуют не документ, а движение: ступени вверх (ПК),
+ * поворот траектории (ПП), раскрытая книга (ДО для взрослых), шапочка
+ * выпускника (второе высшее). Документ и так назван словами в карточке.
+ */
+const FORMAT_GLYPHS = {
+  'Повышение квалификации':
+    '<path d="M28 128 H60 V102 H92 V76 H124 V50"/><path d="M110 64 L124 50 L138 64"/>',
+  'Профессиональная переподготовка':
+    '<path d="M26 122 H70 Q104 122 104 86 V46"/><path d="M88 62 L104 46 L120 62"/><circle cx="26" cy="122" r="7"/>',
+  'Дополнительное образование для взрослых':
+    '<path d="M80 48 Q56 34 28 38 V116 Q56 112 80 126 Q104 112 132 116 V38 Q104 34 80 48 Z"/><path d="M80 48 V126"/>',
+  'Второе высшее образование':
+    '<path d="M20 62 L80 36 L140 62 L80 88 Z"/><path d="M44 74 V106 Q80 126 116 106 V74"/><path d="M140 62 V100"/>',
+};
 
+/**
+ * Разбор длительности из источника: «2 недели», «1,5 месяца», «8 месяцев».
+ * Числовое значение нужно только для сравнения границ, в подпись идёт
+ * ЧИСЛО КАК НАПИСАНО – «1,5», а не «1.5». Незнакомая единица возвращает
+ * null: угаданная длительность хуже её отсутствия.
+ */
+function durationParts(raw) {
+  const m = /^\s*([\d]+(?:[.,][\d]+)?)\s+(\S+)\s*$/.exec(String(raw || ''));
+  if (!m) return null;
+  const value = parseFloat(m[1].replace(',', '.'));
+  if (!Number.isFinite(value)) return null;
+  const unit = m[2].toLowerCase();
+  const inDays = /недел/.test(unit) ? 7 : /месяц/.test(unit) ? 30 : /дн|день/.test(unit) ? 1 : 0;
+  if (!inDays) return null;
+  return { num: m[1], unit: m[2], days: value * inDays };
+}
+
+/**
+ * Длительность формата одной строкой. Границы берутся по программам, у
+ * которых длительность в каталоге ЕСТЬ; если заполнена не у всех – подпись
+ * начинается со слова «обычно», иначе она обещала бы больше, чем известно.
+ * Совпадающая единица не повторяется: «6 – 8 месяцев», а не «6 месяцев –
+ * 8 месяцев».
+ */
+function durationLabel(items) {
+  const parsed = items.map((p) => durationParts(p.duration)).filter(Boolean);
+  if (!parsed.length) return '';
+  const sorted = parsed.slice().sort((a, b) => a.days - b.days);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  let range;
+  if (min.days === max.days) range = `${max.num} ${max.unit}`;
+  else if (min.unit === max.unit) range = `${min.num} – ${max.num} ${max.unit}`;
+  else range = `${min.num} ${min.unit} – ${max.num} ${max.unit}`;
+  return (parsed.length < items.length ? 'обычно ' : '') + range;
+}
+
+/**
+ * Как проходят занятия. Названия форм в источнике подробнее, чем нужно
+ * ступени («Онлайн асинхронный», «Гибридный (обучение проходит очно и
+ * параллельно в онлайн)»), поэтому они сводятся к трём словам. Порядок
+ * проверок важен: в составных названиях есть слово «онлайн», поэтому
+ * гибрид и смешанный ловятся раньше – то же правило, что в formatTip.
+ */
+function studyLabel(items) {
+  const words = new Set();
+  for (const p of items) {
+    const t = String((p.studyFormat && p.studyFormat.title) || '');
+    if (/гибрид|смешан/i.test(t)) words.add('смешанно');
+    else if (/онлайн/i.test(t)) words.add('онлайн');
+    else if (/очн/i.test(t)) words.add('очно');
+  }
+  const order = ['онлайн', 'очно', 'смешанно'].filter((w) => words.has(w));
+  if (!order.length) return '';
+  if (order.length === 1) return order[0];
+  return order.slice(0, -1).join(', ') + ' и ' + order[order.length - 1];
+}
+
+function renderFormats(programs) {
+  // Формат с типом, но без программ в каталоге, показывать нечем: кнопка
+  // увела бы в фильтр с пустым результатом. Форматы без типа (второе высшее,
+  // дополнительное образование для взрослых) в каталоге не считаются и
+  // стоят всегда. Отбор идёт ДО нумерации: номер – порядок видимой ступени.
+  const shown = FORMATS.map((fmt) => ({
+    fmt,
+    items: fmt.type
+      ? programs.filter((p) => (p.type && (p.type.shortTitle || p.type.title)) === fmt.type)
+      : [],
+  })).filter(({ fmt, items }) => !(fmt.type && !items.length));
+
+  const rows = shown.map(({ fmt, items }, i) => {
     const prices = items
       .map((p) => p.discountPrice || p.educationPricing)
       .filter((n) => Number.isFinite(n) && n > 0)
@@ -388,11 +465,32 @@ function renderFormats(programs) {
     // и действие на общей нижней оси, как у карточек каталога.
     const foot = `\n          <div class="dpo-format-foot">${price}${cta}${ask}\n          </div>`;
 
+    // Строка фактов – из каталога и только там, где данные есть: у второго
+    // высшего и ДО для взрослых своих программ в каталоге нет, и выдумывать
+    // им длительность нельзя. Числа программ здесь нет намеренно – заказчик
+    // убрал их из блока 18.08.2026: форматы равнозначны, это выбор
+    // траектории, а не рейтинг.
+    const statRows = [
+      ['Длительность', durationLabel(items)],
+      ['Занятия', studyLabel(items)],
+    ].filter(([, value]) => value);
+    const stats = statRows.length
+      ? `\n          <ul class="dpo-format-stats">${statRows
+          .map(
+            ([key, value]) =>
+              `\n            <li><span class="dpo-format-stat-key">${escapeHtml(key)}</span>${escapeHtml(value)}</li>`,
+          )
+          .join('')}\n          </ul>`
+      : '';
+    const glyph = FORMAT_GLYPHS[fmt.title] || '';
+
     return `        <li class="dpo-format">
+          <span class="dpo-format-index">${String(i + 1).padStart(2, '0')}</span>
           <h3 class="dpo-format-title">${escapeHtml(fmt.title)}</h3>
-          <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}${foot}
+          <p class="dpo-format-desc">${escapeHtml(fmt.desc)}</p>${doc}${stats}${foot}
+          <svg class="dpo-format-vignette" aria-hidden="true" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
         </li>`;
-  }).filter(Boolean);
+  });
 
   // Колонка цены и ссылки добавлена генератором, а не шаблоном: описание
   // ограничено 62ch, и на широком экране правая половина строки пустовала.
@@ -434,6 +532,35 @@ function renderFormats(programs) {
         .dpo-format:nth-child(1) { margin-top: 96px; }
         .dpo-format:nth-child(2) { margin-top: 64px; }
         .dpo-format:nth-child(3) { margin-top: 32px; }
+        /* Ступень подробнее (пожелание владельца 03.09.2026, сделано 04.09):
+           номер, водяной знак и строка фактов – по образцу плиток сфер.
+           Плитки остались белыми и на лесенке: цветное поле рядом с картой
+           сфер читалось бы как её повтор. Знак приглушён до 0.1 и лежит под
+           текстом (z-index), поэтому под буквами фон остаётся почти белым. */
+        .dpo-format { position: relative; overflow: hidden; }
+        .dpo-format > * { position: relative; z-index: 1; }
+        .dpo-format-index {
+          font-size: 13px; font-weight: 600; letter-spacing: 0.12em;
+          color: #6B6459; font-variant-numeric: tabular-nums;
+        }
+        .dpo-format-index::after {
+          content: ''; display: inline-block; vertical-align: middle;
+          width: 28px; height: 1px; margin-left: 10px; background: currentColor; opacity: .6;
+        }
+        .dpo-format-vignette {
+          position: absolute; right: -14px; top: 8px; width: 112px; height: 112px;
+          color: var(--dpo-accent, #1658DA); opacity: .1; pointer-events: none; z-index: 0;
+        }
+        .dpo-format-stats {
+          list-style: none; margin: 0; padding: 12px 0 0;
+          border-top: 1px solid rgba(33, 30, 27, 0.1);
+          display: flex; flex-direction: column; gap: 8px;
+          font-size: 13.5px; line-height: 1.4; color: #211E1B;
+        }
+        .dpo-format-stat-key {
+          display: block; color: #6B6459; font-size: 12.5px;
+          letter-spacing: .02em; margin-bottom: 1px;
+        }
         .dpo-format-title { font-size: 19px; line-height: 1.25; }
         .dpo-format-desc { font-size: 14.5px; line-height: 1.55; }
         .dpo-format-foot {
@@ -456,6 +583,8 @@ function renderFormats(programs) {
           .dpo-formats { grid-template-columns: minmax(0, 1fr); }
         }
         html.vi-mode .dpo-format { border: 2px solid #000 !important; }
+        html.vi-mode .dpo-format-vignette { display: none !important; }
+        html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
         html.vi-mode .dpo-formats-line { display: none !important; }
       </style>
       <div class="dpo-formats-wrap">
