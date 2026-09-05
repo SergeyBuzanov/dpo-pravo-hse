@@ -131,6 +131,22 @@ function extractOgImage(html) {
  * dpo-slider, признак людей – класс dpo-sponsor__img_person), только
  * теперь нам нужен и адрес снимка.
  */
+/**
+ * Имя человека из карточки. Чистка обязана совпадать с textOf в
+ * scripts/fetch-program-descriptions.js: тот скрипт кладёт имя в программу,
+ * этот – в ключ справочника фото, и лендинг ищет фото по точному
+ * совпадению. Пока стрелки снимал только один из двух, «Андреев Павел
+ * Викторович ➞» попал в ключ, а имя в программе осталось без стрелки –
+ * портрет не находился (64 фото из 65, находка аудита 05.09.2026).
+ * Стрелками на hse.ru помечены ссылки «подробнее», к имени они не относятся.
+ */
+function teacherName(chunk) {
+  return decodeEntities(String(chunk).replace(/<[^>]+>/g, ' '))
+    .replace(/[\u2190-\u21FF\u2794-\u27BF\u2B00-\u2BFF]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function extractTeacherPhotos(html) {
   const out = [];
   for (const sec of html.matchAll(/<section[^>]*dpo-slider[\s\S]*?<\/section>/g)) {
@@ -142,7 +158,7 @@ function extractTeacherPhotos(html) {
       const name = card.match(/class="[^"]*dpo-caption[^"]*"[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i);
       if (!img || !name) continue;
       const src = img[0].match(/\bsrc=["']([^"']+)["']/i);
-      const nm = decodeEntities(name[1].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+      const nm = teacherName(name[1]);
       if (!src || !nm) continue;
       out.push({ name: nm, src: decodeEntities(src[1]).trim() });
     }

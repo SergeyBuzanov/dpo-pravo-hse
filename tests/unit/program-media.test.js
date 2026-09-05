@@ -14,6 +14,7 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..', '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
 const { buildPayUrl } = require('../../scripts/build-program-pages');
+const { extractTeacherPhotos } = require('../../scripts/fetch-program-media');
 
 const store = JSON.parse(fs.readFileSync(STORE, 'utf8'));
 const programs = store.programs || [];
@@ -35,6 +36,37 @@ test('все пути справочника teacherPhotos существуют 
     assert.match(photos[name], /^images\/teachers\/[a-z0-9_.-]+$/i, `${name}: путь вне images/teachers/`);
     assert.ok(fs.existsSync(path.join(ROOT, photos[name])), `${name}: нет файла ${photos[name]}`);
   }
+});
+
+// Имя из карточки – это ключ справочника фото, и оно обязано совпасть с
+// полем name у преподавателя программы. Разбирают разметку два разных
+// скрипта: fetch-program-descriptions (имена людей) и fetch-program-media
+// (фото). Пока чистка у них расходилась, «Андреев Павел Викторович ➞» с
+// декоративной стрелкой ссылки «подробнее» попал в ключ, имя без стрелки –
+// в программу, и портрет не находился ни разу: 64 фото из 65.
+test('имя из карточки очищено от декоративных стрелок hse.ru', () => {
+  const html = [
+    '<section class="dpo-slider">',
+    '<ul>',
+    '<li class="dpo-sponsor__card">',
+    '<img class="dpo-sponsor__img_person" src="/data/2026/01/01/portrait.jpg">',
+    '<a class="dpo-caption" href="/org/persons/1">Андреев Павел Викторович <span>➞</span></a>',
+    '</li>',
+    '</ul>',
+    '</section>',
+  ].join('\n');
+  const people = extractTeacherPhotos(html);
+  assert.strictEqual(people.length, 1);
+  assert.strictEqual(people[0].name, 'Андреев Павел Викторович');
+});
+
+test('каждый ключ teacherPhotos есть среди имён преподавателей программ', () => {
+  const photos = store.teacherPhotos || {};
+  const names = new Set();
+  for (const p of programs) for (const t of p.teachers || []) if (t && t.name) names.add(t.name);
+  assert.ok(names.size > 0, 'ни у одной программы нет преподавателей');
+  const orphans = Object.keys(photos).filter((k) => !names.has(k));
+  assert.deepStrictEqual(orphans, [], 'ключи справочника без человека в каталоге: ' + orphans.join(', '));
 });
 
 test('payUrl – валидный https-адрес на lk.hse.ru', () => {
