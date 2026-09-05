@@ -122,6 +122,13 @@ function cardImage(item) {
   return fssync.existsSync(path.join(__dirname, thumb)) ? thumb : image;
 }
 
+/** Названия модулей программы, без пустых и без повторов подряд. */
+function moduleTitles(item) {
+  return (Array.isArray(item.modules) ? item.modules : [])
+    .map((m) => String((m && m.title) || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
 function renderCard(item) {
   const typeShort = escapeHtml(item.type?.shortTitle || item.type?.title || '');
   const format = item.studyFormat?.title || '';
@@ -206,12 +213,17 @@ function renderCard(item) {
   // из карточки, а не из второго JSON на странице: два источника одних и
   // тех же чисел неминуемо разъедутся, а лишний JSON – это ещё 15 КБ.
   // Название и адрес берутся из h3 и .card-link – их дублировать незачем.
+  // Модули для таблицы сравнения – НАЗВАНИЯМИ, а не числом (владелец
+  // 05.09.2026): «как можно сравнивать без модулей». Разделитель тот же
+  // « · », что у аудитории, — в названиях модулей каталога его нет
+  // (проверено на всех 265). Число таблица считает из этого же списка:
+  // второй источник одних и тех же данных неминуемо разошёлся бы.
   const audience = Array.isArray(item.audience?.items) ? item.audience.items.filter(Boolean) : [];
   const cmp = [
     `data-cmp-format="${escapeHtml(shortFormat(format) || bucket.label)}"`,
     `data-cmp-duration="${escapeHtml(item.duration || '')}"`,
     `data-cmp-start="${escapeHtml(date || '')}"`,
-    `data-cmp-modules="${(item.modules || []).length}"`,
+    `data-cmp-modules="${escapeHtml(moduleTitles(item).join(' · '))}"`,
     `data-cmp-teachers="${(item.teachers || []).length}"`,
     `data-cmp-audience="${escapeHtml(audience.join(' · '))}"`,
   ].join(' ');
