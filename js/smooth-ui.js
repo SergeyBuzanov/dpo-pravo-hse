@@ -111,8 +111,6 @@ header a[class*="btn-"]::after{
 }
 .dpo-reveal-left{ transform: translateX(-24px); }
 .dpo-reveal-left.dpo-in{ transform: translateX(0); }
-.dpo-reveal-scale{ transform: scale(0.96); }
-.dpo-reveal-scale.dpo-in{ transform: scale(1); }
 /* Карточный каскад (заказчик выбрал вариант с движением, 18.08.2026):
    карточки внутри секции догоняют её со ступенчатой задержкой. У карточки
    нет собственного blur и сдвиг меньше секционного: родительская секция
@@ -288,30 +286,24 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   };
 
   const markRevealTargets = () => {
-    const selectors = [
-      'section',
-      '.card',
-      '.stat',
-      '.quote-card',
-      '.cta-banner',
-      '.contact-card',
-      '.contact-row',
-      '.section-head',
-      '.intro > div',
-      '.teachers-text',
-      '.dark-cta > *',
-      'main section',
-      '[data-reveal]',
-    ];
+    // Селекторы прежней вёрстки (.stat, .quote-card, .cta-banner,
+    // .contact-card, .contact-row, .section-head, .intro > div,
+    // .teachers-text, .dark-cta > *) сняты 05.09.2026: замер в браузере
+    // показал ноль совпадений и на лендинге, и на странице программы.
+    // [data-reveal] оставлен намеренно – это крючок «пометить что угодно»,
+    // а не ссылка на исчезнувший блок.
+    const selectors = ['section', '.card', 'main section', '[data-reveal]'];
     // Карточный каскад поверх секционного появления (заказчик выбрал
     // вариант с движением, 18.08.2026): карточки в сетках догоняют свою
     // секцию со ступенчатой задержкой. Задержка считается от позиции в
     // родителе (а не сквозным счётчиком): сетки разной длины, сквозной
     // i%6 давал бы случайные ступени между соседями.
+    // .dpo-top5-grid и .dpo-why-card в разметке не существуют (замер
+    // 05.09.2026: ноль совпадений; плитки «Топ-5» лежат в .dpo-top5-track).
+    // Каскад по ним не работал ни дня – возвращать его в эти два блока
+    // нельзя молча: это добавит движение там, где его сейчас нет.
     const CARD_CASCADE = [
-      '.dpo-top5-grid .dpo-tile',
       '.dpo-explore-grid .explore-card',
-      '.dpo-why-card',
       '.dpo-start',
       '.dpo-review',
     ].join(', ');
@@ -320,17 +312,12 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     for (const sel of selectors) {
       document.querySelectorAll(sel).forEach((el) => {
         if (seen.has(el) || el.closest('header') || el.classList.contains('hero')) return;
-        // skip nested if parent already marked as same type
-        if (el.parentElement && el.parentElement.classList.contains('dpo-reveal') && el.matches('.card, .stat')) {
-          // still mark cards for stagger
-        }
         seen.add(el);
         el.classList.add('dpo-reveal');
-        if (el.matches('.card, .stat, .contact-row')) {
+        if (el.matches('.card')) {
           el.style.setProperty('--dpo-delay', `${(i % 6) * 36}ms`);
           i += 1;
         }
-        if (el.matches('.quote-card, .contact-card')) el.classList.add('dpo-reveal-scale');
       });
     }
     document.querySelectorAll(CARD_CASCADE).forEach((el) => {
@@ -343,20 +330,11 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
       el.style.setProperty('--dpo-delay', `${Math.min(idx * 70, 280)}ms`);
     });
 
-    // Hero children: gentle entrance without waiting for scroll
-    const hero = document.querySelector('.hero, [class*="hero"]');
-    if (hero) {
-      const kids = hero.querySelectorAll('h1, h2, p, .lead, .eyebrow, .hero-ctas, .btn, .stats');
-      kids.forEach((el, idx) => {
-        if (el.classList.contains('dpo-reveal')) return;
-        el.classList.add('dpo-reveal');
-        el.style.setProperty('--dpo-delay', `${idx * 50}ms`);
-      });
-      // show hero after paint
-      requestAnimationFrame(() => {
-        kids.forEach((el) => el.classList.add('dpo-in'));
-      });
-    }
+    // Здесь стоял блок «дети героя»: он искал h1, .lead, .eyebrow,
+    // .hero-ctas, .btn и .stats внутри `.hero, [class*="hero"]` и выводил их
+    // по очереди. Замер в браузере 05.09.2026: сам герой находится (4 узла),
+    // а НИ ОДИН из детей – нет, список всегда пуст. Блок исполнялся на
+    // каждом заходе boot-цикла и не делал ничего. Снят.
   };
 
   // Функция вызывается из boot-цикла повторно (бандлер может подменить DOM),
