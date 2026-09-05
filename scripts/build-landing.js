@@ -577,6 +577,13 @@ function renderFormats(programs) {
         }
         .dpo-format {
           display: flex; flex-direction: column;
+          /* gap и align-items ОБЯЗАНЫ стоять здесь явно. В шаблонном <style>
+             живёт правило прежней раскладки блока (grid, gap 12px 36px,
+             align-items: start), и всё, что регион не переопределил, приходит
+             оттуда: между обложкой бланка и плашкой ступени зияла белая
+             полоса 12px (владелец 05.09.2026, вечер). Дотянуться до того
+             правила из региона нельзя – только перекрыть свойство в свойство. */
+          gap: 0; align-items: stretch;
           background: #fff;
           border: 1px solid rgba(33, 30, 27, 0.1);
           border-radius: 18px;

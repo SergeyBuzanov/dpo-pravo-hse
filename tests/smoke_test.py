@@ -150,6 +150,22 @@ def test_index(context):
           len(emails) >= 2 and all(e["href"].startswith("mailto:") and "@" in e["text"] for e in emails),
           str(emails))
 
+    # Ступень траектории: обложка бланка примыкает к цветной плашке.
+    # В шаблонном <style> осталось правило прежней раскладки блока с
+    # gap: 12px, и стоит региону не задать gap явно, как между картинкой и
+    # названием ступени снова появится белая полоса (владелец 05.09.2026).
+    # Допуск 2px – волосяная линия под обложкой и округление.
+    gap = page.evaluate("""() => {
+        const card = document.querySelector('.dpo-format');
+        if (!card) return null;
+        const img = card.querySelector('.dpo-format-scan img');
+        const band = card.querySelector('.dpo-format-band');
+        if (!img || !band) return null;
+        return band.getBoundingClientRect().top - img.getBoundingClientRect().bottom;
+    }""")
+    check(lbl, "обложка бланка примыкает к плашке ступени",
+          gap is not None and gap <= 2, f"зазор {gap}px")
+
     # юридические ссылки в футере
     footer = page.evaluate("() => [...document.querySelectorAll('footer a')].map(a => a.getAttribute('href'))")
     check(lbl, "футер: политика ПДн + сведения об организации",
