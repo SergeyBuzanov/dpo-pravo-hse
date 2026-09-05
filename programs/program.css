@@ -169,7 +169,7 @@ html.vi-mode header::after{display:none !important}
 .side{position:sticky;top:96px;display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.side{position:static}}
 .card{background:rgb(var(--surface));border:1px solid var(--line);border-radius:24px;padding:26px}
-.price{font-size: clamp(1.375rem,2vw,1.875rem);font-weight:700;font-family:'HSE Slab','Source Serif 4',serif;
+.price{font-size: clamp(1.375rem,2vw,1.875rem);font-weight:400;font-family:'HSE Slab','Source Serif 4',serif;
   margin-bottom:18px}
 .facts{margin:0 0 20px}
 .fact{display:flex;justify-content:space-between;gap:12px;padding:10px 0;
@@ -202,7 +202,7 @@ html.vi-mode header::after{display:none !important}
     background:rgba(251,249,245,.94);backdrop-filter:blur(12px);
     border:1px solid rgb(var(--ink) / .1);border-radius:18px;
     box-shadow:0 12px 40px rgb(var(--ink) / .16)}
-  .buy-bar-price{font-family:'HSE Slab','Source Serif 4',serif;font-weight:700;
+  .buy-bar-price{font-family:'HSE Slab','Source Serif 4',serif;font-weight:400;
     font-size:1.0625rem;white-space:nowrap}
   .buy-bar .cta{flex:1;min-height:44px;padding:12px 18px}
   body{padding-bottom:84px}

@@ -523,9 +523,10 @@ function renderFormats(programs) {
     // полей и рамки (владелец 05.09.2026). Подпись «Смотреть образец» снята
     // по его же указанию; кнопка осталась – клик или Enter открывает бланк
     // ЦЕЛИКОМ и крупно в окне (js/doc-preview.js), и это тем нужнее, что на
-    // обложке документ показан кадром. Название документа написано полностью
-    // и пометкой поверх обложки, и строкой заказчика в теле карточки.
-    // Картинка для диктора пуста – имя действия несёт aria-label кнопки.
+    // обложке документ показан кадром. НИЧЕГО поверх обложки не пишем
+    // (владелец 05.09.2026, вечер: надпись закрывала сам бланк): название
+    // документа несут имя действия у кнопки и строка заказчика в теле
+    // карточки. Картинка для диктора пуста – её имя есть в aria-label.
     const blank = FORMAT_DOCS[fmt.title];
     const scan = blank
       ? `\n          <button type="button" class="dpo-format-doc" data-doc-preview="images/${blank.file}"` +
@@ -536,7 +537,6 @@ function renderFormats(programs) {
         `<source srcset="images/${blank.file}.webp" type="image/webp">` +
         `<img loading="lazy" decoding="async" width="1200" height="${blank.height}" alt="" src="images/${blank.file}.${blank.ext}">` +
         `</picture></span>` +
-        `<span class="dpo-format-chip">${escapeHtml(blank.name)}</span>` +
         `</button>`
       : '';
 
@@ -588,8 +588,8 @@ function renderFormats(programs) {
            открыть крупно. Кнопка, а не ссылка: никуда не ведёт, а показывает. */
         /* Обложка: бланк во всю ширину карточки, без полей и рамки (владелец
            05.09.2026). Кадр берётся ближе к верху документа – там у всех
-           четырёх бланков герб, логотип и собственное название. Название
-           документа целиком стоит пометкой в нижнем углу обложки. */
+           четырёх бланков герб, логотип и собственное название, поэтому
+           подписывать обложку нечем: она называет документ сама. */
         .dpo-format-doc {
           display: block; width: 100%; text-align: left; position: relative;
           padding: 0; border: none; background: #fff;
@@ -602,13 +602,6 @@ function renderFormats(programs) {
         .dpo-format-scan img {
           display: block; width: 100%; height: 178px; object-fit: cover; object-position: 50% 24%;
           transition: transform .45s var(--dpo-ease, cubic-bezier(.22, 1, .36, 1));
-        }
-        .dpo-format-chip {
-          position: absolute; left: 14px; bottom: 14px; max-width: calc(100% - 28px);
-          font-size: 11px; font-weight: 600; letter-spacing: .02em; line-height: 1.2;
-          padding: 6px 11px; border-radius: 999px; text-align: left;
-          border: 1px solid rgba(33, 30, 27, 0.14); color: #211E1B;
-          background: rgba(255, 255, 255, 0.94);
         }
         .dpo-format-doc:focus-visible { outline: 3px solid var(--dpo-accent, #1658DA); outline-offset: -3px; }
         @media (hover: hover) and (pointer: fine) {
@@ -711,7 +704,6 @@ function renderFormats(programs) {
           border-bottom: 2px solid #000 !important;
         }
         html.vi-mode .dpo-format-index, html.vi-mode .dpo-format-stat-key { color: #000 !important; }
-        html.vi-mode .dpo-format-chip { border: 2px solid #000 !important; color: #000 !important; }
       </style>
       <ul class="dpo-formats">
 ${rows.join('\n')}
