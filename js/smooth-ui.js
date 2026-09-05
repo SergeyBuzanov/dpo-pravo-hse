@@ -137,32 +137,13 @@ html.vi-mode .dpo-reveal{
   transition: none !important;
 }
 
-/* «Чему мы учим» – Анонсы / Все программы / Предложить идею */
-#explore a.explore-card,
-section#explore a[href]{
-  display: block !important;
-  transition:
-    border-color .32s cubic-bezier(.22,1,.36,1),
-    box-shadow .35s cubic-bezier(.22,1,.36,1),
-    transform .32s cubic-bezier(.22,1,.36,1),
-    background .32s cubic-bezier(.22,1,.36,1) !important;
-  will-change: transform, box-shadow;
-  box-shadow: 0 0 0 rgb(var(--ink) / 0);
-}
-/* Подъём и тень – только на устройствах с настоящим курсором. На тач-экране
-   :hover срабатывает по тапу и залипает: карточка остаётся поднятой, пока
-   не тронут соседнюю. */
+/* «Помогите нам стать лучше». Подъём, тень и белая заливка СНЯТЫ вместе с
+   карточками (владелец 05.09.2026, вечер): секция стала списком строк, а
+   строку списка поднимать не за что – она не карточка. Осталась стрелка:
+   её шаг и есть отклик. Правило жило здесь через id и !important, поэтому
+   любое оформление секции в шаблоне ему проигрывало; ловушка описана в
+   DESIGN.md. */
 @media (hover: hover) and (pointer: fine){
-  #explore a.explore-card:hover,
-  section#explore a[href]:hover{
-    /* Акцент берётся из --dpo-accent, которую лендинг выставляет на своей
-       обёртке из props.accentColor. Захардкоженный хекс оставлял подсветку
-       синей при смене темы. */
-    border-color: var(--dpo-accent, #1658DA) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 12px 28px rgb(var(--ink) / 0.1) !important;
-    background: #FFFEFB !important;
-  }
   #explore a:hover .explore-arrow{
     transform: translateX(6px);
   }
@@ -170,12 +151,6 @@ section#explore a[href]{
 #explore a .explore-arrow{
   display: inline-block;
   transition: transform .32s cubic-bezier(.22,1,.36,1);
-}
-@media (prefers-reduced-motion: reduce){
-  #explore a.explore-card:hover,
-  section#explore a[href]:hover{
-    transform: none !important;
-  }
 }
 
 /* Sticky mobile CTA (injected if page has no .mobile-cta) */
@@ -310,7 +285,6 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
     // i%6 давал бы случайные ступени между соседями.
     const CARD_CASCADE = [
       '.dpo-top5-grid .dpo-tile',
-      '.dpo-explore-grid .explore-card',
       '.dpo-why-card',
       '.dpo-start',
       '.dpo-review',
