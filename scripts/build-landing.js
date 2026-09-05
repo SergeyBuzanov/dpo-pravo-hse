@@ -1603,7 +1603,6 @@ if (require.main === module) {
 
 module.exports = {
   build,
-  buildPanel,
   renderFormats,
   renderSpheres,
   renderTeachers,
