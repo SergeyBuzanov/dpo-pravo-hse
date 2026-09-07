@@ -676,7 +676,6 @@ function renderFormats(programs) {
           background: var(--dpo-accent, #1658DA); color: #fff;
           transition: background .18s var(--dpo-ease, ease), transform .18s var(--dpo-ease, ease);
         }
-        .dpo-format-cta::after { content: none; }
         .dpo-format-cta:active { transform: scale(0.98); }
         @media (hover: hover) and (pointer: fine) {
           .dpo-format-cta:hover { background: var(--dpo-accent-dark, #1145AA); text-decoration: none; }

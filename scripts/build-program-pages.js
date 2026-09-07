@@ -988,7 +988,6 @@ const CSS = `/* Страницы программ. Тёплая ось из DESI
   --ink-mute: #6B6459;      /* подписи, мета */
   --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
   --accent-dark: #1145AA;   /* ховер кнопок, = darken(accent, 0.22) */
-  --gold-light:  #FFD982;   /* тёплый выделитель поверх синей заливки */
   --line:     rgb(var(--ink) / .1);
   --gutter:clamp(20px,5vw,56px);
   --ease:cubic-bezier(.22,1,.36,1);
