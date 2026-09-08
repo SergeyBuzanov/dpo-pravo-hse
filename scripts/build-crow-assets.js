@@ -2,16 +2,31 @@
 /**
  * Пережимает слои маскота-вороны в рабочий вес.
  *
- *   node scripts/build-crow-assets.js [каталог-с-исходниками]
+ *   node scripts/build-crow-assets.js <каталог-с-исходниками> [каталог-назначения]
  *
- * Исходники – 12 PNG от дизайнера (см. README пакета `design_handoff_
- * crow_mascot`), рантайм `crow-mascot.js` грузит из них только 11 – слой
- * `rest.png` был исходником для нарезки и в сборку не попадает.
+ * Примеры:
+ *   node scripts/build-crow-assets.js ~/Downloads/design_handoff_crow_mascot/parts
+ *     -> результат в images/crow (по умолчанию)
+ *   node scripts/build-crow-assets.js ~/Downloads/design_handoff_crow_mascot/parts /tmp/crow-preview
+ *     -> результат в стороне, для сверки перед перезаписью images/crow
+ *
+ * Исходники – пакет `design_handoff_crow_mascot`, присланный владельцем
+ * 08.09.2026: 12 PNG от дизайнера (см. README пакета), рантайм
+ * `crow-mascot.js` грузит из них только 11 – слой `rest.png` (полный
+ * силуэт целиком) был исходником для нарезки на части, в рантайме не
+ * используется и в сборку не попадает: его нет в списке LAYERS ниже.
  *
  * Вся геометрия маскота в `crow-mascot.js` задана в процентах от сцены
  * 1400×1465 (размер слоёв torso/neck). Поэтому масштаб ОДИН И ТОТ ЖЕ для
  * всех слоёв: кадрирование или разный масштаб развалят взаимное положение
  * частей. При смене исходников менять SCALE можно только сразу для всех.
+ *
+ * Каталог исходников – обязательный аргумент: у пакета от дизайнера нет
+ * постоянного места в репозитории, дефолтный путь был бы либо чужой
+ * машине, либо временным каталогом текущей сессии. Каталог назначения
+ * по умолчанию – images/crow, но его можно подменить, чтобы сначала
+ * посмотреть результат новой поставки в стороне и сравнить, а не
+ * перезаписывать репозиторий вслепую.
  */
 
 'use strict';
@@ -32,12 +47,8 @@ const SCALE = 0.4;
 // при уменьшении в 2,5 раза, а бюджет всё равно не тратится весь.
 const WEBP_LOSSLESS_EFFORT = 9;
 
-// Пакет от дизайнера уже распакован сюда для этого прогона; для следующей
-// поставки маскота передать новый каталог первым аргументом.
-const DEFAULT_SRC = '/private/tmp/claude-501/-Users-buzanovsergey/aef4de8d-698a-46ed-bdd0-5abdf3b853d5/scratchpad/crow/design_handoff_crow_mascot/parts';
-
 const ROOT = path.resolve(__dirname, '..');
-const OUT_DIR = path.join(ROOT, 'images', 'crow');
+const DEFAULT_OUT_DIR = path.join(ROOT, 'images', 'crow');
 
 function pixelSize(file) {
   const out = execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', file], { encoding: 'utf8' });
@@ -55,8 +66,8 @@ function kb(bytes) {
   return `${Math.round((bytes / 1024) * 10) / 10} КБ`;
 }
 
-function build(srcDir) {
-  fs.mkdirSync(OUT_DIR, { recursive: true });
+function build(srcDir, outDir) {
+  fs.mkdirSync(outDir, { recursive: true });
   const tmpDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'crow-assets-'));
 
   let totalBefore = 0;
@@ -80,7 +91,7 @@ function build(srcDir) {
       throw new Error(`альфа-канал потерян при масштабировании: ${layer}`);
     }
 
-    const outFile = path.join(OUT_DIR, `${layer}.webp`);
+    const outFile = path.join(outDir, `${layer}.webp`);
     execFileSync('cwebp', ['-lossless', '-z', String(WEBP_LOSSLESS_EFFORT), resizedFile, '-o', outFile], { stdio: 'ignore' });
 
     const after = fs.statSync(outFile).size;
@@ -97,8 +108,14 @@ function build(srcDir) {
 }
 
 if (require.main === module) {
-  const srcDir = process.argv[2] || DEFAULT_SRC;
-  build(path.resolve(srcDir));
+  const srcArg = process.argv[2];
+  if (!srcArg) {
+    console.error('Нужен каталог с исходниками первым аргументом.');
+    console.error('Пример: node scripts/build-crow-assets.js path/to/design_handoff_crow_mascot/parts [каталог-назначения]');
+    process.exit(1);
+  }
+  const outArg = process.argv[3];
+  build(path.resolve(srcArg), outArg ? path.resolve(outArg) : DEFAULT_OUT_DIR);
 }
 
 module.exports = { build, LAYERS, SCALE };
