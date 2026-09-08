@@ -7,6 +7,14 @@
  * и виджет, разложенный по источникам, разъехался бы при первой же
  * пересборке любого из них.
  *
+ * Логика подбора ответа (что показать на запрос) вынесена в
+ * js/bot-reply.js (window.DpoBotReply) – чистые функции без DOM,
+ * проверенные тестами на настоящих данных (независимое ревью 08.09.2026
+ * нашло три сломанные кнопки-подсказки и необработанное исключение именно
+ * потому, что эта логика раньше не была отделена от разметки и не
+ * читалась тестом). Здесь остаётся только DOM: разметка, стили, открытие/
+ * закрытие, фокус, очередь действий до прихода данных.
+ *
  * Открытие – по клику на элемент с атрибутом [data-bot-open]. На лендинге
  * это угловая ворона (.crow-hit-btn поверх маскота и #crow-vi-btn в
  * html.vi-mode – см. crow-launcher-addon в хвосте index.html): рантайм
@@ -17,8 +25,8 @@
  * ПЕРВОМ открытии окна, а не при загрузке страницы: первый экран сайта за
  * бота не платит.
  *
- * Ядро поиска – js/bot-match.js (window.DpoBotMatch), обязано быть
- * подключено раньше этого файла тегом <script>.
+ * Порядок подключения тегами <script>: js/bot-match.js, затем
+ * js/bot-reply.js, затем этот файл.
  */
 (function () {
   'use strict';
@@ -28,8 +36,10 @@
 
   var GREETING = 'Спрашивайте про программы: тему, формат, цену или ближайший старт.';
   var HINTS = ['Подобрать программу', 'Онлайн', 'Какой документ выдают', 'Ближайшие старты', 'Сколько стоит'];
+  var TYPE_LABELS = [['ПК', 'Повышение квалификации'], ['ПП', 'Переподготовка']];
   var GAP_TEXT = 'Об этом на сайте не написано, а придумывать я не стану. Оставьте заявку – ответит учебный офис.';
   var FAIL_TEXT = 'Не получилось загрузить программы. Напишите нам – ответим.';
+  var WAIT_TEXT = 'Секунду, гружу программы…';
 
   var CSS = [
     '#dpoBotPanel{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));',
@@ -53,7 +63,9 @@
     // Кегль – ступень «title» шкалы DESIGN.md (1.1875rem/600/1.3, «заголовки карточек»).
     '#dpoBotHead h2{margin:0;font-family:"HSE Slab","Source Serif 4",Georgia,serif;',
     'font-size:1.1875rem;font-weight:600;line-height:1.3}',
-    '.dpo-bot-close{width:36px;height:36px;flex:none;border-radius:999px;border:0;',
+    // Мишень 44px (IMPORTANT 7, независимое ревью 08.09.2026): было 36×36.
+    '.dpo-bot-close{width:44px;height:44px;flex:none;border-radius:999px;border:0;',
+    'display:inline-flex;align-items:center;justify-content:center;',
     'background:transparent;color:rgb(var(--ink));font-size:1.25rem;line-height:1;cursor:pointer;',
     'transition:background .15s}',
     '.dpo-bot-close:hover{background:var(--bg-tint)}',
@@ -72,7 +84,10 @@
     'padding:0 14px;border-radius:999px;border:1px solid rgb(var(--accent) / .35);',
     'background:rgb(var(--surface));color:rgb(var(--accent));cursor:pointer;transition:background .15s}',
     '.dpo-bot-hints button:hover{background:var(--bg-tint)}',
-    '.dpo-bot-more{align-self:flex-start;font-size:0.9375rem;font-weight:600;color:rgb(var(--accent));',
+    // Мишень 44px (IMPORTANT 7): было 21px высотой – основной выход на
+    // сайт под каждой цитатой.
+    '.dpo-bot-more{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;',
+    'font-size:0.9375rem;font-weight:600;color:rgb(var(--accent));',
     'text-decoration:underline;text-underline-offset:3px}',
     '.dpo-bot-apply{align-self:flex-start;font:inherit;font-size:0.9375rem;font-weight:600;min-height:44px;',
     'padding:0 18px;border-radius:999px;border:0;background:rgb(var(--accent));color:rgb(var(--surface));',
@@ -91,7 +106,6 @@
     '#dpoBotForm button{font:inherit;font-size:0.9375rem;font-weight:600;min-width:44px;min-height:44px;',
     'padding:0 16px;border-radius:999px;border:0;background:rgb(var(--accent));color:rgb(var(--surface));',
     'cursor:pointer}',
-    '.dpo-bot-fail{margin:0 0 12px;font-size:0.9375rem;line-height:1.5}',
     // Ручка жеста «смахнуть вниз» (js/sheet-gesture.js) на телефоне.
     '@media (max-width:700px){#dpoBotPanel{left:0;right:0;bottom:0;width:100%;',
     'max-height:82vh;border-radius:18px 18px 0 0}}',
@@ -110,7 +124,8 @@
 
   var data = null;
   var loading = false;
-  var durationTextCache = '';
+  var loadCallbacks = [];
+  var queue = window.DpoBotReply.createActionQueue();
   var panel = null;
   var log = null;
   var lastFocused = null;
@@ -143,143 +158,6 @@
     return node;
   }
 
-  // ---- Подбор ответа --------------------------------------------------
-
-  /**
-   * Слова запроса и триггера сравниваются основами (DpoBotMatch.sameStem),
-   * а не через parseQuery: тот нарочно вырезает служебные слова вопроса
-   * («документ», «формат», «старт», «стоит» – см. STOP_WORDS в
-   * js/bot-match.js), но для готовых ответов бота это ровно те слова,
-   * которые называют тему («какой документ выдают»).
-   *
-   * Порог длины слова – 2 символа, а не 3 (как в parseQuery): «пк»/«пп» –
-   * настоящие триггеры ответа pk-vs-pp, и при пороге 3 отсекались бы оба,
-   * и в тексте вопроса, и в самом триггере.
-   */
-  function tokenize(text) {
-    return String(text || '')
-      .toLowerCase()
-      .replace(/ё/g, 'е')
-      .replace(/[^а-яa-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter(function (w) { return w.length >= 2 && !/^\d+$/.test(w); })
-      .map(window.DpoBotMatch.stem);
-  }
-
-  function tokenMatchesAny(token, qTokens) {
-    for (var i = 0; i < qTokens.length; i++) {
-      if (window.DpoBotMatch.sameStem(token, qTokens[i])) return true;
-    }
-    return false;
-  }
-
-  /**
-   * Триггер – ВСЕ его слова обязаны найтись в вопросе (а не хотя бы одно):
-   * иначе общее слово многословного триггера ложно ловит вопрос совсем не о
-   * той теме («занятия» из триггера «пропуск занятия» одним словом ловило
-   * бы «когда занятия» – нашёл при ручной проверке; несколько похожих слов
-   * в других триггерах, см. tests/unit/bot-faq.test.js, той же природы).
-   */
-  function triggerMatches(trigger, qTokens) {
-    var tTokens = tokenize(trigger);
-    if (!tTokens.length) return false;
-    return tTokens.every(function (t) { return tokenMatchesAny(t, qTokens); });
-  }
-
-  function findByTriggers(qTokens, list) {
-    for (var i = 0; i < list.length; i++) {
-      var triggers = list[i].triggers;
-      for (var j = 0; j < triggers.length; j++) {
-        if (triggerMatches(triggers[j], qTokens)) return list[i];
-      }
-    }
-    return null;
-  }
-
-  /** "2 недели" -> {num:"2", root:"недел", days:14, raw:"2 недели"}. */
-  function parseDurationItem(raw) {
-    var m = /^(\d+(?:,\d+)?)\s+(\S+)/.exec(String(raw || '').trim());
-    if (!m) return null;
-    var word = m[2];
-    var root = /^недел/.test(word) ? 'недел' : /^месяц/.test(word) ? 'месяц' : /^(год|лет)/.test(word) ? 'год' : word;
-    var scale = root === 'недел' ? 7 : root === 'месяц' ? 30 : root === 'год' ? 365 : 1;
-    return { raw: String(raw).trim(), num: m[1], root: root, days: parseFloat(m[1].replace(',', '.')) * scale };
-  }
-
-  /**
-   * "2 недели – 3 месяца" для разброса разных единиц, "6 – 8 месяцев" –
-   * для одной (число берётся из меньшего, единица – у большего, как в
-   * самой цитате): числа считаются из каталога, а не хранятся строкой –
-   * иначе устареют при первом же обновлении программ.
-   */
-  function durationRange(programs, type) {
-    var items = programs
-      .filter(function (p) { return p.type === type && p.duration; })
-      .map(function (p) { return parseDurationItem(p.duration); })
-      .filter(Boolean);
-    if (!items.length) return null;
-    var min = items[0];
-    var max = items[0];
-    items.forEach(function (it) {
-      if (it.days < min.days) min = it;
-      if (it.days > max.days) max = it;
-    });
-    if (min.raw === max.raw) return min.raw;
-    if (min.root === max.root) return min.num + ' – ' + max.raw;
-    return min.raw + ' – ' + max.raw;
-  }
-
-  function durationText(programs) {
-    var pk = durationRange(programs, 'ПК');
-    var pp = durationRange(programs, 'ПП');
-    var lines = [];
-    if (pk) lines.push('Повышение квалификации: длительность обычно ' + pk + '.');
-    if (pp) lines.push('Профессиональная переподготовка: длительность обычно ' + pp + '.');
-    return lines.join('\n');
-  }
-
-  /** Ближайшие по старту программы – тот же порядок, что у reason:'none' в DpoBotMatch.search. */
-  function upcoming(programs, n) {
-    return programs
-      .slice()
-      .sort(function (a, b) {
-        var aHas = !!(a.startIso || a.start);
-        var bHas = !!(b.startIso || b.start);
-        if (aHas !== bHas) return aHas ? -1 : 1;
-        if (a.startIso && b.startIso) return a.startIso < b.startIso ? -1 : a.startIso > b.startIso ? 1 : 0;
-        return 0;
-      })
-      .slice(0, n);
-  }
-
-  function introFor(reason, count) {
-    if (reason === 'filter') return 'Отобрала по вашим условиям:';
-    return count === 1 ? 'Нашла одну программу:' : 'Вот что нашла:';
-  }
-
-  /**
-   * Порядок ровно по спеке: сперва подбор программ, потом готовый ответ с
-   * сайта, потом честное «не нашла». Программы – вперёд ответа: человек,
-   * назвавший тему, ищет программу, а не определение.
-   */
-  function reply(query) {
-    var found = window.DpoBotMatch.search(query, data.programs);
-    if (found.reason !== 'empty' && found.reason !== 'none') {
-      return { kind: 'programs', reason: found.reason, programs: found.programs.slice(0, 5) };
-    }
-    var qTokens = tokenize(query);
-    var durationHit = data.duration && data.duration.triggers.some(function (t) { return triggerMatches(t, qTokens); });
-    if (durationHit) {
-      if (!durationTextCache) durationTextCache = durationText(data.programs);
-      if (durationTextCache) return { kind: 'duration', text: durationTextCache, anchor: data.duration.anchor };
-    }
-    var answer = findByTriggers(qTokens, data.answers);
-    if (answer) return { kind: 'answer', answer: answer };
-    var gap = findByTriggers(qTokens, data.gaps);
-    if (gap) return { kind: 'gap' };
-    return { kind: 'none', programs: upcoming(data.programs, 3) };
-  }
-
   // ---- Разметка ---------------------------------------------------------
 
   function programCard(p) {
@@ -293,28 +171,50 @@
     log.appendChild(el('p', { class: 'dpo-bot-say', text: text }));
   }
 
-  function moreLink(anchor) {
-    log.appendChild(el('a', { class: 'dpo-bot-more', href: href(anchor), text: 'Подробнее на сайте' }));
+  /** Реплика посетителя (клик по подсказке или свой текст) – отдельным пузырём. */
+  function mine(text) {
+    log.appendChild(el('p', { class: 'dpo-bot-mine', text: text }));
+  }
+
+  function moreLink(anchor, label) {
+    log.appendChild(el('a', { class: 'dpo-bot-more', href: href(anchor), text: label || 'Подробнее на сайте' }));
   }
 
   function applyButton() {
     log.appendChild(el('button', { type: 'button', class: 'dpo-bot-apply', 'data-application': '', text: 'Подать заявку' }));
   }
 
+  function scrollDown() {
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function renderExtra(extra) {
+    if (!extra || !extra.length) return;
+    say('Ещё нашла программы по теме:');
+    extra.forEach(function (p) { log.appendChild(programCard(p)); });
+  }
+
   function renderReply(out) {
     if (out.kind === 'programs') {
-      say(introFor(out.reason, out.programs.length));
+      say(out.intro);
+      out.programs.forEach(function (p) { log.appendChild(programCard(p)); });
+      return;
+    }
+    if (out.kind === 'programs-weak') {
+      say('Точного совпадения нет, вот близкое по теме:');
       out.programs.forEach(function (p) { log.appendChild(programCard(p)); });
       return;
     }
     if (out.kind === 'duration') {
       out.text.split('\n').forEach(say);
       moreLink(out.anchor);
+      renderExtra(out.extra);
       return;
     }
     if (out.kind === 'answer') {
       out.answer.text.split('\n').forEach(say);
       moreLink(out.answer.anchor);
+      renderExtra(out.extra);
       return;
     }
     if (out.kind === 'gap') {
@@ -327,41 +227,137 @@
     applyButton();
   }
 
-  /** Запрос от посетителя: своя реплика, затем ответ бота. */
+  /**
+   * Действие ставится в очередь, пока данные не пришли (CRITICAL 2 –
+   * reply() читает data.programs, вызывать его раньше нельзя). Очередь и
+   * гейт неудачи – в js/bot-reply.js (createActionQueue), проверено
+   * тестами там же. При неудаче загрузки честная строка показывается
+   * ОДИН раз, а не при каждом накопленном действии.
+   */
+  function runWhenReady(action) {
+    var wasEmpty = queue.isEmpty();
+    var status = queue.run(action, data);
+    if (status === 'queued' && wasEmpty) say(WAIT_TEXT);
+    if (status === 'failed') {
+      say(FAIL_TEXT);
+      applyButton();
+    }
+    scrollDown();
+  }
+
+  /** Запрос от посетителя (строка ввода): своя реплика, затем ответ бота. */
   function ask(query) {
     var text = String(query || '').trim();
     if (!text) return;
-    log.appendChild(el('p', { class: 'dpo-bot-mine', text: text }));
-    renderReply(reply(text));
-    log.scrollTop = log.scrollHeight;
+    mine(text);
+    runWhenReady(function (loadedData) {
+      renderReply(window.DpoBotReply.reply(text, loadedData));
+      scrollDown();
+    });
   }
+
+  // ---- Прямые встречные ответы трёх кнопок-подсказок ---------------------
+  //
+  // CRITICAL 1 (независимое ревью 08.09.2026): у этих трёх кнопок есть
+  // прямой смысл и готовые данные – гонять их через нечёткий поиск по
+  // словам (как раньше) означало отдавать «Такого не нашла» на собственные
+  // подсказки бота. Онлайн и «какой документ выдают» такого прямого смысла
+  // не имеют (это ФОРМАТ и ФАКТ соответственно, оба уже разбираются
+  // reply()) и остаются на общем пути через ask().
+
+  function renderPickProgram(loadedData) {
+    say('Выберите сферу или тип программы:');
+    var row = el('div', { class: 'dpo-bot-hints' });
+    window.DpoBotReply.sphereList(loadedData.programs).forEach(function (sphere) {
+      var button = el('button', { type: 'button', text: sphere });
+      button.addEventListener('click', function () { pickBy('sphere', sphere, sphere); });
+      row.appendChild(button);
+    });
+    TYPE_LABELS.forEach(function (pair) {
+      var button = el('button', { type: 'button', text: pair[1] });
+      button.addEventListener('click', function () { pickBy('type', pair[0], pair[1]); });
+      row.appendChild(button);
+    });
+    log.appendChild(row);
+    scrollDown();
+  }
+
+  /** Клик по сфере/типу из renderPickProgram – данные уже загружены к этому моменту. */
+  function pickBy(field, value, label) {
+    mine(label);
+    var matched = window.DpoBotReply.pickBy(data.programs, field, value);
+    if (!matched.length) {
+      say('Такого не нашла. Вот что стартует ближе всего:');
+      window.DpoBotReply.upcoming(data.programs, 3).forEach(function (p) { log.appendChild(programCard(p)); });
+      applyButton();
+    } else {
+      say(window.DpoBotReply.introFor('filter', matched.length));
+      matched.slice(0, 5).forEach(function (p) { log.appendChild(programCard(p)); });
+    }
+    scrollDown();
+  }
+
+  function renderUpcomingStarts(loadedData) {
+    var list = window.DpoBotReply.upcoming(loadedData.programs, 5).filter(function (p) { return p.startIso || p.start; });
+    if (!list.length) {
+      say('Дат старта в каталоге сейчас нет.');
+      scrollDown();
+      return;
+    }
+    say(list.length === 1 ? 'Ближайший старт:' : 'Вот ближайшие старты:');
+    list.forEach(function (p) { log.appendChild(programCard(p)); });
+    scrollDown();
+  }
+
+  function renderPriceRange(loadedData) {
+    var range = window.DpoBotReply.priceRange(loadedData.programs);
+    if (!range) {
+      say('Цены сейчас не в каталоге – загляните в разделы программ.');
+      scrollDown();
+      return;
+    }
+    say('Программы стоят от ' + window.DpoBotReply.formatPrice(range.min) + ' до ' + window.DpoBotReply.formatPrice(range.max) + '.');
+    say('Могу отобрать по цене – напишите, например, «до 30000» или «от 50000».');
+    moreLink('Каталог программ.html', 'Открыть каталог');
+    scrollDown();
+  }
+
+  var HINT_HANDLERS = {
+    'Подобрать программу': function () {
+      mine('Подобрать программу');
+      runWhenReady(renderPickProgram);
+    },
+    'Онлайн': function () { ask('Онлайн'); },
+    'Какой документ выдают': function () { ask('Какой документ выдают'); },
+    'Ближайшие старты': function () {
+      mine('Ближайшие старты');
+      runWhenReady(renderUpcomingStarts);
+    },
+    'Сколько стоит': function () {
+      mine('Сколько стоит');
+      runWhenReady(renderPriceRange);
+    },
+  };
 
   function hintsRow() {
     var row = el('div', { class: 'dpo-bot-hints' });
     HINTS.forEach(function (text) {
       var button = el('button', { type: 'button', text: text });
-      button.addEventListener('click', function () { ask(text); });
+      button.addEventListener('click', HINT_HANDLERS[text]);
       row.appendChild(button);
     });
     return row;
   }
 
   /**
-   * Первый экран окна: приветствие вороны, кнопки-подсказки и строка ввода;
-   * либо, если данные не доехали, честная строка и кнопка заявки.
+   * Первый экран окна показывается СРАЗУ по открытию, не дожидаясь сети
+   * (CRITICAL 2/IMPORTANT 4): приветствие и кнопки-подсказки работают, а
+   * ответ на любое действие ждёт данные через runWhenReady. Лог никогда
+   * не очищается заново – только дополняется.
    */
-  function render(loaded) {
-    log.textContent = '';
-    var form = document.getElementById('dpoBotForm');
-    if (!loaded) {
-      log.appendChild(el('p', { class: 'dpo-bot-fail', text: FAIL_TEXT }));
-      applyButton();
-      if (form) form.hidden = true;
-      return;
-    }
+  function renderShell() {
     say(GREETING);
     log.appendChild(hintsRow());
-    if (form) form.hidden = false;
   }
 
   // ---- Доступность и открытие/закрытие ----------------------------------
@@ -383,6 +379,16 @@
 
   function onKeydown(event) {
     if (event.key === 'Escape') {
+      // IMPORTANT 5 (независимое ревью 08.09.2026): форма заявки может
+      // быть открыта ПОВЕРХ окна бота (кнопка «Подать заявку» в честном
+      // ответе, z-index формы 9000 против 930 у окна бота) – Esc обязан
+      // закрыть верхний слой первым. У формы свой обработчик Escape
+      // (js/application-form.js); пока её backdrop на экране, окно бота
+      // Escape не трогает вовсе – иначе оба слушателя на document реагируют
+      // на одно нажатие и закрывают оба окна разом, а форма при закрытии
+      // ищет свой lastTrigger (кнопку внутри уже удалённого лога бота) и
+      // не находит – фокус терялся на BODY.
+      if (document.querySelector('.dpo-app-backdrop')) return;
       event.preventDefault();
       close();
       return;
@@ -424,19 +430,32 @@
   /**
    * Ворона на время открытого окна (правка владельца по снимку 08.09.2026:
    * половина головы торчала из-за нижней кромки панели – читалось как сбой).
-   * Переиспользуем готовую механику «маскот на экране один»
-   * (hide()/show() у самого инстанса – то же, чем в js/crow-mascot.js
-   * пользуются suppressExisting/restoreSuppressed), а не заводим второй
-   * способ прятать: гейт reduced-motion, кадры вхолостую не считаются
+   * Переиспользуем готовую механику «маскот на экране один» (hide()/show()
+   * у самого инстанса – то же, чем в js/crow-mascot.js пользуются
+   * suppressExisting/restoreSuppressed), а не заводим второй способ
+   * прятать: гейт reduced-motion, кадры вхолостую не считаются
    * (IntersectionObserver внутри hide() сам гасит цикл) – всё уже там.
    * window.crowMascot существует только на лендинге (задача 9) – на
    * каталоге и страницах программ переменной нет, проверка обязательна.
+   *
+   * M9 (независимое ревью 08.09.2026): прозрачная кнопка-хит поверх
+   * маскота (.crow-hit-btn) сама по себе НЕ прячется вместе с вороной –
+   * это отдельный элемент точно того же размера/положения (js/crow-
+   * mascot.js её не знает). Пока ворона спрятана, часть кнопки-хита,
+   * которую не перекрывает панель (полоса ~200×92 внизу угла), ловила
+   * клик и закрывала окно. pointer-events:none снимает клик ровно на то
+   * время, что ворона скрыта – #crow-vi-btn (версия для слабовидящих) не
+   * трогаем: там маскота вообще нет, это обычная видимая кнопка.
    */
   function hideCrow() {
     if (window.crowMascot) window.crowMascot.hide();
+    var hit = document.querySelector('.crow-hit-btn');
+    if (hit) hit.style.pointerEvents = 'none';
   }
   function showCrow() {
     if (window.crowMascot) window.crowMascot.show();
+    var hit = document.querySelector('.crow-hit-btn');
+    if (hit) hit.style.pointerEvents = '';
   }
 
   function close() {
@@ -459,6 +478,7 @@
     injectStyles();
     lastFocused = trigger || document.activeElement;
     hideCrow();
+    queue = window.DpoBotReply.createActionQueue();
 
     var close_ = el('button', { type: 'button', class: 'dpo-bot-close', 'aria-label': 'Закрыть окно бота', text: '×' });
     close_.addEventListener('click', close);
@@ -472,7 +492,10 @@
       input.value = '';
       ask(value);
     });
-    panel = el('div', { id: 'dpoBotPanel', role: 'dialog', 'aria-modal': 'false', 'aria-label': 'Бот поддержки' }, [
+    // IMPORTANT 4 (независимое ревью 08.09.2026): aria-modal="true" –
+    // ловушка Tab внизу и правда ведёт себя как модальная, aria-modal
+    // "false" при живой ловушке было несогласовано.
+    panel = el('div', { id: 'dpoBotPanel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Бот поддержки' }, [
       el('div', { id: 'dpoBotHead' }, [el('h2', { text: 'Бот поддержки' }), close_]),
       log,
       form,
@@ -492,11 +515,32 @@
     // добавление узла и смену класса, и переход не проиграется.
     requestAnimationFrame(function () { if (panel) panel.classList.add('is-open'); });
 
-    load(function (loaded) { if (panel) render(loaded); });
+    renderShell();
+    // IMPORTANT 4: фокус переводится В ОКНО, на первую кнопку-подсказку –
+    // раньше активной оставалась кнопка вороны, которую hideCrow() тут же
+    // прячет, и Tab уходил наружу мимо ловушки фокуса.
+    var firstHint = panel.querySelector('.dpo-bot-hints button');
+    (firstHint || input).focus();
+
+    var myPanel = panel;
+    load(function (loaded) {
+      if (panel !== myPanel) return;
+      if (loaded) queue.resolve(loaded);
+      else queue.reject();
+    });
   }
 
+  /**
+   * IMPORTANT 3 (независимое ревью 08.09.2026): открыть -> Esc -> открыть
+   * снова во время ещё идущей загрузки раньше сразу получало ложное
+   * «Не получилось загрузить» (loading===true, data ещё null, done(null)).
+   * Теперь колбэк встаёт в очередь loadCallbacks и получает РЕЗУЛЬТАТ
+   * настоящей загрузки, а не текущее состояние flag'а.
+   */
   function load(done) {
-    if (data || loading) { done(data); return; }
+    if (data) { done(data); return; }
+    loadCallbacks.push(done);
+    if (loading) return;
     loading = true;
     Promise.all([
       fetch(href(CATALOG_URL), { credentials: 'omit' }).then(function (r) { return r.ok ? r.json() : null; }),
@@ -506,16 +550,18 @@
         loading = false;
         var catalog = parts[0];
         var faq = parts[1];
-        if (!catalog || !Array.isArray(catalog.programs) || !faq || !Array.isArray(faq.answers)) {
-          done(null);
-          return;
+        if (catalog && Array.isArray(catalog.programs) && faq && Array.isArray(faq.answers)) {
+          data = { programs: catalog.programs, answers: faq.answers, gaps: faq.gaps || [], duration: faq.duration || null };
         }
-        data = { programs: catalog.programs, answers: faq.answers, gaps: faq.gaps || [], duration: faq.duration || null };
-        done(data);
+        var cbs = loadCallbacks;
+        loadCallbacks = [];
+        cbs.forEach(function (cb) { cb(data); });
       })
       .catch(function () {
         loading = false;
-        done(null);
+        var cbs = loadCallbacks;
+        loadCallbacks = [];
+        cbs.forEach(function (cb) { cb(null); });
       });
   }
 
