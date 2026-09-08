@@ -63,6 +63,18 @@ const WEBP_LOSSLESS_EFFORT = 9;
 const STILL_SOURCE = 'rest.png';
 const STILL_OUT = 'still.webp';
 const STILL_TARGET_WIDTH = 520;
+// rest.png (1400x1465) несёт вокруг фигуры холст-запас – у самой вороны
+// (с лупой и ботинками) непрозрачные пиксели занимают только 926x1080 из
+// сцены, то есть 66% ширины и 74% высоты. На странице 404 это тот же
+// запас, что делал воротник с эмблемой факультета нечитаемым пятном –
+// 260px CSS-ширины box, а сама фигура внутри него фактически ~172px
+// (260*0.66). Задача 13 (08.09.2026): картинка обрезается по фигуре ДО
+// масштабирования (плюс ~3% отступа с каждой стороны, чтобы не резать
+// впритык), тогда те же 260px box занимает сама ворона, а не пустое поле
+// вокруг неё. Прямоугольник измерен по альфа-каналу rest.png один раз
+// (bbox 239,200-1164,1279 + 3% отступ, округлено) – специфичен для этого
+// исходника, при новой поставке от дизайнера пересчитать заново.
+const STILL_CROP = { top: 168, left: 211, width: 982, height: 1144 };
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUT_DIR = path.join(ROOT, 'images', 'crow');
@@ -92,12 +104,20 @@ function buildStill(srcDir, outDir, tmpDir) {
   }
 
   const before = fs.statSync(srcFile).size;
-  const { width, height } = pixelSize(srcFile);
+
+  const croppedFile = path.join(tmpDir, 'still-cropped.png');
+  execFileSync('sips', [
+    '-c', String(STILL_CROP.height), String(STILL_CROP.width),
+    '--cropOffset', String(STILL_CROP.top), String(STILL_CROP.left),
+    srcFile, '--out', croppedFile,
+  ], { stdio: 'ignore' });
+
+  const { width, height } = pixelSize(croppedFile);
   const targetWidth = STILL_TARGET_WIDTH;
   const targetHeight = Math.round((height * targetWidth) / width);
 
   const resizedFile = path.join(tmpDir, 'still.png');
-  execFileSync('sips', ['-z', String(targetHeight), String(targetWidth), srcFile, '--out', resizedFile], { stdio: 'ignore' });
+  execFileSync('sips', ['-z', String(targetHeight), String(targetWidth), croppedFile, '--out', resizedFile], { stdio: 'ignore' });
 
   if (!hasAlpha(resizedFile)) {
     throw new Error('альфа-канал потерян при масштабировании: still');

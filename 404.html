@@ -93,7 +93,15 @@
      (images/crow/still.webp, см. scripts/build-crow-assets.js). alt пустой –
      ворона декоративна, смысл несёт текст рядом, не она сама. Ширина 260px –
      тот же размер, что у маскота в углу лендинга (js/crow-mascot.js,
-     width по умолчанию 260). */
+     width по умолчанию 260).
+     Задача 13 (08.09.2026): владелец заметил, что эмблема на воротнике
+     нечитаема – причина была не в 260px рамки, а в холсте-запасе вокруг
+     фигуры внутри still.webp (сама ворона занимала лишь ~66% ширины
+     рамки). scripts/build-crow-assets.js теперь обрезает картинку по
+     фигуре до масштабирования – при той же ширине рамки 260px сама
+     ворона стала крупнее, эмблема опознаётся как круглый значок (не
+     решает предел резкости самого исходника: кольцевая надпись на нём
+     смазана уже в присланном rest.png). */
   .crow-404 { display: block; width: 260px; height: auto; margin: 0 0 20px; }
 
   .badge {
@@ -203,7 +211,7 @@
 <main>
   <span class="ghost-code" aria-hidden="true">404</span>
   <div class="wrap">
-    <img class="crow-404" src="/dpo-pravo-hse/images/crow/still.webp" width="260" height="272" alt="">
+    <img class="crow-404" src="/dpo-pravo-hse/images/crow/still.webp" width="260" height="303" alt="">
     <span class="badge">Ошибка 404</span>
     <h1 id="top">Такой страницы нет</h1>
     <p class="lead">Возможно, адрес изменился или в ссылке опечатка. Каталог программ

@@ -28,9 +28,13 @@ test('на 404 нет ни одного тега <script> и CSP не ослаб
   assert.match(csp[1], /default-src 'none'/, 'default-src \'none\' – самая строгая политика на сайте, её нельзя ослаблять');
 });
 
-test('images/crow/still.webp существует и укладывается в бюджет 60 КБ', () => {
+test('images/crow/still.webp существует и укладывается в бюджет 80 КБ', () => {
+  // Бюджет поднят с 60 до 80 КБ в задаче 13: картинка обрезается по фигуре
+  // до масштабирования (см. STILL_CROP в scripts/build-crow-assets.js),
+  // те же 2x-пиксели теперь несут кадр без пустого запаса по краям – вес
+  // вырос (47 -> 77 КБ), но в бюджет 80 КБ укладывается.
   const file = path.join(ROOT, 'images', 'crow', 'still.webp');
   assert.ok(fs.existsSync(file), 'нет images/crow/still.webp');
   const size = fs.statSync(file).size;
-  assert.ok(size <= 60 * 1024, `still.webp весит ${Math.round(size / 1024)} КБ, бюджет – 60 КБ`);
+  assert.ok(size <= 80 * 1024, `still.webp весит ${Math.round(size / 1024)} КБ, бюджет – 80 КБ`);
 });
