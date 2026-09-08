@@ -228,28 +228,54 @@
   }
 
   /**
-   * Действие ставится в очередь, пока данные не пришли (CRITICAL 2 –
-   * reply() читает data.programs, вызывать его раньше нельзя). Очередь и
-   * гейт неудачи – в js/bot-reply.js (createActionQueue), проверено
-   * тестами там же. При неудаче загрузки честная строка показывается
-   * ОДИН раз, а не при каждом накопленном действии.
+   * Честная строка неудачи – ОДИН раз за открытое окно, а не при каждом
+   * накопленном действии (несколько вопросов, заданных подряд до провала
+   * загрузки, не должны дать несколько одинаковых сообщений с кнопкой
+   * заявки). Флаг сбрасывается в open().
    */
-  function runWhenReady(action) {
-    var wasEmpty = queue.isEmpty();
-    var status = queue.run(action, data);
-    if (status === 'queued' && wasEmpty) say(WAIT_TEXT);
-    if (status === 'failed') {
-      say(FAIL_TEXT);
-      applyButton();
-    }
+  var failureShown = false;
+  function showFailure() {
+    if (failureShown) return;
+    failureShown = true;
+    say(FAIL_TEXT);
+    applyButton();
     scrollDown();
   }
 
-  /** Запрос от посетителя (строка ввода): своя реплика, затем ответ бота. */
+  /**
+   * Действие ставится в очередь, пока данные не пришли (CRITICAL 2 –
+   * reply() читает data.programs, вызывать его раньше нельзя). Очередь –
+   * в js/bot-reply.js (createActionQueue), проверено тестами там же:
+   * onFail вызывается и при провале ПОСЛЕ постановки в очередь (reject
+   * находит уже накопленные действия), и при вопросе, заданном ПОСЛЕ
+   * того, как загрузка уже провалилась (run сразу отвечает 'failed') –
+   * раньше первый случай терял вопрос молча (независимое ревью, второй
+   * заход, IMPORTANT).
+   */
+  function runWhenReady(action) {
+    var wasEmpty = queue.isEmpty();
+    var status = queue.run(action, showFailure, data);
+    if (status === 'queued' && wasEmpty) say(WAIT_TEXT);
+    scrollDown();
+  }
+
+  /**
+   * Запрос от посетителя (строка ввода или клик по подсказке): своя
+   * реплика, затем ответ бота. Три темы с прямым смыслом («Подобрать
+   * программу», «Ближайшие старты», «Сколько стоит») распознаются и по
+   * кнопке, и по тексту, набранному руками, – detectIntent в
+   * js/bot-reply.js (независимое ревью, второй заход: собственное
+   * приглашение бота отвечало само себе «Такого не нашла»). Остальное
+   * идёт обычным путём через reply().
+   */
   function ask(query) {
     var text = String(query || '').trim();
     if (!text) return;
     mine(text);
+    var intent = window.DpoBotReply.detectIntent(text);
+    if (intent === 'pickProgram') { runWhenReady(renderPickProgram); return; }
+    if (intent === 'upcomingStarts') { runWhenReady(renderUpcomingStarts); return; }
+    if (intent === 'priceRange') { runWhenReady(renderPriceRange); return; }
     runWhenReady(function (loadedData) {
       renderReply(window.DpoBotReply.reply(text, loadedData));
       scrollDown();
@@ -322,28 +348,19 @@
     scrollDown();
   }
 
-  var HINT_HANDLERS = {
-    'Подобрать программу': function () {
-      mine('Подобрать программу');
-      runWhenReady(renderPickProgram);
-    },
-    'Онлайн': function () { ask('Онлайн'); },
-    'Какой документ выдают': function () { ask('Какой документ выдают'); },
-    'Ближайшие старты': function () {
-      mine('Ближайшие старты');
-      runWhenReady(renderUpcomingStarts);
-    },
-    'Сколько стоит': function () {
-      mine('Сколько стоит');
-      runWhenReady(renderPriceRange);
-    },
-  };
-
+  /**
+   * Все пять кнопок идут через ask() – ровно тот же путь, что у текста,
+   * набранного руками (detectIntent внутри ask() отличает три темы с
+   * прямым ответом от «Онлайн»/«Какой документ выдают», которые остаются
+   * на пути через reply()). Раньше кнопки и текст расходились: кнопка
+   * «Подобрать программу» отвечала прямо, а тот же текст, напечатанный
+   * руками, уходил в «Такого не нашла» (независимое ревью, второй заход).
+   */
   function hintsRow() {
     var row = el('div', { class: 'dpo-bot-hints' });
     HINTS.forEach(function (text) {
       var button = el('button', { type: 'button', text: text });
-      button.addEventListener('click', HINT_HANDLERS[text]);
+      button.addEventListener('click', function () { ask(text); });
       row.appendChild(button);
     });
     return row;
@@ -407,24 +424,40 @@
   }
 
   /**
-   * На телефоне лист выезжает от нижнего края и обязан не перекрывать
-   * мобильную полосу-CTA (js/smooth-ui.js) и баннер cookies
-   * (js/cookie-consent.js) – тот же приём измерения занятости нижнего
-   * края, что у keepAboveBottomBars в js/channel-invite.js.
+   * Ворона и открытое окно бота приподнимаются над баннером cookies
+   * (js/cookie-consent.js, z-index 1000 – выше и панели 930, и вороны
+   * 920: согласие важнее, слои не переставляем) и, пока он на экране, –
+   * ещё и над мобильной CTA-полосой (js/smooth-ui.js, видна <=1023px).
+   * Тот же приём измерения занятости нижнего края, что у
+   * keepAboveBottomBars в js/channel-invite.js.
+   *
+   * Независимое ревью, второй заход: это раньше работало ТОЛЬКО для окна
+   * и ТОЛЬКО на <=700px – на десктопе баннер лез на левый край поля
+   * ввода (в vi-режиме перекрывал его настолько, что клик не проходил
+   * вовсе), а на телефоне до ответа на баннер перекрывал саму ворону.
+   * Теперь функция работает на любой ширине и трогает саму ворону тоже –
+   * запускается независимо от того, открыто ли окно бота.
    */
-  function clearBottomBars() {
-    if (!panel || !window.matchMedia('(max-width: 700px)').matches) return;
-    var topOf = function (node) {
-      if (!node) return null;
-      var rect = node.getBoundingClientRect();
-      return rect.height ? rect.top : null;
-    };
+  function topOf(node) {
+    if (!node) return null;
+    var rect = node.getBoundingClientRect();
+    return rect.height ? rect.top : null;
+  }
+
+  function keepAboveBanners() {
     var tops = [topOf(document.getElementById('cookieBanner')), topOf(document.querySelector('.dpo-mobile-cta'))].filter(
       function (v) { return v != null; },
     );
-    if (!tops.length) { panel.style.bottom = ''; return; }
-    var overlap = window.innerHeight - Math.min.apply(null, tops);
-    panel.style.bottom = 'calc(' + Math.max(0, overlap + 12) + 'px + env(safe-area-inset-bottom, 0px))';
+    var value = '';
+    if (tops.length) {
+      var overlap = window.innerHeight - Math.min.apply(null, tops);
+      value = 'calc(' + Math.max(0, overlap + 12) + 'px + env(safe-area-inset-bottom, 0px))';
+    }
+    ['.crow-mascot', '.crow-hit-btn', '#crow-vi-btn'].forEach(function (selector) {
+      var node = document.querySelector(selector);
+      if (node) node.style.bottom = value;
+    });
+    if (panel) panel.style.bottom = value;
   }
 
   /**
@@ -460,7 +493,6 @@
 
   function close() {
     if (!panel) return;
-    window.removeEventListener('resize', clearBottomBars);
     panel.remove();
     panel = null;
     log = null;
@@ -479,6 +511,7 @@
     lastFocused = trigger || document.activeElement;
     hideCrow();
     queue = window.DpoBotReply.createActionQueue();
+    failureShown = false;
 
     var close_ = el('button', { type: 'button', class: 'dpo-bot-close', 'aria-label': 'Закрыть окно бота', text: '×' });
     close_.addEventListener('click', close);
@@ -508,8 +541,11 @@
       ? window.dpoSheet.attach({ root: panel, sheet: panel, grip: '#dpoBotHead', onClose: close })
       : null;
 
-    clearBottomBars();
-    window.addEventListener('resize', clearBottomBars);
+    // Занятость нижнего края (баннер cookies, мобильная CTA-полоса) уже
+    // отслеживается постоянным наблюдателем ниже (keepAboveBanners) – этот
+    // вызов лишь немедленно ставит СВЕЖЕСОЗДАННУЮ панель на место, не
+    // дожидаясь ближайшего срабатывания MutationObserver/resize.
+    keepAboveBanners();
 
     // Перерисовка до снятия начального состояния – иначе браузер склеит
     // добавление узла и смену класса, и переход не проиграется.
@@ -575,4 +611,26 @@
     event.preventDefault();
     open(trigger);
   });
+
+  // Наблюдатель за баннером cookies работает ВСЕГДА, а не только пока
+  // открыто окно бота: ворона обязана уворачиваться от баннера ещё до
+  // того, как по ней вообще кликнули (независимое ревью, второй заход –
+  // на телефоне баннер до ответа перекрывал саму ворону). MutationObserver
+  // на прямых детях body ловит и появление баннера (js/cookie-consent.js:
+  // document.body.append(banner)), и его исчезновение по «Принять»/
+  // «Отклонить» (banner.remove()), и появление самой вороны (mountCrow –
+  // document.body.appendChild(host) по window.load) – без опроса по
+  // таймеру, как у более старого keepAboveBottomBars в js/channel-invite.js.
+  // ЛОВУШКА: рантайм лендинга подменяет весь документ целиком
+  // (document.documentElement.replaceWith(...) – см. комментарии в
+  // index.html), и document.body к моменту подмены становится ДРУГИМ
+  // узлом – наблюдатель, привязанный к body СЕЙЧАС, наблюдал бы за уже
+  // отсоединённым от документа деревом и не увидел бы ни баннер cookies,
+  // ни ворону, которые появляются уже после подмены. document (сам
+  // объект Document) не подменяется никогда – наблюдаем его целиком с
+  // subtree:true, тем же приёмом, каким click-делегирование этого файла
+  // переживает ту же подмену.
+  new MutationObserver(keepAboveBanners).observe(document, { childList: true, subtree: true });
+  window.addEventListener('resize', keepAboveBanners);
+  keepAboveBanners();
 })();
