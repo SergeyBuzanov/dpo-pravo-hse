@@ -39,13 +39,19 @@ test('порядок обязателен: ядро поиска -> логика
   }
 });
 
-test('на лендинге открытие бота подключено к угловой вороне, а не к форме заявки', () => {
-  const html = read('index.html');
-  assert.match(html, /crow-hit-btn[\s\S]{0,400}data-bot-open/, 'crow-hit-btn не открывает бота');
-  assert.match(html, /crow-vi-btn[\s\S]{0,400}data-bot-open/, 'crow-vi-btn не открывает бота');
-  assert.doesNotMatch(
-    html.slice(html.indexOf('crow-launcher-addon')),
-    /crow-hit-btn[\s\S]{0,200}data-application/,
-    'crow-hit-btn всё ещё открывает форму заявки',
-  );
+test('угловая ворона открывает бота и подключена на каждой странице', () => {
+  // 08.09.2026 код угловой вороны переехал из хвоста index.html в общий
+  // js/crow-launcher.js: маскот нужен НЕ ТОЛЬКО на лендинге (владелец: «в
+  // углу, не пропадать оттуда»), а в каталоге и на страницах программ его
+  // не было вовсе.
+  const launcher = read('js/crow-launcher.js');
+  assert.match(launcher, /crow-hit-btn[\s\S]{0,400}data-bot-open/, 'crow-hit-btn не открывает бота');
+  assert.match(launcher, /crow-vi-btn[\s\S]{0,400}data-bot-open/, 'crow-vi-btn не открывает бота');
+  assert.doesNotMatch(launcher, /data-application/, 'угловая ворона снова открывает форму заявки, а не бота');
+
+  for (const page of ['index.html', 'Каталог программ.html',
+                      'programs/angliyskoe-kontraktnoe-pravo-856421092.html']) {
+    assert.match(read(page), /crow-launcher\.js/, `ворона в углу не подключена: ${page}`);
+    assert.match(read(page), /crow-mascot\.js/, `маскот не подключён: ${page}`);
+  }
 });

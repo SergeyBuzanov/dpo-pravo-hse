@@ -28,7 +28,7 @@ test('js/crow-mascot.js: анимация walkAcross используется, i
 });
 
 test('js/crow-mascot.js: walkIn() пропускает пробег на узком экране и у reduced-motion, иначе играет walkAcross -> invite', () => {
-  const fn = CROW.slice(CROW.indexOf('CrowMascot.prototype.walkIn'), CROW.indexOf('CrowMascot.prototype.walkIn') + 900);
+  const fn = CROW.slice(CROW.indexOf('CrowMascot.prototype.walkIn'), CROW.indexOf('CrowMascot.prototype.walkIn') + 1500); // окно шире: в walkIn добавилось пояснение про holdRx
   assert.match(fn, /reducedMotion/, 'walkIn не проверяет prefers-reduced-motion');
   assert.match(fn, /skipWalk/, 'walkIn не принимает флаг узкого экрана (телефон)');
   assert.match(fn, /play\('walkAcross'\)/, 'walkIn не запускает walkAcross');
@@ -40,6 +40,10 @@ test('js/crow-mascot.js: walkIn() пропускает пробег на узк�
   assert.match(fn, /setTimeout/, 'нет явного таймера перехода к invite – у зацикленной walkAcross очередь this.queue не сработает');
   assert.match(fn, /A\.walkAcross\.dur/, 'таймер должен быть привязан к длительности walkAcross, а не к произвольному числу');
   assert.doesNotMatch(fn, /queue\s*=\s*\['invite'\]/, 'this.queue у зацикленной walkAcross не читается tick() – переход остался бы недостижим');
+  // Где встала – там и стоит (владелец 08.09.2026): конечное смещение
+  // пробега запоминается, иначе поза приглашения вернула бы ворону к
+  // месту старта (invite = idle, горизонтального смещения не задаёт).
+  assert.match(fn, /holdRx/, 'после реплики ворона откатится назад: конечное смещение пробега не запоминается');
 });
 
 test('js/crow-mascot.js: align:\'right\' ставит маскот у правого края слота, а не по центру', () => {
@@ -83,10 +87,17 @@ test('.landing-template.html: слот у правого края ленты «�
   const tpl = fs2.readFileSync(path.join(ROOT, '.landing-template.html'), 'utf8');
   const top5 = tpl.slice(tpl.indexOf('id="top5"'), tpl.indexOf('<!-- TEACHERS'));
   assert.match(top5, /data-crow-walk/, 'нет слота выхода в содержимое в секции Топ-5');
-  const trackEnd = top5.indexOf('</sc-for>');
+  // Место уточнено владельцем 08.09.2026: ворона стоит НАД строкой «Все
+  // программы с фильтрами», а не под лентой – там она оказывалась ниже
+  // программ, в пустой полосе. Слот вынесен ПЕРЕД шапкой секции, а не
+  // внутрь неё: внутри .dpo-carousel-head он становится третьим элементом
+  // флекс-ряда и встаёт СБОКУ от заголовка, а не над надписью.
+  const headStart = top5.indexOf('dpo-carousel-head');
   const navStart = top5.indexOf('dpo-carousel-nav');
+  const trackStart = top5.indexOf('dpo-top5-track');
   const slotPos = top5.indexOf('data-crow-walk');
-  assert.ok(slotPos > trackEnd, 'слот должен стоять ПОСЛЕ ленты тайлов, а не в шапке со стрелками – иначе высота уже отстроенной шапки раздуется, когда маскота нет');
+  assert.ok(slotPos < headStart, 'слот должен стоять ПЕРЕД шапкой секции, иначе ворона встаёт сбоку от заголовка');
+  assert.ok(slotPos < navStart && slotPos < trackStart, 'слот должен быть выше и надписи «Все программы с фильтрами», и самой ленты');
 });
 
 test('index.html: crow-walk-addon вызывает mountWalkIn на window.load, после загрузки уже подключённого js/crow-mascot.js', () => {

@@ -309,7 +309,10 @@ function CrowMascot(opts) {
     followCursor: opts.followCursor !== false,
     idleSeconds: opts.idleSeconds == null ? 14 : opts.idleSeconds,
     onClick: opts.onClick || null,
-    zIndex: opts.zIndex || 40
+    zIndex: opts.zIndex || 40,
+    // solo по умолчанию true: маскот, смонтированный без оговорки, прячет
+    // уже стоящих (историческое правило «маскот на экране один»).
+    solo: opts.solo !== false
   };
   this.mouse = null;
   this.reducedMotion = REDUCED_MOTION;
@@ -323,7 +326,13 @@ function CrowMascot(opts) {
   // Маскот на экране – один: новый инстанс сразу же прячет тех, что уже
   // смонтированы (см. suppressExisting выше), и вернёт их сам при destroy().
   LIVE.push(this);
-  this.suppressedByMe = suppressExisting(this);
+  // solo:false – новый маскот НЕ прячет уже стоящих. Так монтируются
+  // ворона в содержимом (walkIn) и ворона в пустом результате каталога:
+  // угловая обязана оставаться на месте всегда (решение владельца
+  // 08.09.2026 – «не пропадать оттуда»). Правило «маскот на экране один»
+  // остаётся для окна бота и модальных окон: там маскот прячет
+  // js/support-bot.js и js/application-form.js, и оба возвращают его сами.
+  this.suppressedByMe = this.opt.solo === false ? [] : suppressExisting(this);
   if (this.reducedMotion) {
     // Цикл кадров не запускается вовсе: ни requestAnimationFrame, ни
     // слежение за курсором, ни автоматическая реплика простоя. Поза
@@ -455,7 +464,15 @@ CrowMascot.prototype.walkIn = function (skipWalk) {
   var self = this;
   clearTimeout(this.walkInTimer);
   this.walkInTimer = setTimeout(function () {
-    if (self.anim === 'walkAcross') self.play('invite');
+    if (self.anim !== 'walkAcross') return;
+    // ГДЕ ВСТАЛА – ТАМ И СТОИТ (решение владельца 08.09.2026). walkAcross
+    // ведёт ворону смещением p.rx от +300 до -600, а поза приглашения
+    // (invite = idle) горизонтального смещения не задаёт вовсе – значит,
+    // при переключении rest() возвращал бы rx к нулю, и ворона прыгала бы
+    // назад, к месту старта. Запоминаем конечное смещение пробега и держим
+    // его дальше (см. holdRx в tick).
+    self.holdRx = 300 - 900;
+    self.play('invite');
   }, A.walkAcross.dur * 1000 / (this.opt.speed || 1));
 };
 
@@ -485,7 +502,12 @@ CrowMascot.prototype.tick = function (now) {
     this.t0 = now - (t % def.dur) / speed; t = t % def.dur;
   }
   var p = rest();
+  // Смещение, на котором ворона остановилась после пробега (см. walkIn).
+  var holdRx = this.holdRx || 0;
   def.fn(t, p);
+  // Пробег сам ведёт rx, остальным позам смещение добавляется здесь –
+  // иначе ворона после реплики вернулась бы к месту старта.
+  if (holdRx && name !== 'walkAcross') p.rx += holdRx;
 
   if (this.opt.followCursor && def.track !== 0 && this.mouse) {
     if (!this.rect || now - (this.rectT || 0) > 0.4) { this.rect = this.stage.getBoundingClientRect(); this.rectT = now; }
@@ -654,6 +676,7 @@ function mountWalkIn(slot, opts) {
     current.crow.destroy();
     if (current.hit.parentNode) current.hit.parentNode.removeChild(current.hit);
     current = null;
+    document.documentElement.classList.remove('crow-inline-live');
   }
 
   function spawn() {
@@ -666,6 +689,7 @@ function mountWalkIn(slot, opts) {
       width: width,
       followCursor: false,
       idleSeconds: 0,
+      solo: false,
       onClick: function () {} // клики ловит .crow-walk-hit поверх, см. ниже
     });
     var hit = document.createElement('button');
@@ -682,6 +706,14 @@ function mountWalkIn(slot, opts) {
     hit.addEventListener('click', teardown);
     slot.appendChild(hit);
     current = { crow: crow, hit: hit };
+    // Пока ворона стоит в содержимом, УГЛОВАЯ остаётся видимой (решение
+    // владельца: она не должна пропадать), но перестаёт ловить клики –
+    // иначе её прозрачная кнопка 200×209 в правом нижнем углу накрывает
+    // то, что оказалось под ней при этой прокрутке. Замер поймал стрелки
+    // ленты «Топ-5»: по ним нельзя было нажать. Вход в бота при этом не
+    // теряется – рядом стоит ворона в содержимом с той же кнопкой, а выше
+    // кнопка в шапке.
+    document.documentElement.classList.add('crow-inline-live');
     // Телефон: 390px мало для пробега на всю длину walkAcross – маскот
     // появляется сразу в позе приглашения, без бега.
     var narrow = typeof matchMedia === 'function' && matchMedia('(max-width:600px)').matches;
