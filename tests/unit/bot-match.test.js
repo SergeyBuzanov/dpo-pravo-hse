@@ -78,3 +78,44 @@ test('порядок выдачи устойчив: совпадение в на
   const out = search('юристы налоговых', PROGRAMS);
   assert.equal(out.programs[0].id, '1');
 });
+
+// --- Регрессии по находкам ревью 2026-09-08 ---
+
+test('CRITICAL 1: совпадение в названии всегда выше совпадения в keywords, даже при меньшей сумме очков', () => {
+  const progs = [
+    { id: 'a', title: 'Налоговые споры', keywords: [] },
+    { id: 'b', title: 'Общий курс', keywords: ['Налоговое администрирование', 'Право'] },
+  ];
+  const out = search('налоговое право', progs);
+  assert.equal(out.programs[0].id, 'a');
+});
+
+test('CRITICAL 2: «не дороже N» задаёт верхнюю границу цены, а не нижнюю', () => {
+  const q = parseQuery('не дороже 40000');
+  assert.equal(q.priceMax, 40000);
+  assert.equal(q.priceMin, null);
+  const out = search('не дороже 40000', PROGRAMS);
+  assert.equal(out.reason, 'filter');
+  assert.deepEqual(out.programs.map((p) => p.id), ['1']);
+});
+
+test('IMPORTANT 3: «право» и «правка» не считаются одним словом', () => {
+  assert.notEqual(stem('право'), stem('правка'));
+  const progs = [{ id: 'x', title: 'Международное право', keywords: [] }];
+  const out = search('правка документа', progs);
+  assert.equal(out.reason, 'none');
+});
+
+test('IMPORTANT 4: цена «за N» распознаётся, запрос не считается пустым', () => {
+  const q = parseQuery('за 100000');
+  assert.equal(q.priceMax, 100000);
+  const out = search('за 100000', PROGRAMS);
+  assert.notEqual(out.reason, 'empty');
+});
+
+test('IMPORTANT 5: ограничение без сужения выдачи – всё равно «filter», а не «none»', () => {
+  // priceMax=100000 не отсекает ни одну из трёх программ (макс. цена – 60000),
+  // а слово «космонавтика» не совпадает ни с одним названием/keywords/сферой.
+  const out = search('дешевле 100 тысяч космонавтика', PROGRAMS);
+  assert.equal(out.reason, 'filter');
+});

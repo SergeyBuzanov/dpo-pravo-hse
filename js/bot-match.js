@@ -22,7 +22,7 @@
     'ой', 'ом', 'ам', 'ах', 'ям', 'ях', 'ы', 'и', 'а', 'я', 'о', 'е', 'у', 'ю', 'ь',
   ];
 
-  var MIN_STEM = 4;
+  var MIN_STEM = 5;
 
   function normalize(word) {
     return String(word || '').toLowerCase().replace(/ё/g, 'е');
@@ -57,12 +57,15 @@
     var out = { stems: [], priceMax: null, priceMin: null, format: null, type: null };
     if (!text.trim()) return out;
 
-    // Цена: «до 30 000», «дешевле 30 тысяч», «от 20 тысяч».
-    var price = text.match(/(до|дешевле|не дороже|от|дороже)\s+(\d[\d\s]*)\s*(тыс\w*)?/);
+    // Цена: «до 30 000», «дешевле 30 тысяч», «от 20 тысяч», «не дороже 40 тысяч», «за 100000».
+    var price = text.match(/(до|дешевле|не дороже|не больше|за|от|дороже)\s+(\d[\d\s]*)\s*(тыс\w*)?/);
     if (price) {
       var value = parseInt(price[2].replace(/\s/g, ''), 10);
       if (price[3]) value *= 1000;
-      if (/от|дороже/.test(price[1])) out.priceMin = value;
+      // Отрицательные обороты («не дороже», «не больше») проверяются раньше:
+      // иначе подстрока «дороже» внутри «не дороже» перепутает верх с низом.
+      if (/^не\s/.test(price[1])) out.priceMax = value;
+      else if (/от|дороже/.test(price[1])) out.priceMin = value;
       else out.priceMax = value;
     }
 
@@ -120,7 +123,14 @@
         return { p: p, score: inTitle * 3 + inWords * 2 + inSphere, inTitle: inTitle };
       })
       .filter(function (row) { return row.score > 0; })
-      .sort(function (a, b) { return b.score - a.score; });
+      .sort(function (a, b) {
+        // Уровень (совпадение в названии) важнее суммы очков: программа
+        // без единого слова в названии не должна обгонять ту, что есть.
+        var aTier = a.inTitle > 0 ? 1 : 0;
+        var bTier = b.inTitle > 0 ? 1 : 0;
+        if (aTier !== bTier) return bTier - aTier;
+        return b.score - a.score;
+      });
 
     if (scored.length) {
       return {
@@ -128,8 +138,12 @@
         programs: scored.map(function (row) { return row.p; }),
       };
     }
-    // Слова не совпали, но ограничения есть – это осмысленный отбор.
-    if (!q.stems.length || (filtered.length && filtered.length < list.length)) {
+    // Слова не совпали, но ограничение (цена/формат/тип) задано и что-то
+    // ему удовлетворяет – это осмысленный отбор, а не «не нашёл». Не важно,
+    // сузило ли оно выдачу: реплика бота зависит от reason, а список и так
+    // правильный.
+    var hasRestriction = !!q.format || !!q.type || q.priceMax !== null || q.priceMin !== null;
+    if (hasRestriction && filtered.length) {
       return { reason: 'filter', programs: filtered };
     }
     // Не нашлось ничего: показываем те, что стартуют ближе всего. Это
