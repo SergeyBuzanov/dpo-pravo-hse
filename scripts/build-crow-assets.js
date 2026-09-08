@@ -16,6 +16,14 @@
  * силуэт целиком) был исходником для нарезки на части, в рантайме не
  * используется и в сборку не попадает: его нет в списке LAYERS ниже.
  *
+ * Задача 12 (08.09.2026): `rest.png` всё же пригодился – странице 404
+ * скрипты запрещены её же CSP (`script-src` там нет вовсе), анимированный
+ * маскот там невозможен в принципе, а неподвижная картинка нужна. Тот же
+ * `rest.png` пережимается ЦЕЛИКОМ (без нарезки на слои) в `still.webp` –
+ * см. `buildStill` ниже. Композиция исходника (ворона с лупой и
+ * приподнятой бровью) уже читается как «думает», кадрировать её не
+ * потребовалось.
+ *
  * Вся геометрия маскота в `crow-mascot.js` задана в процентах от сцены
  * 1400×1465 (размер слоёв torso/neck). Поэтому масштаб ОДИН И ТОТ ЖЕ для
  * всех слоёв: кадрирование или разный масштаб развалят взаимное положение
@@ -47,6 +55,15 @@ const SCALE = 0.4;
 // при уменьшении в 2,5 раза, а бюджет всё равно не тратится весь.
 const WEBP_LOSSLESS_EFFORT = 9;
 
+// Неподвижная ворона страницы 404 (задача 12): 260px на странице -> 520px
+// исходника для чёткости на экранах 2x, как у слоёв выше. Не входит в
+// LAYERS – это отдельная картинка, не участвующая в анимации, и в бюджет
+// 250 КБ маскота (tests/unit/crow-assets.test.js) не считается: она не
+// грузится вместе с 11 слоями, а живёт на отдельной странице без них.
+const STILL_SOURCE = 'rest.png';
+const STILL_OUT = 'still.webp';
+const STILL_TARGET_WIDTH = 520;
+
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUT_DIR = path.join(ROOT, 'images', 'crow');
 
@@ -64,6 +81,34 @@ function hasAlpha(file) {
 
 function kb(bytes) {
   return `${Math.round((bytes / 1024) * 10) / 10} КБ`;
+}
+
+/** Тот же приём, что для слоёв (sips для масштаба, cwebp lossless для веса), но
+ * на целую картинку без нарезки: странице 404 хватает одного неподвижного кадра. */
+function buildStill(srcDir, outDir, tmpDir) {
+  const srcFile = path.join(srcDir, STILL_SOURCE);
+  if (!fs.existsSync(srcFile)) {
+    throw new Error(`не найден исходник: ${srcFile}`);
+  }
+
+  const before = fs.statSync(srcFile).size;
+  const { width, height } = pixelSize(srcFile);
+  const targetWidth = STILL_TARGET_WIDTH;
+  const targetHeight = Math.round((height * targetWidth) / width);
+
+  const resizedFile = path.join(tmpDir, 'still.png');
+  execFileSync('sips', ['-z', String(targetHeight), String(targetWidth), srcFile, '--out', resizedFile], { stdio: 'ignore' });
+
+  if (!hasAlpha(resizedFile)) {
+    throw new Error('альфа-канал потерян при масштабировании: still');
+  }
+
+  const outFile = path.join(outDir, STILL_OUT);
+  execFileSync('cwebp', ['-lossless', '-z', String(WEBP_LOSSLESS_EFFORT), resizedFile, '-o', outFile], { stdio: 'ignore' });
+
+  const after = fs.statSync(outFile).size;
+  console.log(`${'still'.padEnd(6)} ${kb(before).padStart(10)} -> ${kb(after).padStart(9)}  (${width}x${height} -> ${targetWidth}x${targetHeight})`);
+  return { width: targetWidth, height: targetHeight, size: after };
 }
 
 function build(srcDir, outDir) {
@@ -101,10 +146,13 @@ function build(srcDir, outDir) {
     console.log(`${layer.padEnd(6)} ${kb(before).padStart(10)} -> ${kb(after).padStart(9)}  (${width}x${height} -> ${targetWidth}x${targetHeight})`);
   }
 
+  const still = buildStill(srcDir, outDir, tmpDir);
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 
   console.log('---');
   console.log(`итого  ${kb(totalBefore).padStart(10)} -> ${kb(totalAfter).padStart(9)}`);
+  return still;
 }
 
 if (require.main === module) {
@@ -118,4 +166,4 @@ if (require.main === module) {
   build(path.resolve(srcArg), outArg ? path.resolve(outArg) : DEFAULT_OUT_DIR);
 }
 
-module.exports = { build, LAYERS, SCALE };
+module.exports = { build, buildStill, LAYERS, SCALE, STILL_TARGET_WIDTH };

@@ -87,6 +87,15 @@
   }
   .wrap { position: relative; max-width: 34em; }
 
+  /* Маскот-ворона (задача 12): страница без script-src не может грузить
+     js/crow-mascot.js, поэтому здесь – обычная неподвижная картинка, вырезка
+     из того же присланного рисунка, которым нарезаны рабочие слои маскота
+     (images/crow/still.webp, см. scripts/build-crow-assets.js). alt пустой –
+     ворона декоративна, смысл несёт текст рядом, не она сама. Ширина 260px –
+     тот же размер, что у маскота в углу лендинга (js/crow-mascot.js,
+     width по умолчанию 260). */
+  .crow-404 { display: block; width: 260px; height: auto; margin: 0 0 20px; }
+
   .badge {
     display: inline-block; margin-bottom: 20px;
     padding: 6px 14px; border-radius: 999px;
@@ -153,12 +162,16 @@
   /* Появление: короткий подъём с прозрачностью, по очереди. Для тех, кто
      просил меньше движения, страница показывается сразу. */
   @media (prefers-reduced-motion: no-preference) {
+    /* Задача 12 добавила ворону первым ребёнком .wrap – прогрессия delay
+       (шаг .05s) сдвинута на одну позицию и продлена шестым правилом, сама
+       прогрессия не менялась. */
     .wrap > * { animation: rise .5s cubic-bezier(.22,1,.36,1) backwards; }
     .wrap > :nth-child(1) { animation-delay: .02s }
     .wrap > :nth-child(2) { animation-delay: .07s }
     .wrap > :nth-child(3) { animation-delay: .12s }
     .wrap > :nth-child(4) { animation-delay: .17s }
     .wrap > :nth-child(5) { animation-delay: .22s }
+    .wrap > :nth-child(6) { animation-delay: .27s }
     .ghost-code { animation: fade 1.1s ease .1s backwards; }
   }
   @keyframes rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
@@ -190,6 +203,7 @@
 <main>
   <span class="ghost-code" aria-hidden="true">404</span>
   <div class="wrap">
+    <img class="crow-404" src="/dpo-pravo-hse/images/crow/still.webp" width="260" height="272" alt="">
     <span class="badge">Ошибка 404</span>
     <h1 id="top">Такой страницы нет</h1>
     <p class="lead">Возможно, адрес изменился или в ссылке опечатка. Каталог программ
