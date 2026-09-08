@@ -40,6 +40,14 @@
     'box-shadow:0 24px 60px rgb(var(--ink) / .28);opacity:0;transform:translateY(12px) scale(.985);',
     'transition:opacity .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1)}',
     '#dpoBotPanel.is-open{opacity:1;transform:none}',
+    // Открытое окно не перекрывает соседей вслепую – карточка/бейдж
+    // приглашения в канал (js/channel-invite.js, right:300px/112px) не
+    // накрыты панелью целиком (панель у́же) и торчали рядом на снимке.
+    // Само окно бота, в отличие от формы заявки и опроса, НЕ полноэкранная
+    // подложка – прятать соседа приходится явно. :has() безопасен именно
+    // потому, что правило вставлено СКРИПТОМ (см. .dpo-tag:has(...) в
+    // js/smooth-ui.js – тот же приём и то же обоснование).
+    'body:has(#dpoBotPanel) #channelInvite,body:has(#dpoBotPanel) #channelInviteBadge{display:none!important}',
     '#dpoBotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;',
     'padding:14px 14px 10px 18px;border-bottom:1px solid rgb(var(--ink) / .1);flex:none}',
     // Кегль – ступень «title» шкалы DESIGN.md (1.1875rem/600/1.3, «заголовки карточек»).
