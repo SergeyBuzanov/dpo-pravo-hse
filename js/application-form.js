@@ -78,6 +78,15 @@
   var programIndex = null;
   var programsTried = false;
 
+  /**
+   * Маскот на экране «Спасибо!» (задача 11). Файл и слои те же, что у
+   * угла лендинга и пустого результата каталога (js/crow-mascot.js,
+   * images/crow/*.webp), но страницы программ его ещё не подключают –
+   * форма грузит его сама, лениво, при первом показе итога.
+   */
+  var CROW_SCRIPT_URL = 'js/crow-mascot.js';
+  var CROW_ASSET_PATH = 'images/crow/';
+
   var SOURCES = [
     ['hse-site', 'Сайт НИУ ВШЭ'],
     ['telegram', 'Телеграм-канал'],
@@ -177,6 +186,10 @@
     // единственным на сайте (аудит 21.08.2026).
     '.dpo-app-done{padding:4px 0}',
     '.dpo-app-done h2{margin-bottom:10px}',
+    // Ворона встаёт В ПОТОК блока (anchor – HTMLElement, см. API в
+    // js/crow-mascot.js), центрируется сама (margin:0 auto у host);
+    // отступ снизу – только на обёртке.
+    '.dpo-app-done-crow{margin:0 0 10px}',
     '.dpo-app-done p{font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
     // Строка «что дальше»: пергаментная плашка с названием программы –
     // человек видит, ЧТО именно приняли, а не только что приняли.
@@ -226,6 +239,29 @@
   var backdrop = null;
   var lastTrigger = null;
   var context = {};
+  var doneCrow = null;
+  var crowScriptLoading = false;
+
+  /**
+   * Ленивая загрузка маскота на экран «Спасибо!» — тот же приём, что у
+   * пустого результата фильтров в «Каталог программ.html»: скрипт грузится
+   * динамически при первом обращении и остаётся закэширован дальше. Если
+   * файла нет (script.onload не сработает), callback просто не вызовется –
+   * экран «Спасибо!» уже построен и без маскота не ломается.
+   */
+  function withCrowScript(cb) {
+    if (window.CrowMascot) { cb(); return; }
+    if (crowScriptLoading) {
+      document.addEventListener('crow-mascot:ready', cb, { once: true });
+      return;
+    }
+    crowScriptLoading = true;
+    var script = document.createElement('script');
+    script.src = crowScriptHref();
+    script.onload = function () { document.dispatchEvent(new Event('crow-mascot:ready')); };
+    document.addEventListener('crow-mascot:ready', cb, { once: true });
+    document.body.appendChild(script);
+  }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -261,6 +297,16 @@
   /** Тот же приём, что у privacyHref: страницы программ лежат уровнем ниже. */
   function programsHref() {
     return /\/programs\//.test(location.pathname) ? '../' + PROGRAMS_URL : PROGRAMS_URL;
+  }
+
+  /** Тот же приём: слои маскота лежат в images/crow/ от корня сайта. */
+  function crowAssetHref() {
+    return /\/programs\//.test(location.pathname) ? '../' + CROW_ASSET_PATH : CROW_ASSET_PATH;
+  }
+
+  /** Тот же приём: сам файл маскота со страниц программ грузится с ../. */
+  function crowScriptHref() {
+    return /\/programs\//.test(location.pathname) ? '../' + CROW_SCRIPT_URL : CROW_SCRIPT_URL;
   }
 
   /** Адрес программы абсолютным: в журнале и письме относительный путь бесполезен. */
@@ -775,6 +821,13 @@
 
   function closeDialog() {
     if (!backdrop) return;
+    // Маскот экрана «Спасибо!» держит requestAnimationFrame и слушатели на
+    // window (js/crow-mascot.js) – при закрытии окна их надо снять, иначе
+    // они переживут удаление узла из DOM.
+    if (doneCrow) {
+      doneCrow.destroy();
+      doneCrow = null;
+    }
     hideBackground(false);
     backdrop.classList.remove('is-open');
     document.removeEventListener('keydown', onKeydown, true);
@@ -886,7 +939,13 @@
           })
         : null;
 
+    // Маскот над итогом (задача 11): декоративен, alt="" у всех слоёв
+    // (js/crow-mascot.js), поэтому aria-hidden – диктору у экрана уже есть
+    // текст с тем же смыслом.
+    var crowWrap = el('div', { class: 'dpo-app-done-crow', 'aria-hidden': 'true' });
+
     var done = el('div', { class: 'dpo-app-done' }, [
+      crowWrap,
       named,
       el('p', {
         text: isProgram
@@ -910,6 +969,24 @@
     var caption = dialog.querySelector('.dpo-app-program');
     if (caption) caption.remove();
     dialog.appendChild(done);
+    // Ворона кивает подтверждению – то же правило видимости, что у вибрации
+    // выше: в reduced motion маскот встаёт в позу покоя и молчит (это уже
+    // делает сам js/crow-mascot.js), кивок сверху здесь не играем. Монтировать
+    // можно только ПОСЛЕ appendChild – до него crowWrap ещё не в document.
+    withCrowScript(function () {
+      if (!window.CrowMascot || !document.body.contains(crowWrap)) return;
+      doneCrow = CrowMascot.mount({
+        assetPath: crowAssetHref(),
+        anchor: crowWrap,
+        width: 140,
+        followCursor: false,
+        idleSeconds: 0,
+        onClick: function () {},
+      });
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        doneCrow.play('nod');
+      }
+    });
     dialog.querySelector('.dpo-app-close').focus();
   }
 
