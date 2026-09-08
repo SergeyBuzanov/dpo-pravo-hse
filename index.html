@@ -642,17 +642,36 @@ document.addEventListener('DOMContentLoaded', async function() {
 })();
 </script>
 <!-- crow-launcher-addon: ворона Шерлок в правом нижнем углу лендинга
-     (задача 9, 08.09.2026). Виджет – js/crow-mascot.js, слои –
+     (задача 9, 08.09.2026; правка 08.09.2026 вечером – владелец убрал
+     видимую пилюлю поверх маскота). Виджет – js/crow-mascot.js, слои –
      images/crow/*.webp (задача 8, 11 файлов). Угол принадлежит вороне
      (решение владельца): бейдж канала MAX (js/channel-invite.js) и
      мобильная полоса-CTA (js/smooth-ui.js) подвинуты в своих файлах.
      Слои: модальные окна 9000 > баннер cookies 1000 > полоса-CTA 940 >
-     ворона 920 > бейдж канала 900.
+     прозрачная кнопка-хит 921 > ворона 920 > бейдж канала 900.
 
-     Мишень клика для клавиатуры и диктора – кнопка «Подать заявку» ниже,
-     а не сама ворона: слои маскота декоративны (alt="" у всех), div не
-     фокусируется таб-ом. Клик по самой вороне (мышью) дублирует клик по
-     кнопке через onClick.
+     Кнопкой является САМА ВОРОНА, а не отдельная видимая пилюля рядом:
+     .crow-hit-btn – прозрачная кнопка размером и положением точно как у
+     маскота (z-index выше него, поэтому клик мышью в любой точке вороны
+     ловит именно кнопку), надпись «Подать заявку» – только для читалок
+     (.visually-hidden, тот же класс и то же правило, что в «Каталог
+     программ.html»). Порядок обхода Tab не трогали: кнопка вставлена
+     document.body.appendChild – единственный новый узел с фокусом на
+     странице, добавляется последним в DOM, что и раньше было с прежней
+     пилюлей.
+
+     ЛОВУШКА (её и просили обойти): маскот в html.vi-mode скрыт целиком
+     (декоративен), и если кнопкой была бы только ворона, вход в заявку у
+     версии для слабовидящих исчез бы. Поэтому .crow-hit-btn ТОЖЕ скрыта в
+     vi-mode, а вместо неё показывается #crow-vi-btn – обычная видимая
+     кнопка с той же подписью и теми же стилями, что были у прежней
+     пилюли (перенесена, а не удалена). Обе кнопки лежат в DOM всегда,
+     видна только одна – переключение чистым CSS по html.vi-mode, без
+     JS-состояния.
+
+     Мишень 44px: у .crow-hit-btn – 96×100 (телефон) / 260×272 (широкий
+     экран), с большим запасом; у #crow-vi-btn – min-height:44px, как и у
+     прежней пилюли.
 
      ПО КЛИКУ ОТКРЫВАЕТСЯ ФОРМА ЗАЯВКИ (js/application-form.js,
      [data-application]) – ВРЕМЕННОЕ поведение: окна бота (js/support-bot.js)
@@ -665,13 +684,9 @@ document.addEventListener('DOMContentLoaded', async function() {
      Стили вставлены СКРИПТОМ, а не статичным <style> (тот же приём, что у
      vi-mode-addon выше): рантайм при загрузке делает
      document.documentElement.replaceWith(...) и уносит с собой любую
-     статическую разметку хвоста файла, включая <style>. Первая версия
-     этого блока держала CSS в обычном <style> – кнопка «Подать заявку»
-     оставалась без единого правила и рисовалась браузером по умолчанию
-     (замер в браузере 08.09.2026: bounding box в левом верхнем углу,
-     высота строки вместо min-height:44px). Кнопка создаётся и стилизуется
-     ЦЕЛИКОМ в mountCrow() ниже, который выполняется по window.load – то
-     есть заведомо после подмены документа. -->
+     статическую разметку хвоста файла, включая <style>. Кнопки создаются
+     и стилизуются ЦЕЛИКОМ в mountCrow() ниже, который выполняется по
+     window.load – то есть заведомо после подмены документа. -->
 <script>
 (function () {
   function mountCrow() {
@@ -687,28 +702,51 @@ document.addEventListener('DOMContentLoaded', async function() {
     var style = document.createElement('style');
     style.textContent =
       '.crow-mascot{right:' + edge + 'px!important}' +
-      '.crow-launch-btn{position:fixed;right:' + edge + 'px;bottom:' + (height + 10) + 'px;' +
+      // Прозрачная кнопка ровно поверх маскота – размер и положение
+      // совпадают с .crow-mascot (right/bottom/width/height), z-index на
+      // единицу выше него, поэтому клик мышью по любому пикселю вороны
+      // ловит именно кнопку, а не div маскота.
+      '.crow-hit-btn{position:fixed;right:' + edge + 'px;bottom:0;width:' + width + 'px;height:' + height + 'px;' +
+      'z-index:921;background:transparent;border:0;padding:0;margin:0;cursor:pointer;border-radius:16px}' +
+      // Кольцо фокуса – тот же рецепт, что у .dpo-scope button:focus-visible
+      // в шаблоне лендинга (двухслойное кольцо, читается на любом фоне).
+      '.crow-hit-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #FBF9F5,0 0 0 4px rgb(var(--accent))}' +
+      '.crow-hit-btn .visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;' +
+      'overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}' +
+      // vi-mode: маскот и его прозрачная кнопка скрыты, вместо них – обычная
+      // видимая кнопка (стили один в один со снятой пилюлей).
+      'html.vi-mode .crow-hit-btn{display:none}' +
+      '#crow-vi-btn{display:none}' +
+      'html.vi-mode #crow-vi-btn{display:inline-flex;align-items:center;justify-content:center;' +
+      'position:fixed;right:' + edge + 'px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));' +
       'z-index:920;min-height:44px;padding:0 16px;border-radius:999px;cursor:pointer;' +
       "font:600 0.8125rem/1 'HSE Sans','IBM Plex Sans',system-ui,sans-serif;" +
-      'color:rgb(var(--surface));background:rgb(var(--accent));border:1px solid rgb(var(--accent));' +
-      'box-shadow:0 8px 24px rgb(var(--ink) / .18)}' +
-      'html.vi-mode .crow-launch-btn{background:#fff!important;color:#000!important;border:2px solid #000!important}';
+      'background:#fff!important;color:#000!important;border:2px solid #000!important}';
     (document.head || document.documentElement).appendChild(style);
 
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'crow-launch-btn';
-    btn.setAttribute('data-application', '');
-    btn.textContent = 'Подать заявку';
-    document.body.appendChild(btn);
+    var hit = document.createElement('button');
+    hit.type = 'button';
+    hit.className = 'crow-hit-btn';
+    hit.setAttribute('data-application', '');
+    var hitLabel = document.createElement('span');
+    hitLabel.className = 'visually-hidden';
+    hitLabel.textContent = 'Подать заявку';
+    hit.appendChild(hitLabel);
+    document.body.appendChild(hit);
+
+    var viBtn = document.createElement('button');
+    viBtn.type = 'button';
+    viBtn.id = 'crow-vi-btn';
+    viBtn.setAttribute('data-application', '');
+    viBtn.textContent = 'Подать заявку';
+    document.body.appendChild(viBtn);
 
     window.crowMascot = CrowMascot.mount({
       assetPath: 'images/crow/',
       anchor: 'bottom-right',
       width: width,
       zIndex: 920,
-      idleSeconds: 14,
-      onClick: function () { btn.click(); }
+      idleSeconds: 14
     });
   }
   if (document.readyState === 'complete') mountCrow();
