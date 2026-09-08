@@ -37,6 +37,21 @@ test('js/crow-launcher.js: у углового маскота есть опор�
   assert.match(rule, /bottom:0/, 'нет bottom:0 – стёртый инлайн уронит ворону под кромку окна');
 });
 
+test('js/support-bot.js: ворона уворачивается ОТ ВСЕХ ТРЁХ нижних полос', () => {
+  // На телефоне низ экрана занят полосой с кнопками, и полос этих три
+  // РАЗНЫХ: .dpo-mobile-cta ставит js/smooth-ui.js на лендинге, .mobile-cta
+  // живёт в разметке каталога, .buy-bar – на страницах программ (генератор).
+  // Живой дефект 09.09.2026: keepAboveBanners знал только про первую, и на
+  // каталоге и странице программы ворона садилась ПОВЕРХ кнопок «Фильтры» и
+  // «Подать заявку» – и закрывала их собой, и перехватывала нажатия.
+  const list = BOT.slice(BOT.indexOf('var BOTTOM_BARS'), BOT.indexOf('var BOTTOM_BARS') + 200);
+  for (const sel of ['.dpo-mobile-cta', '.mobile-cta', '.buy-bar']) {
+    assert.ok(list.includes(sel), `ворона не знает про нижнюю полосу ${sel}`);
+  }
+  const fn = BOT.slice(BOT.indexOf('function keepAboveBanners'), BOT.indexOf('function keepAboveBanners') + 900);
+  assert.match(fn, /BOTTOM_BARS/, 'список полос заведён, но не используется');
+});
+
 test('js/support-bot.js: keepAboveBanners по-прежнему пишет bottom трём элементам угла', () => {
   // Тест держит связь между двумя файлами: если селекторы разъедутся,
   // причина дефекта вернётся, а правило-опора станет бессмысленным.

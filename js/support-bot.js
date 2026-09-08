@@ -71,6 +71,12 @@
     // потому, что правило вставлено СКРИПТОМ (см. .dpo-tag:has(...) в
     // js/smooth-ui.js – тот же приём и то же обоснование).
     'body:has(#dpoBotPanel) #channelInvite,body:has(#dpoBotPanel) #channelInviteBadge{display:none!important}',
+    // Нижняя полоса с кнопками на телефоне уступает место окну: пока оно
+    // открыто, полоса не нужна (у окна свои действия), а её присутствие
+    // поднимало шторку на 94px над кромкой – под ней оставалась щель с
+    // куском страницы. Полосы три разных, см. BOTTOM_BARS ниже.
+    'body:has(#dpoBotPanel) .dpo-mobile-cta,body:has(#dpoBotPanel) .mobile-cta,',
+    'body:has(#dpoBotPanel) .buy-bar{display:none!important}',
     '#dpoBotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;',
     'padding:10px 14px 8px 14px;border-bottom:1px solid rgb(var(--ink) / .1);flex:none}',
     // Ворона в шапке окна (владелец 09.09.2026: «должно быть понятно, что
@@ -477,10 +483,21 @@
     return rect.height ? rect.top : null;
   }
 
+  /**
+   * Полосы у нижней кромки, от которых ворона и окно уворачиваются. Их ТРИ
+   * РАЗНЫХ, и это не дублирование, а история страниц: `.dpo-mobile-cta`
+   * ставит скриптом js/smooth-ui.js на лендинге, `.mobile-cta` лежит в
+   * разметке каталога, `.buy-bar` рисует генератор страниц программ.
+   * Живой дефект 09.09.2026 (проверка на телефоне): знали только про
+   * первую – и на каталоге со страницей программы ворона садилась ПОВЕРХ
+   * кнопок «Фильтры» и «Подать заявку», закрывая их собой.
+   */
+  var BOTTOM_BARS = ['.dpo-mobile-cta', '.mobile-cta', '.buy-bar'];
+
   function keepAboveBanners() {
-    var tops = [topOf(document.getElementById('cookieBanner')), topOf(document.querySelector('.dpo-mobile-cta'))].filter(
-      function (v) { return v != null; },
-    );
+    var tops = [topOf(document.getElementById('cookieBanner'))]
+      .concat(BOTTOM_BARS.map(function (sel) { return topOf(document.querySelector(sel)); }))
+      .filter(function (v) { return v != null; });
     var value = '';
     if (tops.length) {
       var overlap = window.innerHeight - Math.min.apply(null, tops);
