@@ -32,8 +32,8 @@ test('в выкладке есть всё, ради чего она сущест
     '404.html',
     'robots.txt',
     'sitemap.xml',
-    'favicon.svg',
-    'apple-touch-icon.png',
+    'images/logo/favicon-32.png',
+    'images/logo/apple-touch-icon-180.png',
     '.nojekyll',
     'content/programs-index.json',
   ]) {
