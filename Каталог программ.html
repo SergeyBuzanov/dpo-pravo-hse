@@ -349,6 +349,17 @@
 
   /* Расшифровка овалов ПК/ПП: подсказка по наведению на таче недоступна. */
   .tag-legend{ font-size: 0.8125rem; color: var(--ink-mute); margin: 10px 0 0; }
+  /* Выход вороны в содержимое (задача 13): своя строка СРАЗУ ПОД тулбаром
+     поиска/сортировки – рядом с лупой поиска (.search-icon), не в потоке
+     карточек ниже. Отдельная строка, а не оверлей поверх тулбара: реальное
+     место в раскладке гарантирует, что маскот никогда не перекроет поле
+     поиска, сортировку или кнопку сброса (хит-тест это не оверлей, а
+     соседний блок). Размер слота задан ЗАРАНЕЕ, а не в момент монтирования
+     маскота: без этого высота строки прыгала бы с 0 на ~126px ровно в
+     момент появления блока в кадре (сдвиг сетки карточек под курсором,
+     CLS) – ширина/высота здесь совпадают с width:120 у mountWalkIn ниже. */
+  .crow-walk-row{ display: flex; justify-content: flex-end; padding: 6px clamp(20px, 5vw, 56px) 0; }
+  .crow-walk-slot{ width: 120px; height: 126px; }
   .toolbar{
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     padding: 14px clamp(20px, 5vw, 56px) 4px;
@@ -1056,6 +1067,15 @@
   <button type="button" class="reset" id="resetFilters" disabled>Сбросить фильтры</button>
   <span class="result-count" id="resultCount" aria-live="polite"></span>
 </div>
+<!-- Выход вороны в содержимое (задача 13): слот у панели поиска –
+     data-crow-walk отдаёт js/crow-mascot.js (CrowMascot.mountWalkIn) и
+     служит блоком для наблюдателя пересечения, и местом самого маскота.
+     Сам маскот декоративен (alt="" у слоёв), но кнопка над ним, которую
+     mountWalkIn создаёт вместе с маскотом (aria-label «Спросить у бота»,
+     [data-bot-open]), – единственный на этой странице способ открыть окно
+     бота (виджет подключён внизу файла): строка НЕ должна быть aria-hidden, иначе
+     этот вход пропадёт для читалок. Пусто, пока маскот не появится. -->
+<div class="crow-walk-row"><div class="crow-walk-slot" data-crow-walk></div></div>
 <p class="tag-legend">ПК – повышение квалификации, итог – удостоверение; ПП – профессиональная переподготовка, итог – диплом.</p>
 
 <main id="main">
@@ -1719,6 +1739,22 @@
     crow.destroy();
     crow = null;
   }
+
+  /* Выход в содержимое у панели поиска (задача 13): тот же ленивый
+     withCrowScript, что и у пустого результата выше – скрипт грузится
+     один раз, что бы ни случилось раньше. Дальше всей логикой (наблюдатель
+     пересечения, «каждый раз», walkAcross, клик -> окно бота) занимается
+     CrowMascot.mountWalkIn – здесь только слот и момент вызова. window.load,
+     а не сразу: страница ещё не осела (шрифты, липкая шапка), а мгновенный
+     показ маскота конкурировал бы с этим за первый экран. */
+  function mountWalkInSlot() {
+    const slot = document.querySelector('[data-crow-walk]');
+    if (!slot) return;
+    withCrowScript(() => CrowMascot.mountWalkIn(slot, { assetPath: 'images/crow/' }));
+  }
+  if (document.readyState === 'complete') mountWalkInSlot();
+  else window.addEventListener('load', mountWalkInSlot);
+
   const LEAVE_MS = reduceMotion ? 0 : 280;
   const ENTER_STAGGER = reduceMotion ? 0 : 35;
   const totalCards = () => gridEl.querySelectorAll('.card[data-type]').length;
