@@ -1268,7 +1268,12 @@ function renderReviews(programs) {
   for (const p of programs) {
     if (!Array.isArray(p.feedback) || !p.feedback.length) continue;
     const fit = p.feedback
-      .filter((f) => f.text && f.author && f.text.length >= 120 && f.text.length <= 520)
+      // Полоса длины сужена 120–520 -> 180–380 (владелец 09.09.2026:
+      // карточки отзывов одной длины). Именно РАЗБРОС ДЛИН давал разницу
+      // высот в 200px; в узкой полосе цитаты сами почти равны, и растяжение
+      // карточек до общей высоты не оставляет пустоты. Кандидатов в полосе
+      // 22 при нужных 18 – запас есть, проверено на живом каталоге.
+      .filter((f) => f.text && f.author && f.text.length >= 180 && f.text.length <= 380)
       .sort((a, b) => Math.abs(a.text.length - 280) - Math.abs(b.text.length - 280))
       .slice(0, PER_PROGRAM);
     if (fit.length) pools.push(fit.map((f) => ({ ...f, program: p })));

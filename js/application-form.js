@@ -78,6 +78,15 @@
   var programIndex = null;
   var programsTried = false;
 
+  /**
+   * Маскот на экране «Спасибо!» (задача 11). Файл и слои те же, что у
+   * угла лендинга и пустого результата каталога (js/crow-mascot.js,
+   * images/crow/*.webp), но страницы программ его ещё не подключают –
+   * форма грузит его сама, лениво, при первом показе итога.
+   */
+  var CROW_SCRIPT_URL = 'js/crow-mascot.js';
+  var CROW_ASSET_PATH = 'images/crow/';
+
   var SOURCES = [
     ['hse-site', 'Сайт НИУ ВШЭ'],
     ['telegram', 'Телеграм-канал'],
@@ -167,7 +176,7 @@
     '.dpo-app-submit:active{transform:scale(.985)}',
     '.dpo-app-submit[disabled]{opacity:.6;cursor:progress}',
     '.dpo-app-note{font-size:0.75rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
-    '.dpo-app-status{margin:14px 0 0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
+    '.dpo-app-status{margin:0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
     // Цвет ошибки – системный #B00020; фон и граница выведены из него, а не
     // подобраны глазом (правило производного состояния в DESIGN.md).
@@ -177,6 +186,23 @@
     // единственным на сайте (аудит 21.08.2026).
     '.dpo-app-done{padding:4px 0}',
     '.dpo-app-done h2{margin-bottom:10px}',
+    // Ворона встаёт В ПОТОК блока (anchor – HTMLElement, см. API в
+    // js/crow-mascot.js), центрируется сама (margin:0 auto у host);
+    // отступ снизу – только на обёртке.
+    '.dpo-app-done-crow{margin:0 0 10px}',
+    // Ворона и текст ошибки – один блок (задача 12, правка по снимку):
+    // ворона слева, сообщение справа, низ к низу («по одной базовой линии» –
+    // align-items:flex-end надёжнее буквального baseline для картинки без
+    // текста внутри). Отступ сверху – на обёртке, а не на детях по
+    // отдельности: .dpo-app-error-crow пуст до первого отказа (см.
+    // crowShake), но margin общий с текстом ошибки не даёт лишнего зазора,
+    // когда ошибок ещё не было (тот же приём, что раньше держал
+    // .dpo-app-status:margin – теперь он на уровень выше).
+    '.dpo-app-error{display:flex;align-items:flex-end;gap:8px;margin-top:14px}',
+    '.dpo-app-error-crow{flex:none}',
+    // На узком экране ворона встаёт НАД текстом, а не сжимается сбоку –
+    // тот же брейкпоинт, что у .dpo-app-row чуть выше.
+    '@media (max-width:520px){.dpo-app-error{flex-direction:column;align-items:flex-start}}',
     '.dpo-app-done p{font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
     // Строка «что дальше»: пергаментная плашка с названием программы –
     // человек видит, ЧТО именно приняли, а не только что приняли.
@@ -226,6 +252,64 @@
   var backdrop = null;
   var lastTrigger = null;
   var context = {};
+  var doneCrow = null;
+  var errorCrow = null;
+  var crowScriptLoading = false;
+
+  /**
+   * Ленивая загрузка маскота на экран «Спасибо!» — тот же приём, что у
+   * пустого результата фильтров в «Каталог программ.html»: скрипт грузится
+   * динамически при первом обращении и остаётся закэширован дальше. Если
+   * файла нет (script.onload не сработает), callback просто не вызовется –
+   * экран «Спасибо!» уже построен и без маскота не ломается.
+   */
+  function withCrowScript(cb) {
+    if (window.CrowMascot) { cb(); return; }
+    if (crowScriptLoading) {
+      document.addEventListener('crow-mascot:ready', cb, { once: true });
+      return;
+    }
+    crowScriptLoading = true;
+    var script = document.createElement('script');
+    script.src = crowScriptHref();
+    script.onload = function () { document.dispatchEvent(new Event('crow-mascot:ready')); };
+    document.addEventListener('crow-mascot:ready', cb, { once: true });
+    document.body.appendChild(script);
+  }
+
+  /**
+   * Ворона качает головой при отказе отправки (задача 12) – и когда сервер
+   * вернул ошибки полей, и когда отправка не удалась вовсе (сеть, 429, 500).
+   * Реплики нет – только движение, текст ошибки прежний (status/поля).
+   * Гейт reduced-motion – тем же приёмом, что у вибрации и кивка на экране
+   * «Спасибо!»: play('shake') без него бессмыслен (сам js/crow-mascot.js
+   * не запускает цикл кадров в этом режиме), но проверка здесь – чтобы не
+   * тратить сетевой запрос на скрипт, которому нечего будет играть.
+   *
+   * Монтируется лениво, один раз за открытое окно, в уже существующий слот
+   * `.dpo-app-error-crow` (см. buildForm) – повторный отказ просто играет
+   * анимацию заново на том же инстансе («маскот на экране – один» и здесь
+   * означает «маскот в одном месте один», а не только один на всю страницу).
+   */
+  function crowShake(form) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var anchor = form.querySelector('.dpo-app-error-crow');
+    if (!anchor) return;
+    withCrowScript(function () {
+      if (!window.CrowMascot || !document.body.contains(anchor)) return;
+      if (!errorCrow) {
+        errorCrow = CrowMascot.mount({
+          assetPath: crowAssetHref(),
+          anchor: anchor,
+          width: 72,
+          followCursor: false,
+          idleSeconds: 0,
+          onClick: function () {},
+        });
+      }
+      errorCrow.play('shake');
+    });
+  }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -261,6 +345,16 @@
   /** Тот же приём, что у privacyHref: страницы программ лежат уровнем ниже. */
   function programsHref() {
     return /\/programs\//.test(location.pathname) ? '../' + PROGRAMS_URL : PROGRAMS_URL;
+  }
+
+  /** Тот же приём: слои маскота лежат в images/crow/ от корня сайта. */
+  function crowAssetHref() {
+    return /\/programs\//.test(location.pathname) ? '../' + CROW_ASSET_PATH : CROW_ASSET_PATH;
+  }
+
+  /** Тот же приём: сам файл маскота со страниц программ грузится с ../. */
+  function crowScriptHref() {
+    return /\/programs\//.test(location.pathname) ? '../' + CROW_SCRIPT_URL : CROW_SCRIPT_URL;
   }
 
   /** Адрес программы абсолютным: в журнале и письме относительный путь бесполезен. */
@@ -516,7 +610,17 @@
         el('input', { type: 'text', id: 'dpo-app-website', name: 'website', tabindex: '-1', autocomplete: 'off' }),
       ]),
       el('button', { type: 'submit', class: 'dpo-app-submit', text: 'Отправить заявку' }),
-      el('p', { class: 'dpo-app-status', role: 'status', 'aria-live': 'polite' }),
+      // Маскот отказа и текст ошибки – один визуальный блок (задача 12,
+      // правка по снимку 08.09.2026: раньше ворона вставала МЕЖДУ кнопкой и
+      // сообщением и разрывала их на три части). Порядок узлов для читалок
+      // не меняется – он тот же, что был: ворона (aria-hidden, декоративна,
+      // из дерева доступности выведена независимо от вложенности), затем
+      // .dpo-app-status с role/aria-live, как и раньше. Ворона – пустой
+      // decorative-слот, пока не понадобится (см. crowShake ниже).
+      el('div', { class: 'dpo-app-error' }, [
+        el('div', { class: 'dpo-app-error-crow', 'aria-hidden': 'true' }),
+        el('p', { class: 'dpo-app-status', role: 'status', 'aria-live': 'polite' }),
+      ]),
       el('p', {
         class: 'dpo-app-note',
         text: 'Мы свяжемся с вами по телефону или почте. Данные не передаются третьим лицам.',
@@ -775,6 +879,19 @@
 
   function closeDialog() {
     if (!backdrop) return;
+    // Маскот экрана «Спасибо!» держит requestAnimationFrame и слушатели на
+    // window (js/crow-mascot.js) – при закрытии окна их надо снять, иначе
+    // они переживут удаление узла из DOM.
+    if (doneCrow) {
+      doneCrow.destroy();
+      doneCrow = null;
+    }
+    // Маскот отказа (задача 12) держит те же слушатели на window – та же
+    // причина снять его здесь, что и у doneCrow строкой выше.
+    if (errorCrow) {
+      errorCrow.destroy();
+      errorCrow = null;
+    }
     hideBackground(false);
     backdrop.classList.remove('is-open');
     document.removeEventListener('keydown', onKeydown, true);
@@ -886,7 +1003,13 @@
           })
         : null;
 
+    // Маскот над итогом (задача 11): декоративен, alt="" у всех слоёв
+    // (js/crow-mascot.js), поэтому aria-hidden – диктору у экрана уже есть
+    // текст с тем же смыслом.
+    var crowWrap = el('div', { class: 'dpo-app-done-crow', 'aria-hidden': 'true' });
+
     var done = el('div', { class: 'dpo-app-done' }, [
+      crowWrap,
       named,
       el('p', {
         text: isProgram
@@ -910,6 +1033,26 @@
     var caption = dialog.querySelector('.dpo-app-program');
     if (caption) caption.remove();
     dialog.appendChild(done);
+    // Ворона радуется отправленной заявке – прыжок (решение владельца
+    // 09.09.2026, было кивком). Правило видимости то же, что у вибрации
+    // выше: в reduced motion маскот встаёт в позу покоя и молчит (это уже
+    // делает сам js/crow-mascot.js), прыжок сверху здесь не играем.
+    // Монтировать можно только ПОСЛЕ appendChild – до него crowWrap ещё не
+    // в document.
+    withCrowScript(function () {
+      if (!window.CrowMascot || !document.body.contains(crowWrap)) return;
+      doneCrow = CrowMascot.mount({
+        assetPath: crowAssetHref(),
+        anchor: crowWrap,
+        width: 140,
+        followCursor: false,
+        idleSeconds: 0,
+        onClick: function () {},
+      });
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        doneCrow.play('jump');
+      }
+    });
     dialog.querySelector('.dpo-app-close').focus();
   }
 
@@ -966,6 +1109,10 @@
           showErrors(form, result.body.fields);
           status.classList.add('is-error');
           status.textContent = 'Проверьте отмеченные поля.';
+          // После showErrors: фокус уже переведён на первое невалидное поле
+          // (см. showErrors), маскот его не перехватывает и не мешает
+          // диктору дочитать имя поля и текст ошибки.
+          crowShake(form);
           return;
         }
         reportFailure(result.status);
@@ -974,6 +1121,7 @@
           result.status === 429
             ? 'Слишком много попыток подряд. Подождите минуту и отправьте ещё раз.'
             : 'Не удалось отправить заявку. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
+        crowShake(form);
       })
       .catch(function () {
         reportFailure(0);
@@ -983,6 +1131,7 @@
         // здесь нельзя: человек уверен, что заявку получили.
         status.textContent =
           'Заявка не отправлена – нет связи с сервером. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
+        crowShake(form);
       });
   }
 

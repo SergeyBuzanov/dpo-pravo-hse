@@ -31,7 +31,7 @@ const {
   writeAtomic,
 } = require('./lib/catalog-store');
 const { programHref } = require('./lib/program-slug');
-const { docBadge, shortFormat, formatTip } = require('./lib/program-labels');
+const { docBadge, shortFormat, formatTip, formatBucket } = require('./lib/program-labels');
 const { SPHERES, sphereOf } = require('./lib/program-spheres');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
@@ -75,18 +75,6 @@ function enDash(str) {
 
 function escapeHtml(str) {
   return enDash(str).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
-}
-
-/**
- * Order matters: compound formats often contain the word «онлайн»,
- * so match hybrid/mixed before the generic online check.
- */
-function formatBucket(title = '') {
-  if (/гибрид/i.test(title)) return { value: 'hybrid', label: 'Гибридный' };
-  if (/смешан/i.test(title)) return { value: 'mixed', label: 'Смешанный' };
-  if (/онлайн/i.test(title)) return { value: 'online', label: 'Онлайн' };
-  if (/очн/i.test(title)) return { value: 'offline', label: 'Очно' };
-  return { value: 'other', label: title || 'Другое' };
 }
 
 /**

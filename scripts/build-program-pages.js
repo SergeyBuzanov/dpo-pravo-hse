@@ -22,7 +22,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
-const { formatPrice, formatDate, isoDate } = require('../lib/hse-catalog');
+const { formatPrice, formatDate, isoDate, upcomingStartLabel } = require('../lib/hse-catalog');
+const { formatBucket } = require('../lib/program-labels');
 const { canonicalTeacherName } = require('../lib/teacher-names');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -101,6 +102,70 @@ function writeProgramIndex(programs, spheres) {
   fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
   fs.writeFileSync(
     path.join(ROOT, 'content', 'programs-index.json'),
+    JSON.stringify({ programs: items }, null, 2) + '\n',
+    'utf8',
+  );
+  return items.length;
+}
+
+/**
+ * Данные для бота поддержки (js/support-bot.js).
+ *
+ * Отдельный файл, а не расширение content/programs-index.json: тот читает
+ * форма заявки, он намеренно узкий, и его состав стережёт отдельный тест.
+ *
+ * Цену и ближайший старт считают ОБЩИЕ функции каталога: четвёртого места,
+ * где цена может разойтись с сайтом, в проекте быть не должно.
+ */
+function writeBotCatalog(programs, spheres) {
+  const sphereOfId = new Map();
+  for (const s of spheres) for (const p of s.items) sphereOfId.set(String(p.id), s.title);
+
+  const items = programs.map((p) => {
+    const bucket = formatBucket((p.studyFormat && p.studyFormat.title) || '');
+    // Слова для поиска: модули, аудитория и подводка. Названия программ
+    // ищутся отдельно, поэтому здесь их нет.
+    // cleanText: та же чистка, что normalizeProgram применяет к остальным
+    // текстам источника (в т.ч. снятие em dash – типографика проекта его
+    // запрещает). keywords, title и formatLabel несут сырой текст из
+    // хранилища (tagline, audience.items, названия модулей, studyFormat) –
+    // без чистки в публичный content/bot-catalog.json утекало «—».
+    const keywords = [
+      ...(Array.isArray(p.modules) ? p.modules.map((m) => m && m.title) : []),
+      ...((p.audience && Array.isArray(p.audience.items)) ? p.audience.items : []),
+      p.tagline || '',
+    ]
+      .map((s) => cleanText(String(s || '')))
+      .filter(Boolean);
+
+    return {
+      id: String(p.id || ''),
+      title: cleanText(String(p.title || '')),
+      url: programHref(p),
+      sphere: sphereOfId.get(String(p.id)) || 'Другие программы',
+      type: String((p.type && (p.type.shortTitle || p.type.title)) || ''),
+      format: bucket.value,
+      formatLabel: cleanText((p.studyFormat && p.studyFormat.title) || bucket.label),
+      price: typeof p.discountPrice === 'number' ? p.discountPrice
+        : typeof p.educationPricing === 'number' ? p.educationPricing : null,
+      priceLabel: formatPrice(p),
+      duration: p.duration ? cleanText(String(p.duration)) : null,
+      // start и startIso всегда заданы или пусты вместе: startIso – тот же
+      // p.startDate, разобранный isoDate() (та же функция, что даёт дату
+      // для микроразметки Schema.org), и он есть ровно тогда, когда есть
+      // подпись «Старт: …» – иначе бот сортировал бы по дате старт, который
+      // сам же не показывает как актуальный. Без startIso бот мог отличить
+      // только «есть старт / нет старта», а не «стартует раньше» от
+      // «стартует позже» (см. находку I5).
+      start: upcomingStartLabel(p) || null,
+      startIso: upcomingStartLabel(p) ? isoDate(p.startDate) : null,
+      keywords,
+    };
+  });
+
+  fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
+  fs.writeFileSync(
+    path.join(ROOT, 'content', 'bot-catalog.json'),
     JSON.stringify({ programs: items }, null, 2) + '\n',
     'utf8',
   );
@@ -814,7 +879,10 @@ function renderPage(rawProgram, sphere) {
 <meta name="twitter:title" content="${esc(p.title)}">
 <meta name="twitter:description" content="${esc(description)}">${twImage}
 ${structuredData(p, sphere, official)}
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../images/logo/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../images/logo/favicon-16.png">
+<link rel="icon" type="image/png" sizes="48x48" href="../images/logo/favicon-48.png">
+<link rel="apple-touch-icon" href="../images/logo/apple-touch-icon-180.png">
 <meta name="theme-color" content="#1658DA">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -827,7 +895,11 @@ ${structuredData(p, sphere, official)}
 
 <header>
   <a class="logo" href="../index.html">
-    <span class="name">Право</span>
+    <!-- Знак центра «ворон на весах» (владелец 08.09.2026, вариант «круг»).
+         Декоративный: alt пуст, текст ссылки дают слова справа. -->
+    <img class="brand-mark" src="../images/logo/brand-mark-96.webp" width="34" height="34" alt="">
+    <!-- Слово «Право» снято по решению владельца 08.09.2026: имя центру даёт
+         знак слева, словами плашка называет, что это. -->
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
   <span class="header-side">
@@ -904,6 +976,14 @@ ${cta}
 
 <script src="../js/sheet-gesture.js" defer></script>
 <script src="../js/application-form.js" defer></script>
+<!-- Задача 14: ядро поиска и виджет бота подключены заранее (выход вороны
+     на страницы программ – следующая задача, см. task-14-brief.md,
+     раздел «Границы»); проверено tests/unit/bot-wired.test.js. -->
+<script src="../js/crow-mascot.js" defer></script>
+<script src="../js/crow-launcher.js" defer></script>
+<script src="../js/bot-match.js" defer></script>
+<script src="../js/bot-reply.js" defer></script>
+<script src="../js/support-bot.js" defer></script>
 <script src="../js/site-analytics.js" defer></script>
 <script src="../js/cookie-consent.js" defer></script>
 <script>
@@ -958,11 +1038,13 @@ function build() {
 
   const mapped = writeSitemap(programs);
   const indexed = writeProgramIndex(programs, spheres);
+  const botIndexed = writeBotCatalog(programs, spheres);
 
   console.log(
     `Страниц программ: ${programs.length}, удалено устаревших: ${removed}, ` +
       `карта сайта: ${mapped ? 'обновлена' : 'маркеры не найдены'}, ` +
-      `справочник для формы: ${indexed} записей`,
+      `справочник для формы: ${indexed} записей, ` +
+      `данные бота: ${botIndexed} записей`,
   );
   if (unassigned.length) {
     console.warn(
@@ -1026,9 +1108,13 @@ html.vi-mode header::after{display:none !important}
 @media (prefers-contrast: more){
   header{background:rgb(var(--surface));backdrop-filter:none;border-bottom:1px solid rgb(var(--ink))}
   header::after{display:none}}
-.logo{display:flex;flex-direction:column;gap:1px}
-.logo .name{font-weight:700;font-size:0.9375rem;color:rgb(var(--accent))}
-.logo .sub{font-size:0.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+.logo{display:flex;align-items:center;gap:10px}
+/* Знак центра: 34px вровень с двумя строками слов. В vi-режиме уходит –
+   страница там ч/б, знак остался бы единственным цветным пятном. */
+.brand-mark{display:block;flex:none;width:34px;height:34px;border-radius:50%}
+html.vi-mode .brand-mark{display:none}
+/* Подпись – единственные слова плашки: крупнее прежнего и в фирменном синем. */
+.logo .sub{font-size:0.8125rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--accent))}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .header-nav{display:flex;align-items:center;gap:14px}
 .nav-link{font-size:0.875rem;font-weight:600;color:rgb(var(--accent))}

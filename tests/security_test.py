@@ -526,7 +526,9 @@ def test_nginx_allowlist() -> None:
 
     # Всё публичное перечислено — иначе правило молча выключит рабочие адреса
     allow_line = next((ln for ln in conf.splitlines() if "location ~ " in ln and "(?!" in ln), "")
-    for token in ("index\\.html", "404\\.html", "favicon\\.svg",
+    # favicon.svg из списка снят 08.09.2026 вместе с самим файлом: иконка
+    # сайта стала растровой и лежит в images/, а этот каталог в списке есть.
+    for token in ("index\\.html", "404\\.html",
                   "robots\\.txt", "sitemap\\.xml", "fonts/", "images/", "js/"):
         check("nginx", f"в белом списке есть {token.replace(chr(92), '')}",
               token in allow_line, "публичный путь выпал из списка")

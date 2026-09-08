@@ -52,7 +52,15 @@
   if (dismissedAt && Date.now() - dismissedAt < DISMISS_DAYS * 24 * 3600 * 1000) return;
 
   var CSS = [
-    '#channelInvite{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:min(340px,calc(100vw - 32px));',
+    // Угол принадлежит вороне (решение владельца, задача 9, 08.09.2026):
+    // маскот js/crow-mascot.js занимает bottom-right с полями 24px (260px
+    // шириной) на широком экране и 8px (96px шириной) на телефоне
+    // (порог 1023px – тот же, что у мобильной панели js/smooth-ui.js).
+    // Карточка и бейдж уходят из этого угла на 300px/112px – ровно
+    // на ширину маскота с полями плюс зазор 16px/8px. Значения обязаны
+    // остаться в паре с right/width маскота в index.html – при их правке
+    // проверить оба места.
+    '#channelInvite{position:fixed;right:300px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:min(340px,calc(100vw - 32px));',
     'background:rgb(var(--surface));color:rgb(var(--ink));border:1px solid rgb(var(--ink) / .14);border-radius:16px;',
     'box-shadow:0 12px 40px rgb(var(--ink) / .18);padding:18px;display:flex;gap:14px;align-items:flex-start;',
     "font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;",
@@ -98,6 +106,18 @@
     '#channelInvite .ci-join:hover{background:none}',
     '#channelInvite .ci-close{top:6px;right:6px;font-size:1rem}',
     '}',
+    // На телефоне маскот уже 96px с полем 8px (порог 1023px – см.
+    // index.html), поэтому карточке и бейджу нужно меньше отступа, чем на
+    // широком экране: 8+96+8 = 112px. Порог свой (1023px), а не 899px из
+    // блока выше – он завязан на ширину маскота, а не на раскладку карточки.
+    // width пересчитан вместе с right: у базового правила width:min(340px,
+    // calc(100vw - 32px)) при увеличенном right карточка на узких экранах
+    // вылезала за левый край (замер в браузере 08.09.2026: 390×844,
+    // right:112px без правки width давал left:-62px – часть карточки была
+    // не видна). 124 = 112 (это right) + 12 (симметричный отступ слева,
+    // как у полосы-CTA в js/smooth-ui.js).
+    '@media (max-width: 1023px){#channelInvite,#channelInviteBadge{right:112px}',
+    '#channelInvite{width:min(340px,calc(100vw - 124px))}}',
     'html.vi-mode #channelInvite{background:rgb(var(--surface))!important;border:2px solid #000!important}',
     'html.vi-mode #channelInvite .ci-close,html.vi-mode #channelInvite .ci-join{border:2px solid #000!important}',
     // Аватар канала – растр, и правило html.vi-mode *{background-image:none}
@@ -109,7 +129,8 @@
     // «Подать заявку» у форматов, «Топ-5» и сфер. За пределами героя
     // остаётся только круглый бейдж-аватар, полная карточка – по клику.
     '#channelInvite.ci-collapsed{display:none}',
-    '#channelInviteBadge{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:48px;height:48px;',
+    // Тот же угол вороны, см. комментарий у #channelInvite выше.
+    '#channelInviteBadge{position:fixed;right:300px;bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:900;width:48px;height:48px;',
     'border-radius:999px;padding:0;border:1px solid rgb(var(--ink) / .18);background:rgb(var(--surface));',
     'box-shadow:0 8px 24px rgb(var(--ink) / .18);cursor:pointer;display:none;align-items:center;justify-content:center;overflow:hidden;',
     'opacity:0;transform:translateY(8px);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1)}',

@@ -8,8 +8,10 @@
 <!-- SEO. Замените https://example.com на реальный домен после публикации сайта. -->
 <meta name="description" content="Каталог программ ДПО факультета права НИУ ВШЭ: 26 курсов повышения квалификации и переподготовки для юристов – с ценой, форматом и датой старта.">
 <meta name="robots" content="index, follow">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/logo/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/logo/favicon-16.png">
+<link rel="icon" type="image/png" sizes="48x48" href="images/logo/favicon-48.png">
+<link rel="apple-touch-icon" href="images/logo/apple-touch-icon-180.png">
 <meta name="theme-color" content="#1658DA">
 <meta name="keywords" content="ДПО, повышение квалификации юристов, профессиональная переподготовка, право, НИУ ВШЭ, факультет права, курсы для юристов">
 <link rel="canonical" href="https://example.com/catalog">
@@ -117,9 +119,16 @@
     header{ background: rgb(var(--surface)); backdrop-filter: none; border-bottom: 1px solid rgb(var(--ink)); }
     header::after{ display: none; }
   }
-  .logo{ display: flex; flex-direction: column; gap: 1px; }
-  .logo .name{ font-weight: 700; font-size: 0.9375rem; color: rgb(var(--accent)); }
-  .logo .sub{ font-size: 0.625rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); }
+  .logo{ display: flex; align-items: center; gap: 10px; }
+  /* Знак центра. 34px – вровень с двумя строками слов рядом. В режиме для
+     слабовидящих уходит: страница там ч/б, знак остался бы единственным
+     цветным пятном (то же правило, что на лендинге). */
+  .brand-mark{ display: block; flex: none; width: 34px; height: 34px; border-radius: 50%; }
+  html.vi-mode .brand-mark{ display: none; }
+  /* Подпись – единственные слова плашки, поэтому крупнее прежнего и в
+     фирменном синем: раньше главной строкой было слово «Право». */
+  .logo .sub{ font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em;
+     text-transform: uppercase; color: rgb(var(--accent)); }
   /* Кнопка возврата не переносится: на 390px «← На главную» разваливалась
      на две строки. На узком экране длинный текст сменяется коротким. */
   header a.back{ font-size: 0.875rem; font-weight: 600; color: rgb(var(--accent)); white-space: nowrap; }
@@ -349,6 +358,17 @@
 
   /* Расшифровка овалов ПК/ПП: подсказка по наведению на таче недоступна. */
   .tag-legend{ font-size: 0.8125rem; color: var(--ink-mute); margin: 10px 0 0; }
+  /* Выход вороны в содержимое (задача 13): своя строка СРАЗУ ПОД тулбаром
+     поиска/сортировки – рядом с лупой поиска (.search-icon), не в потоке
+     карточек ниже. Отдельная строка, а не оверлей поверх тулбара: реальное
+     место в раскладке гарантирует, что маскот никогда не перекроет поле
+     поиска, сортировку или кнопку сброса (хит-тест это не оверлей, а
+     соседний блок). Размер слота задан ЗАРАНЕЕ, а не в момент монтирования
+     маскота: без этого высота строки прыгала бы с 0 на ~126px ровно в
+     момент появления блока в кадре (сдвиг сетки карточек под курсором,
+     CLS) – ширина/высота здесь совпадают с width:120 у mountWalkIn ниже. */
+  .crow-walk-row{ display: flex; justify-content: flex-end; padding: 6px clamp(20px, 5vw, 56px) 0; }
+  .crow-walk-slot{ width: 120px; height: 126px; }
   .toolbar{
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     padding: 14px clamp(20px, 5vw, 56px) 4px;
@@ -552,7 +572,14 @@
     font-size: 0.7812rem; line-height: 1.4; color: var(--ink-mute);
     margin: -6px 0 -4px;
   }
-  .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 1.0625rem; font-weight: 600; line-height: 1.4; margin: 0; }
+  /* Ровно три строки названия – и минимум, и максимум (владелец
+     09.09.2026: карточки программ одной высоты). Без этого высота карточки
+     ходила по рядам от 353 до 424px: разницу давали названия в одну–четыре
+     строки. Полное название – на странице программы и в подсказке ссылки.
+     Кламп и min-height ВМЕСТЕ: первый режет длинное, второй держит место
+     под короткое. */
+  .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 1.0625rem; font-weight: 600; line-height: 1.4; margin: 0;
+    min-height: calc(1.4em * 3); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   /* Овалы-пометки под названием – указание заказчика 02.09.2026 (вторая
      итерация): формат, тип итогового документа (ПК/ПП/…) и
      продолжительность должны читаться с карточки мгновенно. Формат –
@@ -560,7 +587,10 @@
      пергаментный, продолжительность – контурный. У формата и документа
      расшифровка в data-tip показывается при наведении.
      Разметку пишет renderCard в update-catalog.js. */
-  .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; }
+  /* Один ряд овалов зарезервирован всегда: у части программ их два (формат,
+     документ, продолжительность), у части один – и этот перенос тоже гулял
+     в высоту карточки. */
+  .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; min-height: 26px; }
   .card .tag{
     font-size: 0.75rem; font-weight: 600; line-height: 1.2;
     padding: 4px 10px; border-radius: var(--radius-sm);
@@ -638,18 +668,34 @@
 
   /* max-height и padding убраны из списка перехода: это layout-свойства.
      Высота переключается мгновенно, плавность держат opacity и transform.
-     Блок остаётся в DOM, чтобы скринридер объявил появление результата. */
+     Блок остаётся в DOM, чтобы скринридер объявил появление результата.
+     max-height у .visible поднят с 200px до 440px (задача 10): раньше внутри
+     была одна строка текста, теперь – иллюстрация 160×168 и текст (кнопку
+     под вороной владелец убрал позже – задача 12, панельная #resetFilters
+     осталась единственным выходом). Число не подогнано впритык – переход
+     мгновенный (см. transition выше), запас важнее точности.
+     Отступ 48px -> 28px (задача 13): без кнопки блок и так стал короче;
+     собственная находка прошлой сессии – на планшетном 768×1024, если
+     прокрутка приводит пустой блок к центру экрана, низ панельной кнопки
+     сброса мог уйти за нижний край примерно на 10px (см. task-12-report.md).
+     Кнопка сброса – единственный выход из тупика, она обязана быть видна
+     целиком; более короткий блок означает меньшую прокрутку до его центра
+     и больше запаса перед нижним краем в этом сценарии. */
   .empty{
     display: block;
-    text-align: center; padding: 64px 20px; color: var(--ink-mute); font-size: 0.9375rem;
+    text-align: center; padding: 28px 20px; color: var(--ink-mute); font-size: 0.9375rem;
     opacity: 0; transform: translateY(8px);
     max-height: 0; overflow: hidden; pointer-events: none;
     transition: opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1);
   }
   .empty.visible{
     opacity: 1; transform: translateY(0);
-    max-height: 200px; pointer-events: auto;
+    max-height: 440px; pointer-events: auto;
   }
+  /* Ворона – иллюстрация, а не помощник в углу (решение владельца, задача 10):
+     160px, в потоке текста, по центру. Высота – по пропорции слоёв 1400×1465. */
+  .empty-crow{ width: 160px; height: 168px; margin: 0 auto 12px; }
+  .empty-text{ margin: 0 0 18px; }
 
   @media (prefers-reduced-motion: reduce){
     .chip, .card, .empty, .card .go, .card .tag[data-tip]::after{ transition: none !important; animation: none !important; }
@@ -727,7 +773,11 @@
 
 <header>
   <a href="index.html" class="logo">
-    <span class="name">Право</span>
+    <!-- Знак центра «ворон на весах» (владелец 08.09.2026, вариант «круг»).
+         Декоративный: alt пуст, текст ссылки дают слова справа. -->
+    <img class="brand-mark" src="images/logo/brand-mark-96.webp" width="34" height="34" alt="">
+    <!-- Слово «Право» снято по решению владельца 08.09.2026: имя центру даёт
+         знак слева, словами плашка называет, что это. -->
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
   <nav class="header-nav" aria-label="Служебная навигация" style="display:flex; align-items:center; gap:14px;">
@@ -1040,6 +1090,15 @@
   <button type="button" class="reset" id="resetFilters" disabled>Сбросить фильтры</button>
   <span class="result-count" id="resultCount" aria-live="polite"></span>
 </div>
+<!-- Выход вороны в содержимое (задача 13): слот у панели поиска –
+     data-crow-walk отдаёт js/crow-mascot.js (CrowMascot.mountWalkIn) и
+     служит блоком для наблюдателя пересечения, и местом самого маскота.
+     Сам маскот декоративен (alt="" у слоёв), но кнопка над ним, которую
+     mountWalkIn создаёт вместе с маскотом (aria-label «Открыть поддержку»,
+     [data-bot-open]), – единственный на этой странице способ открыть окно
+     бота (виджет подключён внизу файла): строка НЕ должна быть aria-hidden, иначе
+     этот вход пропадёт для читалок. Пусто, пока маскот не появится. -->
+<div class="crow-walk-row"><div class="crow-walk-slot" data-crow-walk></div></div>
 <p class="tag-legend">ПК – повышение квалификации, итог – удостоверение; ПП – профессиональная переподготовка, итог – диплом.</p>
 
 <main id="main">
@@ -1617,7 +1676,10 @@
     </div>
   <!-- /CATALOG:LIST -->
   </div>
-  <div class="empty" id="empty">По выбранному фильтру программ не найдено.</div>
+  <div class="empty" id="empty">
+    <div class="empty-crow" data-crow-slot aria-hidden="true"></div>
+    <p class="empty-text">По выбранному фильтру программ не найдено.</p>
+  </div>
 </main>
 
 <footer>
@@ -1652,6 +1714,71 @@
   let sortBy = 'default';
   let query = '';
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Ворона в пустом результате фильтров (задача 10). js/crow-mascot.js не
+     подключён тегом <script> заранее: до сих пор он грузится лениво по
+     window.load только на лендинге (там маскот виден всегда, здесь – только
+     когда фильтр ничего не даёт, событие редкое). Файл догружается динамически
+     ПРИ ПЕРВОМ появлении пустого состояния и остаётся закэширован браузером
+     дальше. Скрытие empty уничтожает инстанс (destroy), а не прячет его —
+     кадры зациклённой inspect не должны считаться впустую, пока блок с
+     max-height:0 лежит вне поля зрения; при следующем пустом результате
+     маскот создаётся заново (mount дешёвый: 11 <img>, уже в кэше). */
+  let crow = null;
+  let crowScriptLoading = false;
+  function withCrowScript(cb) {
+    if (window.CrowMascot) { cb(); return; }
+    if (crowScriptLoading) {
+      document.addEventListener('crow-mascot:ready', cb, { once: true });
+      return;
+    }
+    crowScriptLoading = true;
+    const s = document.createElement('script');
+    s.src = 'js/crow-mascot.js';
+    s.onload = () => document.dispatchEvent(new Event('crow-mascot:ready'));
+    document.addEventListener('crow-mascot:ready', cb, { once: true });
+    document.body.appendChild(s);
+  }
+  function showEmptyCrow() {
+    const slot = emptyEl.querySelector('[data-crow-slot]');
+    if (!slot || crow) return;
+    withCrowScript(() => {
+      // К моменту загрузки скрипта пользователь мог уже сменить фильтр
+      // обратно — тогда монтировать зациклённую анимацию незачем.
+      if (crow || !emptyEl.classList.contains('visible')) return;
+      crow = CrowMascot.mount({
+        assetPath: 'images/crow/',
+        anchor: slot,
+        width: 160,
+        followCursor: false,
+        idleSeconds: 0,
+        solo: false, // угловая ворона остаётся на месте (владелец 08.09.2026)
+        onClick: function () {} // декоративна: клик не должен сбивать inspect на nod/askQ
+      });
+      crow.play('inspect');
+    });
+  }
+  function hideEmptyCrow() {
+    if (!crow) return;
+    crow.destroy();
+    crow = null;
+  }
+
+  /* Выход в содержимое у панели поиска (задача 13): тот же ленивый
+     withCrowScript, что и у пустого результата выше – скрипт грузится
+     один раз, что бы ни случилось раньше. Дальше всей логикой (наблюдатель
+     пересечения, «каждый раз», walkAcross, клик -> окно бота) занимается
+     CrowMascot.mountWalkIn – здесь только слот и момент вызова. window.load,
+     а не сразу: страница ещё не осела (шрифты, липкая шапка), а мгновенный
+     показ маскота конкурировал бы с этим за первый экран. */
+  function mountWalkInSlot() {
+    const slot = document.querySelector('[data-crow-walk]');
+    if (!slot) return;
+    withCrowScript(() => CrowMascot.mountWalkIn(slot, { assetPath: 'images/crow/' }));
+  }
+  if (document.readyState === 'complete') mountWalkInSlot();
+  else window.addEventListener('load', mountWalkInSlot);
+
   const LEAVE_MS = reduceMotion ? 0 : 280;
   const ENTER_STAGGER = reduceMotion ? 0 : 35;
   const totalCards = () => gridEl.querySelectorAll('.card[data-type]').length;
@@ -1740,8 +1867,25 @@
       }
     }
 
-    emptyEl.classList.toggle('visible', toShow.length === 0);
+    const isEmpty = toShow.length === 0;
+    const wasEmpty = emptyEl.classList.contains('visible');
+    emptyEl.classList.toggle('visible', isEmpty);
+    if (isEmpty) showEmptyCrow(); else hideEmptyCrow();
     updateChrome(toShow.length);
+
+    // Задача 13: панельная #resetFilters – единственный выход из пустого
+    // результата (свою кнопку под вороной владелец убрал, задача 12), она
+    // обязана быть видна целиком в момент, когда человек увидел пустой
+    // результат. На планшетном 768×1024 замер прошлой сессии показал
+    // краевой случай – при определённой прокрутке низ кнопки уходил за
+    // нижний край экрана (см. task-12-report.md). 'nearest' – no-op, если
+    // кнопка и так целиком на экране; сработает, только когда её край
+    // действительно скрыт. Только на ПЕРЕХОДЕ в пустое состояние – не на
+    // каждый чих фильтра, пока оно уже показано (человек может ещё
+    // печатать в поиске, не стоит дёргать прокрутку у него из-под рук).
+    if (isEmpty && !wasEmpty) {
+      resetBtn.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
   }
 
   document.querySelectorAll('.filters[data-group]').forEach((row) => {
@@ -1881,6 +2025,21 @@
 <script src="js/application-form.js" defer></script>
 <script src="js/starts-board.js" defer></script>
 <script src="js/compare.js" defer></script>
+<!-- Задача 14: ядро поиска и виджет бота подключены заранее – окно бота
+     появится на этой странице отдельной задачей (выход вороны в каталог,
+     см. .superpowers/sdd/2026-09-08-podderzhka-bot/task-14-brief.md,
+     раздел «Границы»), но данные и логика уже готовы и проверены тестом
+     tests/unit/bot-wired.test.js. -->
+<!-- Ворона в углу – на каждой странице сайта (владелец 08.09.2026).
+     js/crow-mascot.js теперь подключён тегом, а не только лениво из
+     обработчика пустого результата: угловой маскот нужен всегда, а
+     ленивая догрузка ниже (withCrowScript) увидит window.CrowMascot
+     уже готовым и просто не станет грузить файл второй раз. -->
+<script src="js/crow-mascot.js" defer></script>
+<script src="js/crow-launcher.js" defer></script>
+<script src="js/bot-match.js" defer></script>
+<script src="js/bot-reply.js" defer></script>
+<script src="js/support-bot.js" defer></script>
 <script src="js/site-analytics.js" defer></script>
 <script src="js/cookie-consent.js" defer></script>
 </body>
