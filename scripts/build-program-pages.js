@@ -22,7 +22,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { groupBySphere, pluralPrograms } = require('../lib/program-spheres');
 const { programHref } = require('../lib/program-slug');
-const { formatPrice, formatDate, isoDate } = require('../lib/hse-catalog');
+const { formatPrice, formatDate, isoDate, upcomingStartLabel } = require('../lib/hse-catalog');
+const { formatBucket } = require('../lib/program-labels');
 const { canonicalTeacherName } = require('../lib/teacher-names');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -101,6 +102,57 @@ function writeProgramIndex(programs, spheres) {
   fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
   fs.writeFileSync(
     path.join(ROOT, 'content', 'programs-index.json'),
+    JSON.stringify({ programs: items }, null, 2) + '\n',
+    'utf8',
+  );
+  return items.length;
+}
+
+/**
+ * Данные для бота поддержки (js/support-bot.js).
+ *
+ * Отдельный файл, а не расширение content/programs-index.json: тот читает
+ * форма заявки, он намеренно узкий, и его состав стережёт отдельный тест.
+ *
+ * Цену и ближайший старт считают ОБЩИЕ функции каталога: четвёртого места,
+ * где цена может разойтись с сайтом, в проекте быть не должно.
+ */
+function writeBotCatalog(programs, spheres) {
+  const sphereOfId = new Map();
+  for (const s of spheres) for (const p of s.items) sphereOfId.set(String(p.id), s.title);
+
+  const items = programs.map((p) => {
+    const bucket = formatBucket((p.studyFormat && p.studyFormat.title) || '');
+    // Слова для поиска: модули, аудитория и подводка. Названия программ
+    // ищутся отдельно, поэтому здесь их нет.
+    const keywords = [
+      ...(Array.isArray(p.modules) ? p.modules.map((m) => m && m.title) : []),
+      ...((p.audience && Array.isArray(p.audience.items)) ? p.audience.items : []),
+      p.tagline || '',
+    ]
+      .map((s) => String(s || '').trim())
+      .filter(Boolean);
+
+    return {
+      id: String(p.id || ''),
+      title: String(p.title || ''),
+      url: programHref(p),
+      sphere: sphereOfId.get(String(p.id)) || 'Другие программы',
+      type: String((p.type && (p.type.shortTitle || p.type.title)) || ''),
+      format: bucket.value,
+      formatLabel: (p.studyFormat && p.studyFormat.title) || bucket.label,
+      price: typeof p.discountPrice === 'number' ? p.discountPrice
+        : typeof p.educationPricing === 'number' ? p.educationPricing : null,
+      priceLabel: formatPrice(p),
+      duration: p.duration || null,
+      start: upcomingStartLabel(p) || null,
+      keywords,
+    };
+  });
+
+  fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
+  fs.writeFileSync(
+    path.join(ROOT, 'content', 'bot-catalog.json'),
     JSON.stringify({ programs: items }, null, 2) + '\n',
     'utf8',
   );
@@ -958,11 +1010,13 @@ function build() {
 
   const mapped = writeSitemap(programs);
   const indexed = writeProgramIndex(programs, spheres);
+  const botIndexed = writeBotCatalog(programs, spheres);
 
   console.log(
     `Страниц программ: ${programs.length}, удалено устаревших: ${removed}, ` +
       `карта сайта: ${mapped ? 'обновлена' : 'маркеры не найдены'}, ` +
-      `справочник для формы: ${indexed} записей`,
+      `справочник для формы: ${indexed} записей, ` +
+      `данные бота: ${botIndexed} записей`,
   );
   if (unassigned.length) {
     console.warn(
