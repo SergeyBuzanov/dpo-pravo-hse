@@ -49,6 +49,18 @@ colors:
   hse-official-navy: "#0F2D69"
   hse-official-yellow: "#FAB900"
   vi-mode-ink: "#000000"
+  # Маскот «Ворона Шерлок»: цвета присланного рисунка (пакет
+  # design_handoff_crow_mascot). НЕ расширение палитры витрины – они не
+  # расходятся по интерфейсу и живут только внутри самого маскота.
+  # Подробное описание – в разделе «Маскот» ниже.
+  mascot-coat: "#23365F"
+  mascot-outline: "#16181C"
+  mascot-grey: "#B6B6B6"
+  mascot-beak: "#FEB505"
+  mascot-beak-inner: "#2E1D14"
+  mascot-collar-text: "#F6F2EA"
+  mascot-lens-text: "#2A211B"
+  mascot-bubble-shadow: "rgba(22, 24, 28, 0.09)"
 typography:
   display:
     fontFamily: "'HSE Slab', 'Source Serif 4', serif"
@@ -133,6 +145,7 @@ rounded:
   focus-ring: "4px"
   pill: "999px"
   circle: "50%"
+  mascot-bubble: "20px"   # облако реплики маскота, геометрия рисунка, не шкала витрины
 spacing:
   gutter: "clamp(20px, 6vw, 64px)"
   section: "clamp(64px, 9vw, 120px)"
