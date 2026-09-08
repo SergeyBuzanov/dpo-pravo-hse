@@ -242,6 +242,30 @@ function markAskQShown() {
   try { localStorage.setItem(ASKQ_KEY, String(Date.now())); } catch (e) { /* приватный режим */ }
 }
 
+/**
+ * Маскот на экране – один (задача 11.1: экран «Спасибо!» поверх угловой
+ * вороны лендинга или вороны пустого результата каталога дали ДВЕ вороны
+ * одновременно). У нового инстанса приоритет: все уже смонтированные к
+ * этому моменту вороны мягко прячутся (hide/show ниже) и возвращаются
+ * сами, когда новый инстанс перестаёт существовать (destroy). Работает
+ * для любых двух CrowMascot.mount() – независимо от файла и момента вызова.
+ */
+var LIVE = [];
+function suppressExisting(newcomer) {
+  var hidden = [];
+  LIVE.forEach(function (inst) {
+    if (inst === newcomer || inst.hidden) return;
+    inst.hide();
+    hidden.push(inst);
+  });
+  return hidden;
+}
+function restoreSuppressed(list) {
+  list.forEach(function (inst) {
+    if (LIVE.indexOf(inst) !== -1) inst.show();
+  });
+}
+
 var RIG_HTML = "<div data-part=\"bubble\" style=\"position:absolute;right:52%;bottom:70%;opacity:0;transform-origin:100% 100%;pointer-events:none;z-index:3\">\n    <div style=\"position:relative;background:#fff;border:3px solid #16181C;border-radius:20px;padding:11px 17px;font-size:16px;font-weight:600;line-height:1.15;white-space:nowrap;color:#211E1B;box-shadow:0 5px 0 rgba(22,24,28,.09);font-family:'HSE Sans',system-ui,sans-serif\">\n      <span data-part=\"bubbleText\">Чем помочь?</span>\n      <div style=\"position:absolute;right:24px;bottom:-19px;width:32px;height:22px\">\n        <div style=\"position:absolute;inset:0;background:#16181C;clip-path:polygon(0 0,100% 0,88% 100%)\"></div>\n        <div style=\"position:absolute;left:3px;right:3px;top:-5px;bottom:4px;background:#fff;clip-path:polygon(0 0,100% 0,86% 100%)\"></div>\n      </div>\n    </div>\n  </div>\n  <div data-part=\"root\" style=\"position:absolute;inset:0\">\n  <div data-part=\"shadow\" style=\"position:absolute;left:30%;top:86.5%;width:40%;height:4.4%;border-radius:50%;background:#211E1B;opacity:.16;filter:blur(3px)\"></div>\n  <div data-part=\"char\" style=\"position:absolute;inset:0;transform-origin:50% 88%\">\n  <img src=\"parts/torso.webp\" alt=\"\" style=\"position:absolute;left:0;top:0;width:100%;display:block\"><img src=\"parts/neck.webp\" alt=\"\" style=\"position:absolute;left:0;top:0;width:100%;display:block\">\n  <div data-part=\"head\" style=\"position:absolute;inset:0;transform-origin:51.43% 53.93%\">\n  <img src=\"parts/head.webp\" alt=\"\" style=\"position:absolute;left:28.786%;top:13.652%;width:47.786%;display:block\">\n  <img data-part=\"eyeL\" src=\"parts/eyeL.webp\" alt=\"\" style=\"position:absolute;left:38.143%;top:26.962%;width:6.5%;display:block;transform-origin:48.4% 46%\">\n  <img data-part=\"eyeR\" src=\"parts/eyeR.webp\" alt=\"\" style=\"position:absolute;left:53.143%;top:26.962%;width:6.286%;display:block;transform-origin:50% 48%\">\n  </div>\n  <div data-part=\"arm\" style=\"position:absolute;left:17.07%;top:41.71%;width:18.5%;height:29.28%;transform-origin:108.5% 60.8%\">\n  <img src=\"parts/arm.webp\" alt=\"\" style=\"position:absolute;left:0;top:0;width:101.158%;display:block\">\n  </div>\n  <img data-part=\"legR\" src=\"parts/legR.webp\" alt=\"\" style=\"position:absolute;left:48.357%;top:72.969%;width:23.786%;display:block;transform-origin:38.44% 36.02%\">\n  <img data-part=\"legL\" src=\"parts/legL.webp\" alt=\"\" style=\"position:absolute;left:33.643%;top:72.082%;width:16.929%;display:block;transform-origin:54.43% 42.92%\">\n  <img src=\"parts/body.webp\" alt=\"\" style=\"position:absolute;left:33.571%;top:48.669%;width:49.643%;display:block\">\n  <div data-part=\"jaw\" style=\"position:absolute;inset:0;transform-origin:51.43% 53.93%\">\n  <img src=\"parts/mouth.webp\" alt=\"\" style=\"position:absolute;left:32.5%;top:49.42%;width:18.214%;display:block\">\n  <img data-part=\"beak\" src=\"parts/beak.webp\" alt=\"\" style=\"position:absolute;left:32.5%;top:49.42%;width:18.214%;display:block;transform-origin:98.43% 3.06%\">\n  </div>\n  </div>\n  </div>";
 
 function CrowMascot(opts) {
@@ -265,6 +289,10 @@ function CrowMascot(opts) {
   this.queue = ['idle'];
   this.build();
   this.bind();
+  // Маскот на экране – один: новый инстанс сразу же прячет тех, что уже
+  // смонтированы (см. suppressExisting выше), и вернёт их сам при destroy().
+  LIVE.push(this);
+  this.suppressedByMe = suppressExisting(this);
   if (this.reducedMotion) {
     // Цикл кадров не запускается вовсе: ни requestAnimationFrame, ни
     // слежение за курсором, ни автоматическая реплика простоя. Поза
@@ -302,15 +330,19 @@ CrowMascot.prototype.build = function () {
   var host = document.createElement('div');
   host.className = 'crow-mascot';
   var w = o.width, h = Math.round(w * 1465 / 1400);
+  // Переход на opacity/transform – только для hide()/show() (маскот на
+  // экране один, ниже): свойства позиции и размера сами по себе никогда не
+  // меняются после монтирования, transition на них не сыграет.
+  var fade = 'transition:opacity .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1);';
   if (o.anchor instanceof HTMLElement) {
     // В потоке контейнера, не углом экрана: обычный блок с явными
     // width/height, отцентрован полями (задача 10 – иллюстрация в пустом
     // результате фильтров каталога, не помощник поверх контента).
-    host.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin:0 auto;z-index:' + o.zIndex;
+    host.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin:0 auto;z-index:' + o.zIndex + ';' + fade;
     o.anchor.appendChild(host);
   } else {
     var side = o.anchor === 'bottom-left' ? 'left:24px' : 'right:24px';
-    host.style.cssText = 'position:fixed;' + side + ';bottom:0;width:' + w + 'px;height:' + h + 'px;cursor:pointer;z-index:' + o.zIndex;
+    host.style.cssText = 'position:fixed;' + side + ';bottom:0;width:' + w + 'px;height:' + h + 'px;cursor:pointer;z-index:' + o.zIndex + ';' + fade;
     document.body.appendChild(host);
   }
   var stage = document.createElement('div');
@@ -443,6 +475,45 @@ CrowMascot.prototype.bubble = function (def, t) {
   b.style.transform = 'translateY(' + ((1 - v) * 10).toFixed(2) + 'px) scale(' + (0.72 + 0.28 * v).toFixed(3) + ')';
 };
 
+/**
+ * Мягкое скрытие/возврат (маскот на экране – один, см. suppressExisting
+ * выше). display:none после угасания – намеренно тот же результат, что и
+ * прокрутка вне экрана: IntersectionObserver из bind() перестаёт считать
+ * стадию видимой, tick() перестаёт продвигать кадры анимации, пока маскот
+ * спрятан, – второй способ не понадобился.
+ */
+CrowMascot.prototype.hide = function () {
+  if (this.hidden) return;
+  this.hidden = true;
+  clearTimeout(this.hideTimer);
+  var host = this.host;
+  if (this.reducedMotion) {
+    // Без перехода – тем же приёмом, что и статичная поза при монтировании.
+    host.style.display = 'none';
+    return;
+  }
+  host.style.opacity = '0';
+  host.style.transform = 'translateY(10px) scale(.94)';
+  var self = this;
+  this.hideTimer = setTimeout(function () {
+    if (self.hidden) host.style.display = 'none';
+  }, 240);
+};
+
+CrowMascot.prototype.show = function () {
+  if (!this.hidden) return;
+  this.hidden = false;
+  clearTimeout(this.hideTimer);
+  var host = this.host;
+  host.style.display = '';
+  if (this.reducedMotion) return;
+  // Перерасчёт стилей между снятием display:none и сменой opacity – иначе
+  // браузер схлопывает оба шага в один кадр, и переход не проигрывается.
+  void host.offsetWidth;
+  host.style.opacity = '1';
+  host.style.transform = '';
+};
+
 CrowMascot.prototype.destroy = function () {
   // reducedMotion: цикл кадров не запускался, this.raf не назначался.
   if (this.raf) cancelAnimationFrame(this.raf);
@@ -450,7 +521,14 @@ CrowMascot.prototype.destroy = function () {
   window.removeEventListener('scroll', this.onAct);
   window.removeEventListener('keydown', this.onAct);
   if (this.io) this.io.disconnect();
+  clearTimeout(this.hideTimer);
   if (this.host && this.host.parentNode) this.host.parentNode.removeChild(this.host);
+  var idx = LIVE.indexOf(this);
+  if (idx !== -1) LIVE.splice(idx, 1);
+  if (this.suppressedByMe) {
+    restoreSuppressed(this.suppressedByMe);
+    this.suppressedByMe = null;
+  }
 };
 
 global.CrowMascot = {
