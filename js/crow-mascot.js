@@ -37,6 +37,9 @@
      CrowMascot.mount(options) -> instance
        assetPath   путь к папке со слоями (по умолчанию 'parts/')
        anchor      'bottom-right' | 'bottom-left' | HTMLElement  (куда монтировать)
+                   HTMLElement – маскот встаёт В ПОТОК этого элемента, по
+                   центру (иллюстрация внутри блока, не помощник в углу
+                   экрана); см. пустой результат фильтров каталога, задача 10
        width       ширина маскота в px (по умолчанию 260)
        speed       множитель скорости (0.5–1.5, по умолчанию 1)
        followCursor следить за курсором (по умолчанию true)
@@ -300,8 +303,10 @@ CrowMascot.prototype.build = function () {
   host.className = 'crow-mascot';
   var w = o.width, h = Math.round(w * 1465 / 1400);
   if (o.anchor instanceof HTMLElement) {
-    host.style.cssText = 'position:absolute;right:26px;bottom:0;width:' + w + 'px;height:' + h + 'px;cursor:pointer;z-index:' + o.zIndex;
-    o.anchor.style.position = o.anchor.style.position || 'relative';
+    // В потоке контейнера, не углом экрана: обычный блок с явными
+    // width/height, отцентрован полями (задача 10 – иллюстрация в пустом
+    // результате фильтров каталога, не помощник поверх контента).
+    host.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin:0 auto;z-index:' + o.zIndex;
     o.anchor.appendChild(host);
   } else {
     var side = o.anchor === 'bottom-left' ? 'left:24px' : 'right:24px';

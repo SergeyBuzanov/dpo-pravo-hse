@@ -638,17 +638,40 @@
 
   /* max-height и padding убраны из списка перехода: это layout-свойства.
      Высота переключается мгновенно, плавность держат opacity и transform.
-     Блок остаётся в DOM, чтобы скринридер объявил появление результата. */
+     Блок остаётся в DOM, чтобы скринридер объявил появление результата.
+     max-height у .visible поднят с 200px до 440px (задача 10): раньше внутри
+     была одна строка текста, теперь – иллюстрация 160×168, текст и кнопка.
+     Число не подогнано впритык – переход мгновенный (см. transition выше),
+     запас важнее точности. */
   .empty{
     display: block;
-    text-align: center; padding: 64px 20px; color: var(--ink-mute); font-size: 0.9375rem;
+    text-align: center; padding: 48px 20px; color: var(--ink-mute); font-size: 0.9375rem;
     opacity: 0; transform: translateY(8px);
     max-height: 0; overflow: hidden; pointer-events: none;
     transition: opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1);
   }
   .empty.visible{
     opacity: 1; transform: translateY(0);
-    max-height: 200px; pointer-events: auto;
+    max-height: 440px; pointer-events: auto;
+  }
+  /* Ворона – иллюстрация, а не помощник в углу (решение владельца, задача 10):
+     160px, в потоке текста, по центру. Высота – по пропорции слоёв 1400×1465. */
+  .empty-crow{ width: 160px; height: 168px; margin: 0 auto 12px; }
+  .empty-text{ margin: 0 0 18px; }
+  /* Тот же словарь пилюли, что у .card-apply: акцентная обводка, заливка
+     акцентом на наведении. Не переиспользует .toolbar .reset – тот селектор
+     скопирован под тулбар и здесь не сработал бы. */
+  .empty-reset{
+    font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+    color: rgb(var(--accent)); background: rgb(var(--surface));
+    border: 1px solid rgb(var(--accent) / .3); border-radius: 999px;
+    padding: 10px 20px; min-height: 44px;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  @media (hover: hover) and (pointer: fine){
+    .empty-reset:hover{
+      background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--surface));
+    }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -1617,7 +1640,11 @@
     </div>
   <!-- /CATALOG:LIST -->
   </div>
-  <div class="empty" id="empty">По выбранному фильтру программ не найдено.</div>
+  <div class="empty" id="empty">
+    <div class="empty-crow" data-crow-slot aria-hidden="true"></div>
+    <p class="empty-text">По выбранному фильтру программ не найдено.</p>
+    <button type="button" class="empty-reset" data-reset-filters>Сбросить фильтры</button>
+  </div>
 </main>
 
 <footer>
@@ -1652,6 +1679,54 @@
   let sortBy = 'default';
   let query = '';
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Ворона в пустом результате фильтров (задача 10). js/crow-mascot.js не
+     подключён тегом <script> заранее: до сих пор он грузится лениво по
+     window.load только на лендинге (там маскот виден всегда, здесь – только
+     когда фильтр ничего не даёт, событие редкое). Файл догружается динамически
+     ПРИ ПЕРВОМ появлении пустого состояния и остаётся закэширован браузером
+     дальше. Скрытие empty уничтожает инстанс (destroy), а не прячет его —
+     кадры зациклённой inspect не должны считаться впустую, пока блок с
+     max-height:0 лежит вне поля зрения; при следующем пустом результате
+     маскот создаётся заново (mount дешёвый: 11 <img>, уже в кэше). */
+  let crow = null;
+  let crowScriptLoading = false;
+  function withCrowScript(cb) {
+    if (window.CrowMascot) { cb(); return; }
+    if (crowScriptLoading) {
+      document.addEventListener('crow-mascot:ready', cb, { once: true });
+      return;
+    }
+    crowScriptLoading = true;
+    const s = document.createElement('script');
+    s.src = 'js/crow-mascot.js';
+    s.onload = () => document.dispatchEvent(new Event('crow-mascot:ready'));
+    document.addEventListener('crow-mascot:ready', cb, { once: true });
+    document.body.appendChild(s);
+  }
+  function showEmptyCrow() {
+    const slot = emptyEl.querySelector('[data-crow-slot]');
+    if (!slot || crow) return;
+    withCrowScript(() => {
+      // К моменту загрузки скрипта пользователь мог уже сменить фильтр
+      // обратно — тогда монтировать зациклённую анимацию незачем.
+      if (crow || !emptyEl.classList.contains('visible')) return;
+      crow = CrowMascot.mount({
+        assetPath: 'images/crow/',
+        anchor: slot,
+        width: 160,
+        followCursor: false,
+        idleSeconds: 0,
+        onClick: function () {} // декоративна: клик не должен сбивать inspect на nod/askQ
+      });
+      crow.play('inspect');
+    });
+  }
+  function hideEmptyCrow() {
+    if (!crow) return;
+    crow.destroy();
+    crow = null;
+  }
   const LEAVE_MS = reduceMotion ? 0 : 280;
   const ENTER_STAGGER = reduceMotion ? 0 : 35;
   const totalCards = () => gridEl.querySelectorAll('.card[data-type]').length;
@@ -1740,7 +1815,9 @@
       }
     }
 
-    emptyEl.classList.toggle('visible', toShow.length === 0);
+    const isEmpty = toShow.length === 0;
+    emptyEl.classList.toggle('visible', isEmpty);
+    if (isEmpty) showEmptyCrow(); else hideEmptyCrow();
     updateChrome(toShow.length);
   }
 
@@ -1800,6 +1877,12 @@
     });
     applyFilters();
     searchInput.focus();
+  });
+
+  // Кнопка «Сбросить фильтры» внутри пустого результата (задача 10) не
+  // дублирует логику выше — она нажимает ТУ ЖЕ кнопку тулбара программно.
+  document.querySelectorAll('[data-reset-filters]').forEach((btn) => {
+    btn.addEventListener('click', () => resetBtn.click());
   });
 
   document.querySelectorAll('.chip').forEach((chip) => {
