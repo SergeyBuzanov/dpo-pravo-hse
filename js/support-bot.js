@@ -421,6 +421,24 @@
     panel.style.bottom = 'calc(' + Math.max(0, overlap + 12) + 'px + env(safe-area-inset-bottom, 0px))';
   }
 
+  /**
+   * Ворона на время открытого окна (правка владельца по снимку 08.09.2026:
+   * половина головы торчала из-за нижней кромки панели – читалось как сбой).
+   * Переиспользуем готовую механику «маскот на экране один»
+   * (hide()/show() у самого инстанса – то же, чем в js/crow-mascot.js
+   * пользуются suppressExisting/restoreSuppressed), а не заводим второй
+   * способ прятать: гейт reduced-motion, кадры вхолостую не считаются
+   * (IntersectionObserver внутри hide() сам гасит цикл) – всё уже там.
+   * window.crowMascot существует только на лендинге (задача 9) – на
+   * каталоге и страницах программ переменной нет, проверка обязательна.
+   */
+  function hideCrow() {
+    if (window.crowMascot) window.crowMascot.hide();
+  }
+  function showCrow() {
+    if (window.crowMascot) window.crowMascot.show();
+  }
+
   function close() {
     if (!panel) return;
     window.removeEventListener('resize', clearBottomBars);
@@ -429,6 +447,9 @@
     log = null;
     setLaunchersExpanded(false);
     document.removeEventListener('keydown', onKeydown, true);
+    // Ворона обязана вернуться РАНЬШЕ фокуса – иначе фокус садится на кнопку,
+    // а сама ворона ещё не на месте (см. hideCrow/showCrow выше).
+    showCrow();
     // Фокус обязан вернуться на ворону – иначе после закрытия он уезжает в начало страницы.
     (lastFocused || document.querySelector('[data-bot-open]')).focus();
   }
@@ -437,6 +458,7 @@
     if (panel) { close(); return; }
     injectStyles();
     lastFocused = trigger || document.activeElement;
+    hideCrow();
 
     var close_ = el('button', { type: 'button', class: 'dpo-bot-close', 'aria-label': 'Закрыть окно бота', text: '×' });
     close_.addEventListener('click', close);
