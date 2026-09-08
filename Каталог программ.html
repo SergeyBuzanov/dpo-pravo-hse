@@ -572,7 +572,14 @@
     font-size: 0.7812rem; line-height: 1.4; color: var(--ink-mute);
     margin: -6px 0 -4px;
   }
-  .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 1.0625rem; font-weight: 600; line-height: 1.4; margin: 0; }
+  /* Ровно три строки названия – и минимум, и максимум (владелец
+     09.09.2026: карточки программ одной высоты). Без этого высота карточки
+     ходила по рядам от 353 до 424px: разницу давали названия в одну–четыре
+     строки. Полное название – на странице программы и в подсказке ссылки.
+     Кламп и min-height ВМЕСТЕ: первый режет длинное, второй держит место
+     под короткое. */
+  .card h3{ font-family: 'HSE Sans', 'IBM Plex Sans', sans-serif; font-size: 1.0625rem; font-weight: 600; line-height: 1.4; margin: 0;
+    min-height: calc(1.4em * 3); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   /* Овалы-пометки под названием – указание заказчика 02.09.2026 (вторая
      итерация): формат, тип итогового документа (ПК/ПП/…) и
      продолжительность должны читаться с карточки мгновенно. Формат –
@@ -580,7 +587,10 @@
      пергаментный, продолжительность – контурный. У формата и документа
      расшифровка в data-tip показывается при наведении.
      Разметку пишет renderCard в update-catalog.js. */
-  .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; }
+  /* Один ряд овалов зарезервирован всегда: у части программ их два (формат,
+     документ, продолжительность), у части один – и этот перенос тоже гулял
+     в высоту карточки. */
+  .card .card-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 0; min-height: 26px; }
   .card .tag{
     font-size: 0.75rem; font-weight: 600; line-height: 1.2;
     padding: 4px 10px; border-radius: var(--radius-sm);
