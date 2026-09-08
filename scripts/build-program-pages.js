@@ -150,7 +150,15 @@ function writeBotCatalog(programs, spheres) {
         : typeof p.educationPricing === 'number' ? p.educationPricing : null,
       priceLabel: formatPrice(p),
       duration: p.duration ? cleanText(String(p.duration)) : null,
+      // start и startIso всегда заданы или пусты вместе: startIso – тот же
+      // p.startDate, разобранный isoDate() (та же функция, что даёт дату
+      // для микроразметки Schema.org), и он есть ровно тогда, когда есть
+      // подпись «Старт: …» – иначе бот сортировал бы по дате старт, который
+      // сам же не показывает как актуальный. Без startIso бот мог отличить
+      // только «есть старт / нет старта», а не «стартует раньше» от
+      // «стартует позже» (см. находку I5).
       start: upcomingStartLabel(p) || null,
+      startIso: upcomingStartLabel(p) ? isoDate(p.startDate) : null,
       keywords,
     };
   });

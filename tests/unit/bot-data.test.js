@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { formatPrice, upcomingStartLabel } = require('../../lib/hse-catalog');
+const { formatPrice, upcomingStartLabel, isoDate } = require('../../lib/hse-catalog');
 const { formatBucket } = require('../../lib/program-labels');
 const { resolveSafe, isAllowedStatic } = require('../../lib/static-http');
 
@@ -31,8 +31,22 @@ test('цена и старт совпадают с общими функциям
     const source = byId.get(item.id);
     assert.ok(source, `программы ${item.id} нет в хранилище`);
     assert.equal(item.priceLabel, formatPrice(source));
-    assert.equal(item.start, upcomingStartLabel(source) || null);
     assert.equal(item.format, formatBucket(source.studyFormat && source.studyFormat.title).value);
+
+    // upcomingStartLabel(source) без явного «сейчас» сверяет подпись с
+    // ТЕКУЩЕЙ датой запуска теста: ближайший старт в хранилище рано или
+    // поздно окажется в прошлом, label станет null, а этот тест – красным
+    // без единой правки кода. Поэтому сверяем не с «сейчас», а с моментом
+    // самого старта (полночь МСК дня startIso, как формат даёт hse.ru –
+    // см. mskMidnight в tests/unit/upcoming-start.test.js): на эту дату
+    // старт математически не может быть просрочен, так что подпись обязана
+    // совпасть, а сама проверка не зависит от календаря.
+    assert.equal(item.startIso === null, item.start === null, `startIso и start разошлись у ${item.id}`);
+    if (item.startIso !== null) {
+      assert.equal(item.startIso, isoDate(source.startDate), `startIso не совпал с isoDate(source.startDate) у ${item.id}`);
+      const atStart = new Date(`${item.startIso}T00:00:00+03:00`);
+      assert.equal(item.start, upcomingStartLabel(source, atStart));
+    }
   }
 });
 
