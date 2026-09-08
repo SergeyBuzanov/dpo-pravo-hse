@@ -87,17 +87,21 @@ test('.landing-template.html: слот у правого края ленты «�
   const tpl = fs2.readFileSync(path.join(ROOT, '.landing-template.html'), 'utf8');
   const top5 = tpl.slice(tpl.indexOf('id="top5"'), tpl.indexOf('<!-- TEACHERS'));
   assert.match(top5, /data-crow-walk/, 'нет слота выхода в содержимое в секции Топ-5');
-  // Место уточнено владельцем 08.09.2026: ворона стоит НАД строкой «Все
-  // программы с фильтрами», а не под лентой – там она оказывалась ниже
-  // программ, в пустой полосе. Слот вынесен ПЕРЕД шапкой секции, а не
-  // внутрь неё: внутри .dpo-carousel-head он становится третьим элементом
-  // флекс-ряда и встаёт СБОКУ от заголовка, а не над надписью.
-  const headStart = top5.indexOf('dpo-carousel-head');
+  // Место уточнено владельцем дважды: 08.09.2026 – не под лентой (там
+  // ворона оказывалась ниже программ, в пустой полосе); 09.09.2026 – ниже,
+  // ПРЯМО над строкой «Все программы с фильтрами», а не над всей шапкой
+  // секции. Прямо в .dpo-carousel-head слот класть по-прежнему нельзя: это
+  // флекс-РЯД, слот стал бы третьим элементом и встал СБОКУ от заголовка.
+  // Поэтому он и строка со стрелками лежат в общей КОЛОНКЕ .dpo-top5-aside.
+  const asideStart = top5.indexOf('dpo-top5-aside');
   const navStart = top5.indexOf('dpo-carousel-nav');
   const trackStart = top5.indexOf('dpo-top5-track');
   const slotPos = top5.indexOf('data-crow-walk');
-  assert.ok(slotPos < headStart, 'слот должен стоять ПЕРЕД шапкой секции, иначе ворона встаёт сбоку от заголовка');
-  assert.ok(slotPos < navStart && slotPos < trackStart, 'слот должен быть выше и надписи «Все программы с фильтрами», и самой ленты');
+  assert.notEqual(asideStart, -1, 'нет колонки .dpo-top5-aside – слот в флекс-ряду шапки встанет сбоку');
+  assert.ok(asideStart < slotPos, 'слот должен лежать ВНУТРИ колонки .dpo-top5-aside');
+  assert.ok(slotPos < navStart, 'слот должен стоять НАД строкой «Все программы с фильтрами»');
+  assert.ok(slotPos < trackStart, 'слот должен быть выше самой ленты');
+  assert.match(tpl, /\.dpo-top5-aside\s*\{[^}]*flex-direction:\s*column/, 'колонка .dpo-top5-aside обязана быть колонкой, иначе ворона снова встанет сбоку');
 });
 
 test('index.html: crow-walk-addon вызывает mountWalkIn на window.load, после загрузки уже подключённого js/crow-mascot.js', () => {

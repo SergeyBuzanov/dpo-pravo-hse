@@ -48,7 +48,17 @@
       // Без этого div маскота 200×209 в углу перехватывал нажатия по
       // тому, что оказалось под ним при прокрутке: замер поймал
       // стрелки ленты «Топ-5».
-      'body>.crow-mascot{right:' + edge + 'px!important;pointer-events:none}' +
+      //
+      // bottom:0 здесь – ОПОРА, а не украшение (дефект 09.09.2026: «ворона
+      // пропала с угла»). js/support-bot.js уводит ворону от баннера
+      // cookies через style.bottom, а когда уворачиваться не от чего, пишет
+      // туда пустую строку – та не возвращает прежнее значение, а СТИРАЕТ
+      // объявление. Инлайновый bottom:0 из build() исчезал вместе с ним, и
+      // фиксированный элемент без top/bottom вставал в статическую позицию:
+      // замер показал bottom:-209px, ворона целиком под кромкой окна.
+      // В правиле опора переживает стирание инлайна; инлайн по-прежнему
+      // перекрывает её, когда от баннера уворачиваться НАДО.
+      'body>.crow-mascot{right:' + edge + 'px!important;bottom:0;pointer-events:none}' +
       '.crow-hit-btn{position:fixed;right:' + edge + 'px;bottom:0;width:' + width + 'px;height:' + height + 'px;' +
       'z-index:921;background:transparent;border:0;padding:0;margin:0;cursor:pointer;border-radius:16px}' +
       '.crow-hit-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #FBF9F5,0 0 0 4px rgb(var(--accent, 22 88 218))}' +
