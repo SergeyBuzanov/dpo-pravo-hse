@@ -176,7 +176,7 @@
     '.dpo-app-submit:active{transform:scale(.985)}',
     '.dpo-app-submit[disabled]{opacity:.6;cursor:progress}',
     '.dpo-app-note{font-size:0.75rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
-    '.dpo-app-status{margin:14px 0 0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
+    '.dpo-app-status{margin:0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
     // Цвет ошибки – системный #B00020; фон и граница выведены из него, а не
     // подобраны глазом (правило производного состояния в DESIGN.md).
@@ -190,10 +190,19 @@
     // js/crow-mascot.js), центрируется сама (margin:0 auto у host);
     // отступ снизу – только на обёртке.
     '.dpo-app-done-crow{margin:0 0 10px}',
-    // Маскот отказа (задача 12): пуст до первого отказа отправки (см.
-    // crowShake), поэтому margin – только когда внутри правда что-то есть,
-    // иначе форма без единой ошибки получила бы лишний зазор навсегда.
-    '.dpo-app-error-crow:not(:empty){margin:14px auto 0}',
+    // Ворона и текст ошибки – один блок (задача 12, правка по снимку):
+    // ворона слева, сообщение справа, низ к низу («по одной базовой линии» –
+    // align-items:flex-end надёжнее буквального baseline для картинки без
+    // текста внутри). Отступ сверху – на обёртке, а не на детях по
+    // отдельности: .dpo-app-error-crow пуст до первого отказа (см.
+    // crowShake), но margin общий с текстом ошибки не даёт лишнего зазора,
+    // когда ошибок ещё не было (тот же приём, что раньше держал
+    // .dpo-app-status:margin – теперь он на уровень выше).
+    '.dpo-app-error{display:flex;align-items:flex-end;gap:8px;margin-top:14px}',
+    '.dpo-app-error-crow{flex:none}',
+    // На узком экране ворона встаёт НАД текстом, а не сжимается сбоку –
+    // тот же брейкпоинт, что у .dpo-app-row чуть выше.
+    '@media (max-width:520px){.dpo-app-error{flex-direction:column;align-items:flex-start}}',
     '.dpo-app-done p{font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
     // Строка «что дальше»: пергаментная плашка с названием программы –
     // человек видит, ЧТО именно приняли, а не только что приняли.
@@ -292,7 +301,7 @@
         errorCrow = CrowMascot.mount({
           assetPath: crowAssetHref(),
           anchor: anchor,
-          width: 110,
+          width: 36,
           followCursor: false,
           idleSeconds: 0,
           onClick: function () {},
@@ -601,13 +610,17 @@
         el('input', { type: 'text', id: 'dpo-app-website', name: 'website', tabindex: '-1', autocomplete: 'off' }),
       ]),
       el('button', { type: 'submit', class: 'dpo-app-submit', text: 'Отправить заявку' }),
-      // Маскот отказа (задача 12): пустой decorative-слот, ворона встаёт в
-      // него лениво при первом отказе отправки (см. crowShake ниже) – до
-      // этого момента слот пуст и не занимает места (см. CSS :not(:empty)).
-      // aria-hidden: реплики нет, диктору хватает текста в .dpo-app-status
-      // сразу под ней – порядок его объявления crowShake() не трогает.
-      el('div', { class: 'dpo-app-error-crow', 'aria-hidden': 'true' }),
-      el('p', { class: 'dpo-app-status', role: 'status', 'aria-live': 'polite' }),
+      // Маскот отказа и текст ошибки – один визуальный блок (задача 12,
+      // правка по снимку 08.09.2026: раньше ворона вставала МЕЖДУ кнопкой и
+      // сообщением и разрывала их на три части). Порядок узлов для читалок
+      // не меняется – он тот же, что был: ворона (aria-hidden, декоративна,
+      // из дерева доступности выведена независимо от вложенности), затем
+      // .dpo-app-status с role/aria-live, как и раньше. Ворона – пустой
+      // decorative-слот, пока не понадобится (см. crowShake ниже).
+      el('div', { class: 'dpo-app-error' }, [
+        el('div', { class: 'dpo-app-error-crow', 'aria-hidden': 'true' }),
+        el('p', { class: 'dpo-app-status', role: 'status', 'aria-live': 'polite' }),
+      ]),
       el('p', {
         class: 'dpo-app-note',
         text: 'Мы свяжемся с вами по телефону или почте. Данные не передаются третьим лицам.',
