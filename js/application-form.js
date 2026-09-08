@@ -190,6 +190,10 @@
     // js/crow-mascot.js), центрируется сама (margin:0 auto у host);
     // отступ снизу – только на обёртке.
     '.dpo-app-done-crow{margin:0 0 10px}',
+    // Маскот отказа (задача 12): пуст до первого отказа отправки (см.
+    // crowShake), поэтому margin – только когда внутри правда что-то есть,
+    // иначе форма без единой ошибки получила бы лишний зазор навсегда.
+    '.dpo-app-error-crow:not(:empty){margin:14px auto 0}',
     '.dpo-app-done p{font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}',
     // Строка «что дальше»: пергаментная плашка с названием программы –
     // человек видит, ЧТО именно приняли, а не только что приняли.
@@ -240,6 +244,7 @@
   var lastTrigger = null;
   var context = {};
   var doneCrow = null;
+  var errorCrow = null;
   var crowScriptLoading = false;
 
   /**
@@ -261,6 +266,40 @@
     script.onload = function () { document.dispatchEvent(new Event('crow-mascot:ready')); };
     document.addEventListener('crow-mascot:ready', cb, { once: true });
     document.body.appendChild(script);
+  }
+
+  /**
+   * Ворона качает головой при отказе отправки (задача 12) – и когда сервер
+   * вернул ошибки полей, и когда отправка не удалась вовсе (сеть, 429, 500).
+   * Реплики нет – только движение, текст ошибки прежний (status/поля).
+   * Гейт reduced-motion – тем же приёмом, что у вибрации и кивка на экране
+   * «Спасибо!»: play('shake') без него бессмыслен (сам js/crow-mascot.js
+   * не запускает цикл кадров в этом режиме), но проверка здесь – чтобы не
+   * тратить сетевой запрос на скрипт, которому нечего будет играть.
+   *
+   * Монтируется лениво, один раз за открытое окно, в уже существующий слот
+   * `.dpo-app-error-crow` (см. buildForm) – повторный отказ просто играет
+   * анимацию заново на том же инстансе («маскот на экране – один» и здесь
+   * означает «маскот в одном месте один», а не только один на всю страницу).
+   */
+  function crowShake(form) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var anchor = form.querySelector('.dpo-app-error-crow');
+    if (!anchor) return;
+    withCrowScript(function () {
+      if (!window.CrowMascot || !document.body.contains(anchor)) return;
+      if (!errorCrow) {
+        errorCrow = CrowMascot.mount({
+          assetPath: crowAssetHref(),
+          anchor: anchor,
+          width: 110,
+          followCursor: false,
+          idleSeconds: 0,
+          onClick: function () {},
+        });
+      }
+      errorCrow.play('shake');
+    });
   }
 
   function el(tag, attrs, children) {
@@ -562,6 +601,12 @@
         el('input', { type: 'text', id: 'dpo-app-website', name: 'website', tabindex: '-1', autocomplete: 'off' }),
       ]),
       el('button', { type: 'submit', class: 'dpo-app-submit', text: 'Отправить заявку' }),
+      // Маскот отказа (задача 12): пустой decorative-слот, ворона встаёт в
+      // него лениво при первом отказе отправки (см. crowShake ниже) – до
+      // этого момента слот пуст и не занимает места (см. CSS :not(:empty)).
+      // aria-hidden: реплики нет, диктору хватает текста в .dpo-app-status
+      // сразу под ней – порядок его объявления crowShake() не трогает.
+      el('div', { class: 'dpo-app-error-crow', 'aria-hidden': 'true' }),
       el('p', { class: 'dpo-app-status', role: 'status', 'aria-live': 'polite' }),
       el('p', {
         class: 'dpo-app-note',
@@ -828,6 +873,12 @@
       doneCrow.destroy();
       doneCrow = null;
     }
+    // Маскот отказа (задача 12) держит те же слушатели на window – та же
+    // причина снять его здесь, что и у doneCrow строкой выше.
+    if (errorCrow) {
+      errorCrow.destroy();
+      errorCrow = null;
+    }
     hideBackground(false);
     backdrop.classList.remove('is-open');
     document.removeEventListener('keydown', onKeydown, true);
@@ -1043,6 +1094,10 @@
           showErrors(form, result.body.fields);
           status.classList.add('is-error');
           status.textContent = 'Проверьте отмеченные поля.';
+          // После showErrors: фокус уже переведён на первое невалидное поле
+          // (см. showErrors), маскот его не перехватывает и не мешает
+          // диктору дочитать имя поля и текст ошибки.
+          crowShake(form);
           return;
         }
         reportFailure(result.status);
@@ -1051,6 +1106,7 @@
           result.status === 429
             ? 'Слишком много попыток подряд. Подождите минуту и отправьте ещё раз.'
             : 'Не удалось отправить заявку. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
+        crowShake(form);
       })
       .catch(function () {
         reportFailure(0);
@@ -1060,6 +1116,7 @@
         // здесь нельзя: человек уверен, что заявку получили.
         status.textContent =
           'Заявка не отправлена – нет связи с сервером. Попробуйте ещё раз или позвоните: ' + FALLBACK_PHONE;
+        crowShake(form);
       });
   }
 
