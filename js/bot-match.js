@@ -22,7 +22,7 @@
     'ой', 'ом', 'ам', 'ах', 'ям', 'ях', 'ы', 'и', 'а', 'я', 'о', 'е', 'у', 'ю', 'ь',
   ];
 
-  var MIN_STEM = 5;
+  var MIN_STEM = 4;
 
   function normalize(word) {
     return String(word || '').toLowerCase().replace(/ё/g, 'е');
@@ -39,9 +39,18 @@
     return w;
   }
 
-  /** Две основы считаются одним словом, если одна начинает другую. */
+  /**
+   * Две основы считаются одним словом, если они равны, либо одна
+   * начинает другую при разнице длин от двух символов (и короткая
+   * основа не короче MIN_STEM – иначе, как у «суд»/«судно», совпадают
+   * только при полном равенстве). Порог в один символ склеивал бы
+   * «право» с «правка»: разница длин ровно один.
+   */
   function sameStem(a, b) {
-    if (a.length < MIN_STEM || b.length < MIN_STEM) return a === b;
+    if (a === b) return true;
+    var shorter = a.length < b.length ? a : b;
+    if (shorter.length < MIN_STEM) return false;
+    if (Math.abs(a.length - b.length) < 2) return false;
     return a.indexOf(b) === 0 || b.indexOf(a) === 0;
   }
 

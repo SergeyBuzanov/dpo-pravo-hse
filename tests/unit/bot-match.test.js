@@ -119,3 +119,26 @@ test('IMPORTANT 5: ограничение без сужения выдачи –
   const out = search('дешевле 100 тысяч космонавтика', PROGRAMS);
   assert.equal(out.reason, 'filter');
 });
+
+// --- Регрессия по повторному ревью 2026-09-08 ---
+
+test('IMPORTANT (повтор): падежные формы «право» продолжают находить программу после ужесточения sameStem', () => {
+  const progs = [{ id: 'p', title: 'Международное право', keywords: [] }];
+  for (const form of ['право', 'права', 'правом', 'праву', 'правами']) {
+    const out = search(form, progs);
+    assert.equal(out.reason, 'title', `форма «${form}» не нашла программу`);
+    assert.deepEqual(out.programs.map((x) => x.id), ['p'], `форма «${form}»`);
+  }
+});
+
+test('IMPORTANT (повтор): «право» и «правовой» – одна основа при поиске', () => {
+  const progs = [{ id: 'p', title: 'Правовое регулирование цифровой экономики', keywords: [] }];
+  const out = search('право', progs);
+  assert.equal(out.reason, 'title');
+});
+
+test('IMPORTANT (повтор): «суд» и «судно» по-прежнему не путаются', () => {
+  const progs = [{ id: 's', title: 'Морское право: страхование судна', keywords: [] }];
+  const out = search('суд', progs);
+  assert.equal(out.reason, 'none');
+});
