@@ -895,7 +895,11 @@ ${structuredData(p, sphere, official)}
 
 <header>
   <a class="logo" href="../index.html">
-    <span class="name">Право</span>
+    <!-- Знак центра «ворон на весах» (владелец 08.09.2026, вариант «круг»).
+         Декоративный: alt пуст, текст ссылки дают слова справа. -->
+    <img class="brand-mark" src="../images/logo/brand-mark-96.webp" width="34" height="34" alt="">
+    <!-- Слово «Право» снято по решению владельца 08.09.2026: имя центру даёт
+         знак слева, словами плашка называет, что это. -->
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
   <span class="header-side">
@@ -1104,9 +1108,13 @@ html.vi-mode header::after{display:none !important}
 @media (prefers-contrast: more){
   header{background:rgb(var(--surface));backdrop-filter:none;border-bottom:1px solid rgb(var(--ink))}
   header::after{display:none}}
-.logo{display:flex;flex-direction:column;gap:1px}
-.logo .name{font-weight:700;font-size:0.9375rem;color:rgb(var(--accent))}
-.logo .sub{font-size:0.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+.logo{display:flex;align-items:center;gap:10px}
+/* Знак центра: 34px вровень с двумя строками слов. В vi-режиме уходит –
+   страница там ч/б, знак остался бы единственным цветным пятном. */
+.brand-mark{display:block;flex:none;width:34px;height:34px;border-radius:50%}
+html.vi-mode .brand-mark{display:none}
+/* Подпись – единственные слова плашки: крупнее прежнего и в фирменном синем. */
+.logo .sub{font-size:0.8125rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgb(var(--accent))}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .header-nav{display:flex;align-items:center;gap:14px}
 .nav-link{font-size:0.875rem;font-weight:600;color:rgb(var(--accent))}

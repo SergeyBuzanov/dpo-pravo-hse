@@ -119,9 +119,16 @@
     header{ background: rgb(var(--surface)); backdrop-filter: none; border-bottom: 1px solid rgb(var(--ink)); }
     header::after{ display: none; }
   }
-  .logo{ display: flex; flex-direction: column; gap: 1px; }
-  .logo .name{ font-weight: 700; font-size: 0.9375rem; color: rgb(var(--accent)); }
-  .logo .sub{ font-size: 0.625rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); }
+  .logo{ display: flex; align-items: center; gap: 10px; }
+  /* Знак центра. 34px – вровень с двумя строками слов рядом. В режиме для
+     слабовидящих уходит: страница там ч/б, знак остался бы единственным
+     цветным пятном (то же правило, что на лендинге). */
+  .brand-mark{ display: block; flex: none; width: 34px; height: 34px; border-radius: 50%; }
+  html.vi-mode .brand-mark{ display: none; }
+  /* Подпись – единственные слова плашки, поэтому крупнее прежнего и в
+     фирменном синем: раньше главной строкой было слово «Право». */
+  .logo .sub{ font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em;
+     text-transform: uppercase; color: rgb(var(--accent)); }
   /* Кнопка возврата не переносится: на 390px «← На главную» разваливалась
      на две строки. На узком экране длинный текст сменяется коротким. */
   header a.back{ font-size: 0.875rem; font-weight: 600; color: rgb(var(--accent)); white-space: nowrap; }
@@ -756,7 +763,11 @@
 
 <header>
   <a href="index.html" class="logo">
-    <span class="name">Право</span>
+    <!-- Знак центра «ворон на весах» (владелец 08.09.2026, вариант «круг»).
+         Декоративный: alt пуст, текст ссылки дают слова справа. -->
+    <img class="brand-mark" src="images/logo/brand-mark-96.webp" width="34" height="34" alt="">
+    <!-- Слово «Право» снято по решению владельца 08.09.2026: имя центру даёт
+         знак слева, словами плашка называет, что это. -->
     <span class="sub">Центр ДПО · НИУ ВШЭ</span>
   </a>
   <nav class="header-nav" aria-label="Служебная навигация" style="display:flex; align-items:center; gap:14px;">
