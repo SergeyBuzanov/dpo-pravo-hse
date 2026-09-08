@@ -701,7 +701,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     var style = document.createElement('style');
     style.textContent =
-      '.crow-mascot{right:' + edge + 'px!important}' +
+      // Задача 13: селектор скопирован БЕЗ уточнения на маскота ошибки формы
+      // (.dpo-app-error-crow > .crow-mascot, задача 9/12) – тот же класс
+      // .crow-mascot есть и у него, и !important этого правила сдвигал его
+      // на edge px влево от места в блоке (крупная ворона делала сдвиг
+      // заметным). Угловой маскот – единственный, кто монтируется прямым
+      // потомком body (js/crow-mascot.js: document.body.appendChild(host)
+      // в ветке 'bottom-right'/'bottom-left'), маскот в форме и в пустом
+      // результате каталога всегда вложен глубже – `body > .crow-mascot`
+      // ловит только угловой.
+      'body>.crow-mascot{right:' + edge + 'px!important}' +
       // Прозрачная кнопка ровно поверх маскота – размер и положение
       // совпадают с .crow-mascot (right/bottom/width/height), z-index на
       // единицу выше него, поэтому клик мышью по любому пикселю вороны

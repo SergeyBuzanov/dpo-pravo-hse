@@ -301,7 +301,7 @@
         errorCrow = CrowMascot.mount({
           assetPath: crowAssetHref(),
           anchor: anchor,
-          width: 36,
+          width: 72,
           followCursor: false,
           idleSeconds: 0,
           onClick: function () {},
