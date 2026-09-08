@@ -37,17 +37,30 @@
   var GREETING = 'Спрашивайте про программы: тему, формат, цену или ближайший старт.';
   var HINTS = ['Подобрать программу', 'Онлайн', 'Какой документ выдают', 'Ближайшие старты', 'Сколько стоит'];
   var TYPE_LABELS = [['ПК', 'Повышение квалификации'], ['ПП', 'Переподготовка']];
+  // Уважение к prefers-reduced-motion – тем же способом, что в
+  // js/crow-mascot.js: пауза «печатает…» и точки для этих посетителей не
+  // проигрываются, ответ приходит сразу.
+  var REDUCED_MOTION = typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   var GAP_TEXT = 'Об этом на сайте не написано, а придумывать я не стану. Оставьте заявку – ответит учебный офис.';
   var FAIL_TEXT = 'Не получилось загрузить программы. Напишите нам – ответим.';
   var WAIT_TEXT = 'Секунду, гружу программы…';
 
   var CSS = [
-    '#dpoBotPanel{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));',
+    // Окно растёт от САМОГО НИЗА экрана (владелец 09.09.2026) – раньше оно
+    // висело на 92px выше, оставляя под собой полосу пустоты. Нижние углы
+    // спрямлены: окно «приросло» к кромке, как шторка на телефоне.
+    // Подъём над баннером cookies остался – его ставит keepAboveBanners()
+    // инлайном и снимает, когда баннера нет (пустая строка возвращает
+    // управление ЭТОМУ правилу; на том же месте, где у вороны опоры не
+    // было, она и потерялась – см. js/crow-launcher.js).
+    '#dpoBotPanel{position:fixed;right:16px;bottom:env(safe-area-inset-bottom,0px);',
     "font-family:'HSE Sans','IBM Plex Sans',system-ui,sans-serif;",
     'z-index:930;width:min(380px,calc(100vw - 32px));max-height:min(70vh,560px);',
     'display:flex;flex-direction:column;background:var(--bg);color:rgb(var(--ink));',
-    'border:1px solid rgb(var(--ink) / .12);border-radius:18px;overflow:hidden;',
-    'box-shadow:0 24px 60px rgb(var(--ink) / .28);opacity:0;transform:translateY(12px) scale(.985);',
+    'border:1px solid rgb(var(--ink) / .12);border-radius:18px 18px 0 0;overflow:hidden;',
+    'box-shadow:0 24px 60px rgb(var(--ink) / .28);opacity:0;transform:translateY(28px);',
     'transition:opacity .22s cubic-bezier(.22,1,.36,1),transform .22s cubic-bezier(.22,1,.36,1)}',
     '#dpoBotPanel.is-open{opacity:1;transform:none}',
     // Открытое окно не перекрывает соседей вслепую – карточка/бейдж
@@ -59,7 +72,23 @@
     // js/smooth-ui.js – тот же приём и то же обоснование).
     'body:has(#dpoBotPanel) #channelInvite,body:has(#dpoBotPanel) #channelInviteBadge{display:none!important}',
     '#dpoBotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;',
-    'padding:14px 14px 10px 18px;border-bottom:1px solid rgb(var(--ink) / .1);flex:none}',
+    'padding:10px 14px 8px 14px;border-bottom:1px solid rgb(var(--ink) / .1);flex:none}',
+    // Ворона в шапке окна (владелец 09.09.2026: «должно быть понятно, что
+    // отвечает ворона»). Это ЖИВОЙ маскот тем же рантаймом, что в углу, –
+    // он моргает, следит за курсором и кивает, когда приходит ответ.
+    '.dpo-bot-brand{display:flex;align-items:center;gap:10px;min-width:0}',
+    '.dpo-bot-crow{width:56px;flex:none}',
+    'html.vi-mode .dpo-bot-crow{display:none}',
+    // «Печатает…»: три точки перед каждым ответом – пауза, за которую видно,
+    // что отвечают, а не мгновенная выдача готового текста.
+    '.dpo-bot-typing{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;',
+    'padding:12px 14px;border-radius:14px;background:var(--bg-tint)}',
+    '.dpo-bot-typing i{width:7px;height:7px;border-radius:50%;background:rgb(var(--ink) / .45);',
+    'animation:dpoBotDot 1.05s infinite ease-in-out}',
+    '.dpo-bot-typing i:nth-child(2){animation-delay:.15s}',
+    '.dpo-bot-typing i:nth-child(3){animation-delay:.3s}',
+    '@keyframes dpoBotDot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}',
+    '@media (prefers-reduced-motion:reduce){.dpo-bot-typing i{animation:none}}',
     // Кегль – ступень «title» шкалы DESIGN.md (1.1875rem/600/1.3, «заголовки карточек»).
     '#dpoBotHead h2{margin:0;font-family:"HSE Slab","Source Serif 4",Georgia,serif;',
     'font-size:1.1875rem;font-weight:600;line-height:1.3}',
@@ -237,9 +266,10 @@
   function showFailure() {
     if (failureShown) return;
     failureShown = true;
-    say(FAIL_TEXT);
-    applyButton();
-    scrollDown();
+    respond(function () {
+      say(FAIL_TEXT);
+      applyButton();
+    });
   }
 
   /**
@@ -254,7 +284,9 @@
    */
   function runWhenReady(action) {
     var wasEmpty = queue.isEmpty();
-    var status = queue.run(action, showFailure, data);
+    var status = queue.run(function (loaded) {
+      respond(function () { action(loaded); });
+    }, showFailure, data);
     if (status === 'queued' && wasEmpty) say(WAIT_TEXT);
     scrollDown();
   }
@@ -312,15 +344,16 @@
   function pickBy(field, value, label) {
     mine(label);
     var matched = window.DpoBotReply.pickBy(data.programs, field, value);
-    if (!matched.length) {
-      say('Такого не нашла. Вот что стартует ближе всего:');
-      window.DpoBotReply.upcoming(data.programs, 3).forEach(function (p) { log.appendChild(programCard(p)); });
-      applyButton();
-    } else {
-      say(window.DpoBotReply.introFor('filter', matched.length));
-      matched.slice(0, 5).forEach(function (p) { log.appendChild(programCard(p)); });
-    }
-    scrollDown();
+    respond(function () {
+      if (!matched.length) {
+        say('Такого не нашла. Вот что стартует ближе всего:');
+        window.DpoBotReply.upcoming(data.programs, 3).forEach(function (p) { log.appendChild(programCard(p)); });
+        applyButton();
+      } else {
+        say(window.DpoBotReply.introFor('filter', matched.length));
+        matched.slice(0, 5).forEach(function (p) { log.appendChild(programCard(p)); });
+      }
+    });
   }
 
   function renderUpcomingStarts(loadedData) {
@@ -488,6 +521,64 @@
    * время, что ворона скрыта – #crow-vi-btn (версия для слабовидящих) не
    * трогаем: там маскота вообще нет, это обычная видимая кнопка.
    */
+  /**
+   * Ворона в шапке окна – ЖИВОЙ маскот, а не картинка: тот же рантайм, что
+   * в углу (js/crow-mascot.js уже подключён на всех страницах, где есть
+   * это окно). solo:false обязателен – иначе новый инстанс по правилу
+   * «маскот на экране один» спрятал бы... сам себя вернувшуюся угловую
+   * ворону при закрытии окна, а угловую и так прячет hideCrow().
+   * idleSeconds:0 гасит собственную реплику «Есть вопросы?»: в окне на 56px
+   * её пузырь был бы шире самого окна.
+   */
+  var headCrow = null;
+  function mountHeadCrow(slot) {
+    if (!window.CrowMascot) return;
+    try {
+      headCrow = window.CrowMascot.mount({
+        assetPath: href('images/crow/'),
+        anchor: slot,
+        width: 56,
+        zIndex: 1,
+        solo: false,
+        idleSeconds: 0,
+      });
+    } catch (e) { headCrow = null; }
+  }
+  /** Кивок в момент, когда ответ появился в ленте. */
+  function nodHeadCrow() {
+    if (headCrow && headCrow.play) headCrow.play('nod');
+  }
+  function destroyHeadCrow() {
+    if (headCrow && headCrow.destroy) headCrow.destroy();
+    headCrow = null;
+  }
+
+  /**
+   * Ответ приходит не мгновенно: сначала три точки, потом сам ответ и кивок
+   * вороны (владелец 09.09.2026 – «чтобы было понятно, что отвечает
+   * ворона»). Пауза короткая и одна на ответ: это знак авторства, а не
+   * поддельная «загрузка».
+   * prefers-reduced-motion: без паузы и без точек – ответ сразу.
+   */
+  var TYPING_MS = 520;
+  function respond(fn) {
+    if (!log) return;
+    if (REDUCED_MOTION) { fn(); scrollDown(); return; }
+    var dots = el('div', { class: 'dpo-bot-typing', 'aria-hidden': 'true' }, [
+      el('i', {}), el('i', {}), el('i', {}),
+    ]);
+    log.appendChild(dots);
+    scrollDown();
+    var myLog = log;
+    setTimeout(function () {
+      if (log !== myLog) return;
+      if (dots.parentNode) dots.parentNode.removeChild(dots);
+      fn();
+      nodHeadCrow();
+      scrollDown();
+    }, TYPING_MS);
+  }
+
   function hideCrow() {
     if (window.crowMascot) window.crowMascot.hide();
     var hit = document.querySelector('.crow-hit-btn');
@@ -501,6 +592,9 @@
 
   function close() {
     if (!panel) return;
+    // Раньше маскота: destroy() снимает цикл кадров и наблюдатель, иначе
+    // они остались бы жить на удалённом из документа узле.
+    destroyHeadCrow();
     panel.remove();
     panel = null;
     log = null;
@@ -521,11 +615,11 @@
     queue = window.DpoBotReply.createActionQueue();
     failureShown = false;
 
-    var close_ = el('button', { type: 'button', class: 'dpo-bot-close', 'aria-label': 'Закрыть окно бота', text: '×' });
+    var close_ = el('button', { type: 'button', class: 'dpo-bot-close', 'aria-label': 'Закрыть окно поддержки', text: '×' });
     close_.addEventListener('click', close);
     log = el('div', { class: 'dpo-bot-log' });
     log.setAttribute('aria-live', 'polite');
-    var input = el('input', { type: 'text', id: 'dpoBotInput', placeholder: 'Например: банкротство онлайн', 'aria-label': 'Вопрос боту' });
+    var input = el('input', { type: 'text', id: 'dpoBotInput', placeholder: 'Например: банкротство онлайн', 'aria-label': 'Вопрос в поддержку' });
     var form = el('form', { id: 'dpoBotForm' }, [input, el('button', { type: 'submit', text: 'Спросить' })]);
     form.addEventListener('submit', function (event) {
       event.preventDefault();
@@ -536,12 +630,21 @@
     // IMPORTANT 4 (независимое ревью 08.09.2026): aria-modal="true" –
     // ловушка Tab внизу и правда ведёт себя как модальная, aria-modal
     // "false" при живой ловушке было несогласовано.
-    panel = el('div', { id: 'dpoBotPanel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Бот поддержки' }, [
-      el('div', { id: 'dpoBotHead' }, [el('h2', { text: 'Бот поддержки' }), close_]),
+    // Ворона декоративна (alt="" у всех слоёв рантайма), поэтому слот
+    // помечен aria-hidden: читалке хватает заголовка «Поддержка».
+    var crowSlot = el('div', { class: 'dpo-bot-crow', 'aria-hidden': 'true' });
+    panel = el('div', { id: 'dpoBotPanel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Поддержка' }, [
+      el('div', { id: 'dpoBotHead' }, [
+        el('div', { class: 'dpo-bot-brand' }, [crowSlot, el('h2', { text: 'Поддержка' })]),
+        close_,
+      ]),
       log,
       form,
     ]);
     document.body.appendChild(panel);
+    // Монтировать только после вставки панели в документ: рантайм маскота
+    // считает размеры слота.
+    mountHeadCrow(crowSlot);
     setLaunchersExpanded(true);
     document.addEventListener('keydown', onKeydown, true);
 

@@ -99,7 +99,7 @@
     hit.setAttribute('data-bot-open', '');
     var hitLabel = document.createElement('span');
     hitLabel.className = 'visually-hidden';
-    hitLabel.textContent = 'Спросить у бота';
+    hitLabel.textContent = 'Открыть поддержку';
     hit.appendChild(hitLabel);
     document.body.appendChild(hit);
 
@@ -107,7 +107,7 @@
     viBtn.type = 'button';
     viBtn.id = 'crow-vi-btn';
     viBtn.setAttribute('data-bot-open', '');
-    viBtn.textContent = 'Спросить у бота';
+    viBtn.textContent = 'Поддержка';
     document.body.appendChild(viBtn);
 
     global.crowMascot = global.CrowMascot.mount({
