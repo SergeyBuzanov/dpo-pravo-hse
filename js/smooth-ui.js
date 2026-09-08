@@ -180,12 +180,19 @@ section#explore a[href]{
 .dpo-mobile-cta{
   display: none;
   /* Слои нижнего края: модальные окна 9000 > баннер cookies 1000 > эта
-     панель > приглашение в канал 900 (js/channel-invite.js). Панель обязана
-     лежать ВЫШЕ приглашения: на 390×844 карточка канала накрывала её
-     целиком, и телефон оставался без единственной кнопки заявки. Само
-     приглашение при этом приподнимается над панелью, см. keepAboveBottomBars
-     там же. */
-  position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 940;
+     панель 940 > ворона 920 (js/crow-mascot.js) > приглашение в канал 900
+     (js/channel-invite.js). Панель обязана лежать ВЫШЕ приглашения: на
+     390×844 карточка канала накрывала её целиком, и телефон оставался без
+     единственной кнопки заявки. Само приглашение при этом приподнимается
+     над панелью, см. keepAboveBottomBars там же.
+
+     right укорочен с 12px до 112px (решение владельца, задача 9,
+     08.09.2026 – «угол принадлежит вороне»): маскот на телефоне занимает
+     bottom-right с полем 8px и шириной 96px (порог 1023px, см. index.html),
+     112 = 8+96+8 – ровно ширина маскота с полями плюс зазор 8px. Значение
+     в паре с #channelInvite/#channelInviteBadge в js/channel-invite.js –
+     обе стороны отступают от одного и того же маскота. */
+  position: fixed; left: 12px; right: 112px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 940;
   gap: 8px; padding: 10px;
   background: rgba(251,249,245,0.94);
   backdrop-filter: blur(12px);

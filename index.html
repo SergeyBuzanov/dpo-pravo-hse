@@ -623,6 +623,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 <script src="js/channel-invite.js" defer></script>
 <script src="js/site-analytics.js" defer></script>
 <script src="js/cookie-consent.js" defer></script>
+<script src="js/crow-mascot.js" defer></script>
 <!-- email-protect-addon: адреса собираются после рендера рантайма,
      в исходном HTML их нет — спам-боты не соберут. -->
 <script>
@@ -638,6 +639,80 @@ document.addEventListener('DOMContentLoaded', async function() {
       a.textContent = addr;
     });
   }, 150);
+})();
+</script>
+<!-- crow-launcher-addon: ворона Шерлок в правом нижнем углу лендинга
+     (задача 9, 08.09.2026). Виджет – js/crow-mascot.js, слои –
+     images/crow/*.webp (задача 8, 11 файлов). Угол принадлежит вороне
+     (решение владельца): бейдж канала MAX (js/channel-invite.js) и
+     мобильная полоса-CTA (js/smooth-ui.js) подвинуты в своих файлах.
+     Слои: модальные окна 9000 > баннер cookies 1000 > полоса-CTA 940 >
+     ворона 920 > бейдж канала 900.
+
+     Мишень клика для клавиатуры и диктора – кнопка «Подать заявку» ниже,
+     а не сама ворона: слои маскота декоративны (alt="" у всех), div не
+     фокусируется таб-ом. Клик по самой вороне (мышью) дублирует клик по
+     кнопке через onClick.
+
+     ПО КЛИКУ ОТКРЫВАЕТСЯ ФОРМА ЗАЯВКИ (js/application-form.js,
+     [data-application]) – ВРЕМЕННОЕ поведение: окна бота (js/support-bot.js)
+     на момент этой задачи ещё нет, оно появится вместе с задачей 5.
+
+     Ленивая загрузка: mount() – а значит и создание 11 <img>, из-за
+     которого грузятся слои, – отложен до window.load, чтобы картинки
+     маскота не спорили за полосу с ресурсами первого экрана.
+
+     Стили вставлены СКРИПТОМ, а не статичным <style> (тот же приём, что у
+     vi-mode-addon выше): рантайм при загрузке делает
+     document.documentElement.replaceWith(...) и уносит с собой любую
+     статическую разметку хвоста файла, включая <style>. Первая версия
+     этого блока держала CSS в обычном <style> – кнопка «Подать заявку»
+     оставалась без единого правила и рисовалась браузером по умолчанию
+     (замер в браузере 08.09.2026: bounding box в левом верхнем углу,
+     высота строки вместо min-height:44px). Кнопка создаётся и стилизуется
+     ЦЕЛИКОМ в mountCrow() ниже, который выполняется по window.load – то
+     есть заведомо после подмены документа. -->
+<script>
+(function () {
+  function mountCrow() {
+    if (!window.CrowMascot) return;
+    // Порог 1023px – тот же, что у мобильной панели js/smooth-ui.js и у
+    // отступов бейджа канала в js/channel-invite.js: все три подстроены
+    // под одну и ту же ширину/поле маскота, менять по отдельности нельзя.
+    var narrow = window.matchMedia('(max-width: 1023px)').matches;
+    var width = narrow ? 96 : 260;
+    var height = Math.round(width * 1465 / 1400);
+    var edge = narrow ? 8 : 24;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.crow-mascot{right:' + edge + 'px!important}' +
+      '.crow-launch-btn{position:fixed;right:' + edge + 'px;bottom:' + (height + 10) + 'px;' +
+      'z-index:920;min-height:44px;padding:0 16px;border-radius:999px;cursor:pointer;' +
+      "font:600 0.8125rem/1 'HSE Sans','IBM Plex Sans',system-ui,sans-serif;" +
+      'color:rgb(var(--surface));background:rgb(var(--accent));border:1px solid rgb(var(--accent));' +
+      'box-shadow:0 8px 24px rgb(var(--ink) / .18)}' +
+      'html.vi-mode .crow-launch-btn{background:#fff!important;color:#000!important;border:2px solid #000!important}';
+    (document.head || document.documentElement).appendChild(style);
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'crow-launch-btn';
+    btn.setAttribute('data-application', '');
+    btn.textContent = 'Подать заявку';
+    document.body.appendChild(btn);
+
+    window.crowMascot = CrowMascot.mount({
+      assetPath: 'images/crow/',
+      anchor: 'bottom-right',
+      width: width,
+      zIndex: 920,
+      idleSeconds: 14,
+      onClick: function () { btn.click(); }
+    });
+  }
+  if (document.readyState === 'complete') mountCrow();
+  else window.addEventListener('load', mountCrow);
 })();
 </script>
 </body>
