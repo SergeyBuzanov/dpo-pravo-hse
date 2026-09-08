@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const { stem, parseQuery, search } = require('../../js/bot-match');
+const { stem, sameStem, parseQuery, search } = require('../../js/bot-match');
 
 const PROGRAMS = [
   {
@@ -214,7 +214,93 @@ test('FINAL I2: «до 5 лет» тоже срок, а не цена, но «л
   // Регрессия на \b-баг из I1: «лет\b» не матчился на кириллице вовсе, из-за
   // чего срок в годах не отличался бы от цены. Заодно проверяем, что явная
   // граница не переусердствовала и не режет «летний» как «лет».
-  assert.equal(parseQuery('до 5000 летний интенсив').priceMax, 5000);
+  const q = parseQuery('до 5000 летний интенсив');
+  assert.equal(q.priceMax, 5000);
+  // Регрессия повторного ревью 2026-09-08 (CRITICAL): группа числа в
+  // ценовом регэкспе была жадной к хвостовому пробелу, поэтому
+  // consumeWord стирал не только число, но и следующее слово целиком –
+  // здесь ценой распознаётся именно «5000» (число не отвергнуто как срок,
+  // «летний» под DURATION_TAIL_RE не подходит), и слово «летний» должно
+  // устоять как содержательный stem вместе с «интенсив».
+  assert.deepEqual(q.stems, [stem('летний'), stem('интенсив')]);
+});
+
+// --- Регрессии повторного ревью 2026-09-08: CRITICAL + MINOR того же места ---
+
+test('FINAL CRITICAL: жадная граница числа не стирает следующее слово – тема вопроса уцелевает вместе с ценой', () => {
+  // Раньше (\d[\d\s]*) захватывал хвостовой пробел после числа, из-за
+  // чего consumeWord(remaining, price.index, price[0].length) раздвигал
+  // границу уже ВНУТРИ следующего слова и стирал его целиком – ровно тогда,
+  // когда после числа нет денежной единицы («до 100000 банкротство»).
+  let q = parseQuery('до 100000 банкротство');
+  assert.equal(q.priceMax, 100000);
+  assert.deepEqual(q.stems, [stem('банкротство')]);
+
+  q = parseQuery('за 100000 налоги');
+  assert.equal(q.priceMax, 100000);
+  assert.deepEqual(q.stems, [stem('налоги')]);
+
+  q = parseQuery('до 50000 онлайн');
+  assert.equal(q.priceMax, 50000);
+  assert.equal(q.format, 'online');
+
+  q = parseQuery('до 50000 пп');
+  assert.equal(q.priceMax, 50000);
+  assert.equal(q.type, 'ПП');
+});
+
+test('FINAL CRITICAL: на настоящих данных цена больше не проглатывает тему/формат/тип', () => {
+  const ROOT = path.resolve(__dirname, '..', '..');
+  const programs = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'bot-catalog.json'), 'utf8')).programs;
+
+  const bankrupt = search('до 100000 банкротство', programs);
+  assert.equal(bankrupt.reason, 'title');
+  assert.ok(bankrupt.programs.length > 0);
+  // Первая (высший тир – совпадение в названии) обязана быть про банкротство;
+  // дальше в списке могут идти и другие программы дешевле 100000 – reason
+  // зависит от ТОП-совпадения, не от всех элементов списка.
+  assert.ok(bankrupt.programs[0].title.toLowerCase().includes('банкротств'));
+
+  const tax = search('за 100000 налоги', programs);
+  assert.equal(tax.reason, 'title');
+  assert.ok(tax.programs.length > 0);
+
+  const online = search('до 50000 онлайн', programs);
+  assert.equal(online.reason, 'filter');
+  assert.ok(online.programs.length > 0);
+  assert.ok(online.programs.every((p) => p.format === 'online' && typeof p.price === 'number' && p.price <= 50000));
+
+  // Реальные цены ПП на этом каталоге – 130000/180000/390000: порога
+  // «до 50000» на живых данных не пережил бы ни один (тип потерялся бы не
+  // из-за бага, а из-за честно пустого фильтра) – берём порог, при котором
+  // хотя бы одна ПП-программа есть, но не все три.
+  const pp = search('до 200000 пп', programs);
+  assert.equal(pp.reason, 'filter');
+  assert.ok(pp.programs.length > 0);
+  assert.ok(pp.programs.every((p) => p.type === 'ПП' && typeof p.price === 'number' && p.price <= 200000));
+});
+
+test('FINAL MINOR: предлог «за» ловится только отдельным словом – «виза 5000» не режется на цену', () => {
+  // «за» – подстрока внутри «виза» (ви-за). Без границы слова regex цены
+  // находил «за 5000» прямо внутри «виза 5000», и consumeWord стирал
+  // «виза» целиком вместе с ложной ценой.
+  const q = parseQuery('виза 5000');
+  assert.equal(q.priceMax, null);
+  assert.equal(q.priceMin, null);
+  assert.deepEqual(q.stems, [stem('виза')]);
+});
+
+test('FINAL MINOR: стоп-список сверяется тем же sameStem, что и совпадение с программой', () => {
+  // «документальный» – не стоп-слово буквально, но его основа
+  // («документальн») – это то же слово, что и «документ» по правилу
+  // sameStem (общий префикс, разница длин 4 – проходит порог), тем самым
+  // правилом, каким hits() сверяет запрос с программами. Раньше
+  // стоп-список проверял точное равенство основ (STOP_STEMS.indexOf) и
+  // такую форму пропускал как содержательное слово.
+  assert.equal(sameStem(stem('документальный'), stem('документ')), true);
+  const q = parseQuery('документальный сериал');
+  assert.equal(q.stems.indexOf(stem('документальный')), -1);
+  assert.deepEqual(q.stems, [stem('сериал')]);
 });
 
 test('FINAL I3: общие слова («документ», «старт», «подобрать», «программу», «стоит») не дают очков сами по себе', () => {
