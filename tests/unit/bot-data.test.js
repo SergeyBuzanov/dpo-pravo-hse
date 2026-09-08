@@ -69,3 +69,21 @@ test('коды форматов совпадают с чипами фильтр�
     assert.ok(chips.has(item.format), `код ${item.format} не встречается среди чипов каталога`);
   }
 });
+
+test('em dash в текстовые поля не просачивается', () => {
+  // Типографика проекта запрещает «—» полностью (только en dash «–»).
+  // keywords тащат сырой tagline/audience/modules из хранилища – проверяем
+  // именно те поля, что могут нести свободный текст.
+  const FIELDS = ['title', 'formatLabel', 'priceLabel', 'duration', 'start', 'sphere'];
+  for (const item of read('content/bot-catalog.json').programs) {
+    for (const field of FIELDS) {
+      assert.ok(
+        !String(item[field] ?? '').includes('—'),
+        `em dash в поле ${field} у ${item.id}: ${item[field]}`,
+      );
+    }
+    for (const keyword of item.keywords) {
+      assert.ok(!keyword.includes('—'), `em dash в keywords у ${item.id}: ${keyword}`);
+    }
+  }
+});

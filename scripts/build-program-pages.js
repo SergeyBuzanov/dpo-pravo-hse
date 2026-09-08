@@ -125,26 +125,31 @@ function writeBotCatalog(programs, spheres) {
     const bucket = formatBucket((p.studyFormat && p.studyFormat.title) || '');
     // Слова для поиска: модули, аудитория и подводка. Названия программ
     // ищутся отдельно, поэтому здесь их нет.
+    // cleanText: та же чистка, что normalizeProgram применяет к остальным
+    // текстам источника (в т.ч. снятие em dash – типографика проекта его
+    // запрещает). keywords, title и formatLabel несут сырой текст из
+    // хранилища (tagline, audience.items, названия модулей, studyFormat) –
+    // без чистки в публичный content/bot-catalog.json утекало «—».
     const keywords = [
       ...(Array.isArray(p.modules) ? p.modules.map((m) => m && m.title) : []),
       ...((p.audience && Array.isArray(p.audience.items)) ? p.audience.items : []),
       p.tagline || '',
     ]
-      .map((s) => String(s || '').trim())
+      .map((s) => cleanText(String(s || '')))
       .filter(Boolean);
 
     return {
       id: String(p.id || ''),
-      title: String(p.title || ''),
+      title: cleanText(String(p.title || '')),
       url: programHref(p),
       sphere: sphereOfId.get(String(p.id)) || 'Другие программы',
       type: String((p.type && (p.type.shortTitle || p.type.title)) || ''),
       format: bucket.value,
-      formatLabel: (p.studyFormat && p.studyFormat.title) || bucket.label,
+      formatLabel: cleanText((p.studyFormat && p.studyFormat.title) || bucket.label),
       price: typeof p.discountPrice === 'number' ? p.discountPrice
         : typeof p.educationPricing === 'number' ? p.educationPricing : null,
       priceLabel: formatPrice(p),
-      duration: p.duration || null,
+      duration: p.duration ? cleanText(String(p.duration)) : null,
       start: upcomingStartLabel(p) || null,
       keywords,
     };
