@@ -56,39 +56,130 @@
 
   var FORMATS = [
     [/онлайн|дистанц|удал/, 'online'],
-    [/очн(?!ый онлайн)|офлайн|аудитор/, 'offline'],
+    // Отрицательный просмотр «не очный онлайн» был недостижим: online
+    // проверяется раньше в этом же цикле и уже съедает слово «онлайн»
+    // из remaining (см. consumeWord ниже), так что «очн» здесь никогда
+    // не увидит рядом стоящее «онлайн» – убрано как мёртвый код (M3).
+    [/очн|офлайн|аудитор/, 'offline'],
     [/смешан/, 'mixed'],
     [/гибрид/, 'hybrid'],
   ];
+
+  /**
+   * Общие слова вопроса про бота, которые не должны сами по себе давать
+   * очки: они мелькают в подводках, названиях модулей и служебных полях
+   * почти любой программы, а описывают не программу, а сам вопрос.
+   *  - программа/курс/обучение – родовые слова темы разговора, а не её
+   *    предмета («подобрать программу» ничего не говорит о праве);
+   *  - формат – уже разобран отдельным полем (FORMATS выше);
+   *  - подобрать/какой/нужен – служебные слова вопроса, не темы;
+   *  - документ – вопрос «какой документ выдают» про диплом/справку, а
+   *    не про содержание программы;
+   *  - старт – уже разобран отдельно (start/startIso), как содержательное
+   *    слово оно только даёт ложные совпадения по «ближайшие старты»;
+   *  - стоит/цена – цена уже разобрана отдельным полем (priceMax/priceMin
+   *    в parseQuery), как слово оно только шумит.
+   */
+  var STOP_WORDS = [
+    'программа', 'курс', 'обучение', 'формат', 'подобрать',
+    'какой', 'нужен', 'документ', 'старт', 'стоит', 'цена',
+  ];
+  var STOP_STEMS = STOP_WORDS.map(stem);
+
+  /**
+   * Вырезает из строки целое слово, накрывающее позицию [index, index+len)
+   * найденного совпадения regex – а не только само совпадение. Регулярки
+   * формата и цены нарочно матчат префикс/подстроку слова («дистанц» из
+   * «дистанционно», «тыс» из «тысяч»), и если стереть только совпавшую
+   * подстроку, огрызок слова («ионно», «яч») остаётся в тексте и попадает
+   * в stems как мусорное слово. Раздвигаем границы до ближайших не-буквенных
+   * символов в обе стороны и стираем целиком.
+   */
+  function consumeWord(str, index, len) {
+    var start = index;
+    var end = index + len;
+    while (start > 0 && /[а-яa-z0-9]/.test(str[start - 1])) start--;
+    while (end < str.length && /[а-яa-z0-9]/.test(str[end])) end++;
+    return str.slice(0, start) + ' ' + str.slice(end);
+  }
+
+  // Число само по себе не цена. «за 3 месяца», «до 3 месяцев» – это срок,
+  // а не стоимость: если следом идёт слово о длительности, ценой оно не
+  // считается вовсе.
+  // «лет\b» здесь не годится: \b в JS не видит границ вокруг кириллицы
+  // (та же причина, что в I1 сломала «пп»/«пк») – «летний», «летом» тоже
+  // совпали бы. Явный лукахед на не-кириллицу отличает «5 лет» от «5 летний».
+  var DURATION_TAIL_RE = /^\s*(месяц|недел|год|лет(?=$|[^а-яё])|час|дн)/;
 
   function parseQuery(query) {
     var text = normalize(query);
     var out = { stems: [], priceMax: null, priceMin: null, format: null, type: null };
     if (!text.trim()) return out;
 
-    // Цена: «до 30 000», «дешевле 30 тысяч», «от 20 тысяч», «не дороже 40 тысяч», «за 100000».
-    var price = text.match(/(до|дешевле|не дороже|не больше|за|от|дороже)\s+(\d[\d\s]*)\s*(тыс\w*)?/);
+    var remaining = text;
+
+    // Цена: «до 30 000», «дешевле 30 тысяч», «от 20 тысяч», «не дороже 40
+    // тысяч», «не больше 100 руб», «за 100000».
+    var price = remaining.match(/(до|дешевле|не дороже|не больше|за|от|дороже)\s+(\d[\d\s]*)\s*(тыс\w*|руб\w*|₽)?/);
     if (price) {
       var value = parseInt(price[2].replace(/\s/g, ''), 10);
-      if (price[3]) value *= 1000;
-      // Отрицательные обороты («не дороже», «не больше») проверяются раньше:
-      // иначе подстрока «дороже» внутри «не дороже» перепутает верх с низом.
-      if (/^не\s/.test(price[1])) out.priceMax = value;
-      else if (/от|дороже/.test(price[1])) out.priceMin = value;
-      else out.priceMax = value;
+      var hasMoneyUnit = !!price[3];
+      var tail = remaining.slice(price.index + price[0].length, price.index + price[0].length + 12);
+      var isDuration = DURATION_TAIL_RE.test(tail);
+      // Число меньше тысячи без явной денежной единицы («до 30») слишком
+      // легко перепутать с чем угодно (возраст, номер группы, шаг занятий
+      // в месяцах) – ценой оно не считается.
+      var tooSmall = !hasMoneyUnit && value < 1000;
+      if (!isDuration && !tooSmall) {
+        if (hasMoneyUnit && /тыс/.test(price[3])) value *= 1000;
+        // Отрицательные обороты («не дороже», «не больше») проверяются
+        // раньше: иначе подстрока «дороже» внутри «не дороже» перепутает
+        // верх с низом.
+        if (/^не\s/.test(price[1])) out.priceMax = value;
+        else if (/от|дороже/.test(price[1])) out.priceMin = value;
+        else out.priceMax = value;
+        remaining = consumeWord(remaining, price.index, price[0].length);
+      }
     }
 
     for (var i = 0; i < FORMATS.length; i++) {
-      if (FORMATS[i][0].test(text)) { out.format = FORMATS[i][1]; break; }
+      var fm = remaining.match(FORMATS[i][0]);
+      if (fm) {
+        out.format = FORMATS[i][1];
+        remaining = consumeWord(remaining, fm.index, fm[0].length);
+        break;
+      }
     }
-    if (/переподготовк|новая профессия|пп\b/.test(text)) out.type = 'ПП';
-    else if (/повышение квалификац|пк\b/.test(text)) out.type = 'ПК';
 
-    out.stems = text
+    // «пп»/«пк» – это сокращения, различимые только когда стоят отдельным
+    // словом: /пп\b/ здесь не работает вовсе, потому что \b в JS определён
+    // через \w (ASCII), а кириллица в \w не входит – границы слова вокруг
+    // русских букв не возникает никогда. Проверяем явную границу через
+    // символ до и после совпадения (не-буква/начало-конец строки), без \b.
+    if (/переподготовк|новая профессия/.test(remaining)) {
+      var pp = remaining.match(/переподготовк[а-яa-z]*|новая профессия/);
+      out.type = 'ПП';
+      remaining = consumeWord(remaining, pp.index, pp[0].length);
+    } else if (/повышение квалификац/.test(remaining)) {
+      var pk = remaining.match(/повышение квалификац[а-яa-z]*/);
+      out.type = 'ПК';
+      remaining = consumeWord(remaining, pk.index, pk[0].length);
+    } else {
+      var abbr = remaining.match(/(^|[^а-яa-z0-9])(пп|пк)(?=$|[^а-яa-z0-9])/);
+      if (abbr) {
+        out.type = abbr[2] === 'пп' ? 'ПП' : 'ПК';
+        remaining = consumeWord(remaining, abbr.index + abbr[1].length, abbr[2].length);
+      }
+    }
+
+    out.stems = remaining
       .replace(/[^а-яa-z0-9\s]/g, ' ')
       .split(/\s+/)
       .filter(function (w) { return w.length >= 3 && !/^\d+$/.test(w); })
-      .map(stem);
+      .map(stem)
+      // Общие слова вопроса («программу», «документ», «старты», «стоит»…)
+      // не должны сами по себе давать очков – см. STOP_WORDS выше.
+      .filter(function (s) { return STOP_STEMS.indexOf(s) === -1; });
 
     return out;
   }
@@ -104,15 +195,31 @@
     return n;
   }
 
+  /**
+   * Сортировка «кто стартует раньше» – сначала программы с назначенным
+   * стартом (по возрастанию даты через startIso, YYYY-MM-DD – сравнивается
+   * лексикографически, это и есть хронологический порядок), затем те, у
+   * кого старта нет, в конец. «Есть старт» проверяется и по startIso, и по
+   * старой подписи start – это позволяет данным без startIso (более старая
+   * форма) по-прежнему хотя бы группироваться, даже если внутри группы
+   * настоящей даты для сравнения нет.
+   */
   function byStart(a, b) {
-    if (!!a.start === !!b.start) return 0;
-    return a.start ? -1 : 1;
+    var aHas = !!(a.startIso || a.start);
+    var bHas = !!(b.startIso || b.start);
+    if (aHas !== bHas) return aHas ? -1 : 1;
+    if (a.startIso && b.startIso) {
+      if (a.startIso < b.startIso) return -1;
+      if (a.startIso > b.startIso) return 1;
+      return 0;
+    }
+    return 0;
   }
 
   function search(query, programs) {
     var list = Array.isArray(programs) ? programs.slice() : [];
     var q = parseQuery(query);
-    if (!q.stems.length && q.priceMax === null && q.priceMin === null && !q.format) {
+    if (!q.stems.length && q.priceMax === null && q.priceMin === null && !q.format && !q.type) {
       return { reason: 'empty', programs: [] };
     }
 
@@ -160,5 +267,5 @@
     return { reason: 'none', programs: list.slice().sort(byStart).slice(0, 3) };
   }
 
-  return { stem: stem, parseQuery: parseQuery, search: search };
+  return { stem: stem, sameStem: sameStem, parseQuery: parseQuery, search: search };
 });
