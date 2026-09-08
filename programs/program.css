@@ -57,7 +57,7 @@ html.vi-mode header::after{display:none !important}
 .brand-mark{display:block;flex:none;width:34px;height:34px;border-radius:50%}
 html.vi-mode .brand-mark{display:none}
 /* Подпись – единственные слова плашки: крупнее прежнего и в фирменном синем. */
-.logo .sub{font-size:0.8125rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgb(var(--accent))}
+.logo .sub{font-size:0.8125rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--accent))}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .header-nav{display:flex;align-items:center;gap:14px}
 .nav-link{font-size:0.875rem;font-weight:600;color:rgb(var(--accent))}
