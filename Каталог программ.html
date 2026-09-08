@@ -658,21 +658,6 @@
      160px, в потоке текста, по центру. Высота – по пропорции слоёв 1400×1465. */
   .empty-crow{ width: 160px; height: 168px; margin: 0 auto 12px; }
   .empty-text{ margin: 0 0 18px; }
-  /* Тот же словарь пилюли, что у .card-apply: акцентная обводка, заливка
-     акцентом на наведении. Не переиспользует .toolbar .reset – тот селектор
-     скопирован под тулбар и здесь не сработал бы. */
-  .empty-reset{
-    font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer;
-    color: rgb(var(--accent)); background: rgb(var(--surface));
-    border: 1px solid rgb(var(--accent) / .3); border-radius: 999px;
-    padding: 10px 20px; min-height: 44px;
-    transition: background .2s ease, border-color .2s ease, color .2s ease;
-  }
-  @media (hover: hover) and (pointer: fine){
-    .empty-reset:hover{
-      background: rgb(var(--accent)); border-color: rgb(var(--accent)); color: rgb(var(--surface));
-    }
-  }
 
   @media (prefers-reduced-motion: reduce){
     .chip, .card, .empty, .card .go, .card .tag[data-tip]::after{ transition: none !important; animation: none !important; }
@@ -1643,7 +1628,6 @@
   <div class="empty" id="empty">
     <div class="empty-crow" data-crow-slot aria-hidden="true"></div>
     <p class="empty-text">По выбранному фильтру программ не найдено.</p>
-    <button type="button" class="empty-reset" data-reset-filters>Сбросить фильтры</button>
   </div>
 </main>
 
@@ -1877,12 +1861,6 @@
     });
     applyFilters();
     searchInput.focus();
-  });
-
-  // Кнопка «Сбросить фильтры» внутри пустого результата (задача 10) не
-  // дублирует логику выше — она нажимает ТУ ЖЕ кнопку тулбара программно.
-  document.querySelectorAll('[data-reset-filters]').forEach((btn) => {
-    btn.addEventListener('click', () => resetBtn.click());
   });
 
   document.querySelectorAll('.chip').forEach((chip) => {
