@@ -240,6 +240,13 @@
    * дальше не копится молча (это же чинит IMPORTANT 3 – повторное
    * открытие во время ещё идущей загрузки не показывает ложную ошибку,
    * а ждёт тот же результат).
+   *
+   * Второй заход ревью (08.09.2026, IMPORTANT): reject() очищал очередь,
+   * ни разу не вызвав действия – вопрос, заданный ДО провала загрузки,
+   * терялся молча (посетитель навсегда оставался на «Секунду, гружу…»).
+   * Теперь на каждое действие заводится ПАРА колбэков – onReady и onFail;
+   * reject() обязан вызвать onFail для всех уже накопленных действий, а
+   * не просто забыть о них.
    */
   function createActionQueue() {
     var pending = [];
@@ -247,28 +254,75 @@
     return {
       isEmpty: function () { return pending.length === 0; },
       status: function () { return settled; },
-      /** 'ran' – выполнено сразу, 'queued' – встало в очередь, 'failed' – данные не пришли и не придут. */
-      run: function (action, data) {
+      /** 'ran' – выполнено сразу, 'queued' – встало в очередь, 'failed' – данные не пришли и не придут (onFail уже вызван). */
+      run: function (onReady, onFail, data) {
         if (settled === true) {
-          action(data);
+          onReady(data);
           return 'ran';
         }
-        if (settled === false) return 'failed';
-        pending.push(action);
+        if (settled === false) {
+          onFail();
+          return 'failed';
+        }
+        pending.push({ onReady: onReady, onFail: onFail });
         return 'queued';
       },
       resolve: function (data) {
         settled = true;
         var queue = pending;
         pending = [];
-        queue.forEach(function (fn) { fn(data); });
+        queue.forEach(function (item) { item.onReady(data); });
         return queue.length;
       },
       reject: function () {
         settled = false;
+        var queue = pending;
         pending = [];
+        queue.forEach(function (item) { item.onFail(); });
+        return queue.length;
       },
     };
+  }
+
+  /**
+   * Три кнопки-подсказки («Подобрать программу», «Ближайшие старты»,
+   * «Сколько стоит») имеют прямой смысл – набранный руками теми же
+   * словами вопрос обязан получать тот же прямой ответ, а не уходить в
+   * нечёткий поиск (независимое ревью, второй заход: собственное
+   * приглашение бота «тему, формат, цену или ближайший старт» само
+   * отвечало себе «Такого не нашла»). Список триггеров короткий и взят
+   * ровно из двух источников:
+   *   - слово из самого приглашения бота (GREETING в js/support-bot.js:
+   *     «...цену или ближайший старт») – «цена», «ближайший старт»
+   *     (единственное число, как в тексте);
+   *   - слово, на котором поймал ревьюер живым прогоном – «сколько
+   *     стоит», «когда старт»;
+   *   - название самой кнопки – «подобрать программу», чтобы клик и
+   *     набранный текст шли ровно одним путём (kнопка тоже вызывает
+   *     detectIntent через тот же ask(), см. js/support-bot.js).
+   * Явный числовой запрос («до 30000», «от 50000», «онлайн», «пп») не
+   * перехватывается – там есть конкретное ограничение, и его обязан
+   * разобрать DpoBotMatch.search, а не общий диапазон/список.
+   */
+  var INTENT_TRIGGERS = {
+    priceRange: ['сколько стоит', 'цена'],
+    upcomingStarts: ['ближайший старт', 'когда старт'],
+    pickProgram: ['подобрать программу'],
+  };
+  var INTENT_ORDER = ['priceRange', 'upcomingStarts', 'pickProgram'];
+
+  function detectIntent(query) {
+    var parsed = DpoBotMatch.parseQuery(query);
+    if (parsed.priceMax !== null || parsed.priceMin !== null || parsed.format || parsed.type) return null;
+    var qTokens = tokenize(query);
+    for (var i = 0; i < INTENT_ORDER.length; i++) {
+      var key = INTENT_ORDER[i];
+      var triggers = INTENT_TRIGGERS[key];
+      for (var j = 0; j < triggers.length; j++) {
+        if (triggerMatches(triggers[j], qTokens)) return key;
+      }
+    }
+    return null;
   }
 
   return {
@@ -286,5 +340,6 @@
     classifySearch: classifySearch,
     reply: reply,
     createActionQueue: createActionQueue,
+    detectIntent: detectIntent,
   };
 });

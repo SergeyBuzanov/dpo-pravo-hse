@@ -83,6 +83,40 @@ test('ни одна из пяти подсказок не даёт пустой/
   assert.ok(DpoBotReply.priceRange(data.programs));
 });
 
+// ---- IMPORTANT (второй заход независимого ревью 08.09.2026): те же три
+// темы, набранные руками, а не кнопкой – ровно слова из живой проверки
+// ревьюера и из собственного приглашения бота («тему, формат, цену или
+// ближайший старт» само отвечало себе «Такого не нашла»). ------------
+
+test('detectIntent: три подсказки распознаются и по названию кнопки, и по тексту, набранному руками', () => {
+  assert.equal(DpoBotReply.detectIntent('Подобрать программу'), 'pickProgram');
+  assert.equal(DpoBotReply.detectIntent('Ближайшие старты'), 'upcomingStarts');
+  assert.equal(DpoBotReply.detectIntent('Сколько стоит'), 'priceRange');
+  // те самые слова, на которых поймал ревьюер живым прогоном
+  assert.equal(DpoBotReply.detectIntent('сколько стоит'), 'priceRange');
+  assert.equal(DpoBotReply.detectIntent('цена'), 'priceRange');
+  assert.equal(DpoBotReply.detectIntent('ближайшие старты'), 'upcomingStarts');
+  assert.equal(DpoBotReply.detectIntent('когда старт'), 'upcomingStarts');
+  assert.equal(DpoBotReply.detectIntent('подобрать программу'), 'pickProgram');
+});
+
+test('detectIntent: явное ограничение (число, формат, тип) не перехватывается – это работа DpoBotMatch.search', () => {
+  assert.equal(DpoBotReply.detectIntent('до 30000'), null);
+  assert.equal(DpoBotReply.detectIntent('Онлайн'), null, 'кнопка «Онлайн» обязана остаться на пути подбора программ');
+  assert.equal(DpoBotReply.detectIntent('пк и пп в чём разница'), null);
+});
+
+test('пять подсказок, набранные руками теми же словами, не уходят в reply()="none"', () => {
+  // Три темы с прямым ответом идут через detectIntent, а не через reply() –
+  // сама точка входа проверяется отдельно; здесь достаточно, что обработчик найден.
+  for (const text of ['сколько стоит', 'ближайшие старты', 'подобрать программу']) {
+    assert.notEqual(DpoBotReply.detectIntent(text), null, text);
+  }
+  // «Онлайн» и «какой документ выдают» идут через reply(), как и раньше.
+  assert.notEqual(DpoBotReply.reply('Онлайн', data).kind, 'none');
+  assert.notEqual(DpoBotReply.reply('какой документ выдают', data).kind, 'none');
+});
+
 // ---- IMPORTANT 6: готовый ответ раньше подбора программ + порог силы ---
 
 test('«персональные данные» -> цитата политики, программа – вторым планом', () => {
@@ -142,17 +176,17 @@ test('оплата остаётся честным пробелом (gap), не 
 test('очередь: действие до resolve не выполняется и не падает', () => {
   const q = DpoBotReply.createActionQueue();
   let ran = false;
-  const status = q.run(() => { ran = true; }, null);
+  const status = q.run(() => { ran = true; }, () => {}, null);
   assert.equal(status, 'queued');
   assert.equal(ran, false);
   assert.equal(q.isEmpty(), false);
 });
 
-test('очередь: resolve выполняет все накопленные действия с данными', () => {
+test('очередь: resolve выполняет все накопленные onReady с данными', () => {
   const q = DpoBotReply.createActionQueue();
   const seen = [];
-  q.run((d) => seen.push(d), null);
-  q.run((d) => seen.push(d), null);
+  q.run((d) => seen.push(d), () => {}, null);
+  q.run((d) => seen.push(d), () => {}, null);
   const n = q.resolve({ ok: true });
   assert.equal(n, 2);
   assert.deepEqual(seen, [{ ok: true }, { ok: true }]);
@@ -163,16 +197,34 @@ test('очередь: run после resolve выполняется сразу �
   const q = DpoBotReply.createActionQueue();
   q.resolve({ ok: true });
   let seen = null;
-  const status = q.run((d) => { seen = d; }, { ok: true });
+  const status = q.run((d) => { seen = d; }, () => {}, { ok: true });
   assert.equal(status, 'ran');
   assert.deepEqual(seen, { ok: true });
 });
 
-test('очередь: reject не роняет очередь, дальнейшие run честно отвечают «failed»', () => {
+// IMPORTANT (второй заход независимого ревью 08.09.2026): reject() раньше
+// молча очищал накопленные действия, ни разу их не вызвав – вопрос,
+// заданный ДО провала загрузки, терялся: ни ошибки, ни кнопки заявки,
+// посетитель навсегда оставался на «Секунду, гружу…».
+test('очередь: reject вызывает onFail у ВСЕХ накопленных действий, а не просто забывает их', () => {
   const q = DpoBotReply.createActionQueue();
-  q.run(() => { throw new Error('не должно вызваться'); }, null);
-  assert.doesNotThrow(() => q.reject());
-  const status = q.run(() => { throw new Error('тоже не должно вызваться'); }, null);
+  let failCount = 0;
+  const readyCalls = [];
+  q.run((d) => readyCalls.push(d), () => { failCount++; }, null);
+  q.run((d) => readyCalls.push(d), () => { failCount++; }, null);
+  const n = q.reject();
+  assert.equal(n, 2, 'reject должен отчитаться, сколько действий получили признак неудачи');
+  assert.equal(failCount, 2);
+  assert.equal(readyCalls.length, 0, 'onReady не должен вызываться при неудаче');
+  assert.equal(q.isEmpty(), true);
+});
+
+test('очередь: run после reject сразу отвечает «failed» и вызывает onFail, не копится молча', () => {
+  const q = DpoBotReply.createActionQueue();
+  q.reject();
+  let failed = false;
+  const status = q.run(() => { throw new Error('onReady не должен вызваться'); }, () => { failed = true; }, null);
   assert.equal(status, 'failed');
+  assert.equal(failed, true);
   assert.equal(q.status(), false);
 });
