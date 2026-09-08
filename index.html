@@ -671,9 +671,10 @@ document.addEventListener('DOMContentLoaded', async function() {
      удалена). Обе кнопки лежат в DOM всегда, видна только одна –
      переключение чистым CSS по html.vi-mode, без JS-состояния.
 
-     Мишень 44px: у .crow-hit-btn – 96×100 (телефон) / 260×272 (широкий
-     экран), с большим запасом; у #crow-vi-btn – min-height:44px, как и у
-     прежней пилюли.
+     Мишень 44px: у .crow-hit-btn – 96×100 (телефон) / 200×209 (широкий
+     экран, 260 -> 200 задачей 14 – решение владельца 08.09.2026), с
+     большим запасом; у #crow-vi-btn – min-height:44px, как и у прежней
+     пилюли.
 
      ПО КЛИКУ ОТКРЫВАЕТСЯ ОКНО БОТА (задача 14, js/support-bot.js,
      [data-bot-open] – слушатель делегирован на document, см. комментарий
@@ -699,7 +700,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     // отступов бейджа канала в js/channel-invite.js: все три подстроены
     // под одну и ту же ширину/поле маскота, менять по отдельности нельзя.
     var narrow = window.matchMedia('(max-width: 1023px)').matches;
-    var width = narrow ? 96 : 260;
+    // 260 -> 200 (решение владельца 08.09.2026): угловой маскот на широком
+    // экране был слишком крупным. Мобильные 96px – без изменений (там
+    // ворона и так небольшая, дальше уменьшать – превращать в пятно).
+    var width = narrow ? 96 : 200;
     var height = Math.round(width * 1465 / 1400);
     var edge = narrow ? 8 : 24;
 
