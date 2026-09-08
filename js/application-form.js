@@ -1033,10 +1033,12 @@
     var caption = dialog.querySelector('.dpo-app-program');
     if (caption) caption.remove();
     dialog.appendChild(done);
-    // Ворона кивает подтверждению – то же правило видимости, что у вибрации
+    // Ворона радуется отправленной заявке – прыжок (решение владельца
+    // 09.09.2026, было кивком). Правило видимости то же, что у вибрации
     // выше: в reduced motion маскот встаёт в позу покоя и молчит (это уже
-    // делает сам js/crow-mascot.js), кивок сверху здесь не играем. Монтировать
-    // можно только ПОСЛЕ appendChild – до него crowWrap ещё не в document.
+    // делает сам js/crow-mascot.js), прыжок сверху здесь не играем.
+    // Монтировать можно только ПОСЛЕ appendChild – до него crowWrap ещё не
+    // в document.
     withCrowScript(function () {
       if (!window.CrowMascot || !document.body.contains(crowWrap)) return;
       doneCrow = CrowMascot.mount({
@@ -1048,7 +1050,7 @@
         onClick: function () {},
       });
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        doneCrow.play('nod');
+        doneCrow.play('jump');
       }
     });
     dialog.querySelector('.dpo-app-close').focus();

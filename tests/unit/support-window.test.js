@@ -60,7 +60,9 @@ test('в шапке окна живая ворона, и она снимаетс
 test('ответ приходит через паузу «печатает…» и кивок вороны', () => {
   const respond = BOT.slice(BOT.indexOf('function respond'), BOT.indexOf('function respond') + 800);
   assert.match(respond, /dpo-bot-typing/, 'нет индикатора «печатает…»');
-  assert.match(respond, /nodHeadCrow\(\)/, 'ворона обязана кивать в момент появления ответа');
+  // Реакция вороны на ответ: кивок, а если в ответе кнопка заявки – указание
+  // на неё (анимации разложены 09.09.2026, см. crow-animations.test.js).
+  assert.match(respond, /reactHeadCrow\(/, 'ворона обязана реагировать на появление ответа');
   assert.match(respond, /REDUCED_MOTION/, 'prefers-reduced-motion: пауза и точки не для всех');
   // Три места, где рождается ответ: обычный путь, выбор сферы/типа и честный отказ.
   assert.match(BOT, /respond\(function \(\) \{ action\(loaded\); \}\)/, 'обычный ответ идёт мимо паузы');

@@ -542,11 +542,18 @@
         solo: false,
         idleSeconds: 0,
       });
+      // Приветствие: ворона машет, когда окно открылось. В reduced motion
+      // рантайм и так стоит в позе покоя – играть нечего.
+      if (!REDUCED_MOTION) headCrow.play('wave');
     } catch (e) { headCrow = null; }
   }
-  /** Кивок в момент, когда ответ появился в ленте. */
-  function nodHeadCrow() {
-    if (headCrow && headCrow.play) headCrow.play('nod');
+  /** Ответ появился: кивок, а если в ответе кнопка заявки – указание на неё. */
+  function reactHeadCrow(pointsAtApply) {
+    if (headCrow && headCrow.play) headCrow.play(pointsAtApply ? 'point' : 'nod');
+  }
+  /** Пока ответ готовится – ворона думает (та же пауза, что у трёх точек). */
+  function thinkHeadCrow() {
+    if (headCrow && headCrow.play) headCrow.play('think');
   }
   function destroyHeadCrow() {
     if (headCrow && headCrow.destroy) headCrow.destroy();
@@ -568,26 +575,51 @@
       el('i', {}), el('i', {}), el('i', {}),
     ]);
     log.appendChild(dots);
+    thinkHeadCrow();
     scrollDown();
     var myLog = log;
     setTimeout(function () {
       if (log !== myLog) return;
       if (dots.parentNode) dots.parentNode.removeChild(dots);
+      // Кнопка заявки в ответе бывает у трёх исходов: «такого не нашла»,
+      // «на сайте не написано» и честный отказ загрузки. Считаем ДО и ПОСЛЕ,
+      // а не проверяем флаг: кнопку кладут три разные ветки renderReply.
+      var applyBefore = myLog.querySelectorAll('.dpo-bot-apply').length;
       fn();
-      nodHeadCrow();
+      reactHeadCrow(myLog.querySelectorAll('.dpo-bot-apply').length > applyBefore);
       scrollDown();
     }, TYPING_MS);
   }
 
+  /**
+   * Ворона уходит с экрана и появляется в шапке окна: play('leave') – она
+   * машет крылом и убегает влево, – и только потом hide(). Окно при этом
+   * открывается СРАЗУ, ждать уход не надо: 1,2с – ровно тот отрезок leave,
+   * где ворона уже ушла из-под панели, дальше её добирает штатное угасание
+   * hide(). В reduced motion уход не играем вовсе.
+   */
+  var leaveTimer = null;
   function hideCrow() {
-    if (window.crowMascot) window.crowMascot.hide();
     var hit = document.querySelector('.crow-hit-btn');
     if (hit) hit.style.pointerEvents = 'none';
+    if (!window.crowMascot) return;
+    clearTimeout(leaveTimer);
+    if (REDUCED_MOTION) { window.crowMascot.hide(); return; }
+    window.crowMascot.play('leave');
+    leaveTimer = setTimeout(function () {
+      if (window.crowMascot) window.crowMascot.hide();
+    }, 1200);
   }
   function showCrow() {
-    if (window.crowMascot) window.crowMascot.show();
+    clearTimeout(leaveTimer);
     var hit = document.querySelector('.crow-hit-btn');
     if (hit) hit.style.pointerEvents = '';
+    if (!window.crowMascot) return;
+    window.crowMascot.show();
+    // Возврат обязателен ИМЕННО через runIn: поза ухода оставляет ворону
+    // за левым краем и с нулевой непрозрачностью (p.rx = -600, p.op = 0),
+    // и без забега обратно она вернулась бы невидимой.
+    if (!REDUCED_MOTION) window.crowMascot.play('runIn');
   }
 
   function close() {

@@ -308,6 +308,11 @@ function CrowMascot(opts) {
     speed: opts.speed || 1,
     followCursor: opts.followCursor !== false,
     idleSeconds: opts.idleSeconds == null ? 14 : opts.idleSeconds,
+    // Какой репликой ворона заговаривает сама. На лендинге и страницах
+    // программ – 'askQ' («Есть вопросы?»), в каталоге – 'helpQ' («Чем
+    // помочь?»): там посетитель выбирает из 26 программ, и предложение
+    // помочь уместнее вопроса (решение владельца 09.09.2026).
+    idleAnim: opts.idleAnim || 'askQ',
     onClick: opts.onClick || null,
     zIndex: opts.zIndex || 40,
     // solo по умолчанию true: маскот, смонтированный без оговорки, прячет
@@ -496,7 +501,7 @@ CrowMascot.prototype.tick = function (now) {
     // молчит, пока отметка ASKQ_KEY не истечёт (30 дней, как у бейджа канала).
     if (!askQAlreadyShown()) {
       markAskQShown();
-      this.play('askQ');
+      this.play(A[this.opt.idleAnim] ? this.opt.idleAnim : 'askQ');
     }
   }
   if (this.t0 === null) this.t0 = now;

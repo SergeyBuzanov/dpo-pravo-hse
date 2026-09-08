@@ -83,8 +83,14 @@ test('Каталог программ.html: слот вызывается чер
 });
 
 test('.landing-template.html: слот у правого края ленты «Топ-5» на месте, вне шапки со стрелками', () => {
-  const fs2 = require('node:fs');
-  const tpl = fs2.readFileSync(path.join(ROOT, '.landing-template.html'), 'utf8');
+  // Шаблон достаётся ИЗ index.html тем же кодом, что и сборщики, а не из
+  // рабочего файла .landing-template.html: тот появляется только после
+  // `npm run template:extract` и в чистом клоне отсутствует – тест падал
+  // на ровном месте (09.09.2026).
+  const os = require('node:os');
+  const tmp = path.join(os.tmpdir(), 'dpo-crow-inline-template.html');
+  const tpl = require('../../scripts/landing-template').extract(tmp);
+  fs.rmSync(tmp, { force: true });
   const top5 = tpl.slice(tpl.indexOf('id="top5"'), tpl.indexOf('<!-- TEACHERS'));
   assert.match(top5, /data-crow-walk/, 'нет слота выхода в содержимое в секции Топ-5');
   // Место уточнено владельцем дважды: 08.09.2026 – не под лентой (там
