@@ -60,7 +60,7 @@ const NEVER_PUBLISH = new Set(['admin.html']);
  * Файлы корня, которых нет в белых списках серверов, но на витрине они
  * обязаны быть: их запрашивает не наш код, а браузер и поисковик.
  */
-const EXTRA_ROOT = ['404.html', 'apple-touch-icon.png', '.nojekyll'];
+const EXTRA_ROOT = ['404.html', '.nojekyll'];
 
 function copyFile(rel) {
   const from = path.join(ROOT, rel);

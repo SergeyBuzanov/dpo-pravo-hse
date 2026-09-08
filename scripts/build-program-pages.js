@@ -879,7 +879,10 @@ function renderPage(rawProgram, sphere) {
 <meta name="twitter:title" content="${esc(p.title)}">
 <meta name="twitter:description" content="${esc(description)}">${twImage}
 ${structuredData(p, sphere, official)}
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../images/logo/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../images/logo/favicon-16.png">
+<link rel="icon" type="image/png" sizes="48x48" href="../images/logo/favicon-48.png">
+<link rel="apple-touch-icon" href="../images/logo/apple-touch-icon-180.png">
 <meta name="theme-color" content="#1658DA">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
