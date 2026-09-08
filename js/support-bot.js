@@ -453,7 +453,15 @@
       var overlap = window.innerHeight - Math.min.apply(null, tops);
       value = 'calc(' + Math.max(0, overlap + 12) + 'px + env(safe-area-inset-bottom, 0px))';
     }
-    ['.crow-mascot', '.crow-hit-btn', '#crow-vi-btn'].forEach(function (selector) {
+    // 'body>.crow-mascot' – тот же селектор, что уже отличает угловой маскот
+    // от вложенных в потоке (index.html: mountCrow()). Задача 13 добавила
+    // ВТОРОЙ маскот того же класса .crow-mascot – в потоке слота выхода в
+    // содержимое (Каталог программ.html/.landing-template.html), не прямой
+    // потомок body. Без уточнения querySelector('.crow-mascot') на каталоге
+    // (там нет углового маскота вовсе) находил именно ЕГО и сдвигал transform
+    // bottom, рассчитанный под угол экрана, – маскот в содержимом уезжал
+    // вверх и на несколько кадров вылезал за пределы своего слота.
+    ['body>.crow-mascot', '.crow-hit-btn', '#crow-vi-btn'].forEach(function (selector) {
       var node = document.querySelector(selector);
       if (node) node.style.bottom = value;
     });

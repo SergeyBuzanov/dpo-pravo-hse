@@ -27,7 +27,13 @@
        вызов mount() (а значит и создание <img>, из-за которого грузятся
        слои) остаётся за вызывающим кодом. В index.html он отложен до
        события window.load, чтобы 11 картинок не спорили за полосу с
-       ресурсами первого экрана.
+       ресурсами первого экрана;
+     - выход в содержимое (задача 13, 08.09.2026): маскот выбегает из-за
+       края блока и останавливается у его края с репликой «Подсказать?» –
+       см. instance.walkIn() и CrowMascot.mountWalkIn() ниже. Каталог –
+       слот у панели поиска/фильтров, лента «Топ-5» на лендинге – слот у
+       правого края ленты; срабатывает КАЖДЫЙ раз, когда слот попадает в
+       кадр (решение владельца), не один раз за визит.
 
    Использование:
      <script src="crow-mascot.js"></script>
@@ -40,6 +46,9 @@
                    HTMLElement – маскот встаёт В ПОТОК этого элемента, по
                    центру (иллюстрация внутри блока, не помощник в углу
                    экрана); см. пустой результат фильтров каталога, задача 10
+       align       'center' (по умолчанию) | 'right' – при HTMLElement-анкоре
+                   и 'right' маскот стоит у ПРАВОГО края слота, не по центру
+                   (задача 13: так walkAcross останавливается у края блока)
        width       ширина маскота в px (по умолчанию 260)
        speed       множитель скорости (0.5–1.5, по умолчанию 1)
        followCursor следить за курсором (по умолчанию true)
@@ -48,9 +57,21 @@
        zIndex      z-index контейнера (по умолчанию 40; на лендинге – 920,
                    см. index.html: угол принадлежит вороне, бейдж канала MAX
                    и мобильная полоса-CTA подвинуты в своих файлах)
-     instance.play('runIn' | 'idle' | 'walk' | 'nod' | 'shake' | 'wave' | 'inspect'
-                   | 'point' | 'jump' | 'think' | 'leave' | 'helpQ' | 'askQ')
+     instance.play('runIn' | 'idle' | 'walk' | 'walkAcross' | 'nod' | 'shake' | 'wave'
+                   | 'inspect' | 'point' | 'jump' | 'think' | 'leave' | 'helpQ' | 'askQ' | 'invite')
+     instance.walkIn(skipWalk)  выход в содержимое (задача 13): walkAcross,
+                   затем реплика «Подсказать?», которая не гаснет сама
+                   (invite); skipWalk – true пропускает пробег, сразу поза
+                   приглашения (телефон: 390px мало для пробега)
      instance.destroy()
+
+     CrowMascot.mountWalkIn(slot, options) – выход в содержимое целиком:
+       слот (HTMLElement, data-crow-walk в разметке) одновременно и «блок»
+       для наблюдателя пересечения, и anchor для mount(); инстанс
+       создаётся при входе слота в кадр и уничтожается при выходе (задача
+       13, КАЖДЫЙ раз, не один раз за визит); клик по маскоту открывает
+       окно бота ([data-bot-open], делегировано в js/support-bot.js).
+       options: assetPath, width (по умолчанию 120)
 */
 (function (global) {
 'use strict';
@@ -217,6 +238,15 @@ A.askQ = { dur: 4.6, loop: 0, bubble: [0.45, 3.9], text: 'Есть вопрос�
   p.cy += -3 * u;
   p.ey += -3 * u;
 } };
+/**
+ * Приглашение после выхода в содержимое (задача 13): реплика «Подсказать?»
+ * не гаснет сама, как у askQ/helpQ (там короткий цикл, дальше маскот
+ * возвращается к простому ожиданию) – она держится, пока слот на экране
+ * или пока по маскоту не кликнут, поэтому dur нарочно огромный и loop:0
+ * (кадр просто перестаёт когда-либо доходить до конца). Тело живёт
+ * обычным idle – дыхание и моргание, чтобы поза не читалась приклеенной.
+ */
+A.invite = { dur: 999, loop: 0, bubble: [0.15, 998], text: 'Подсказать?', fn: A.idle.fn };
 
 var LAYERS = ['torso','neck','head','eyeL','eyeR','arm','legR','legL','body','mouth','beak'];
 
@@ -273,6 +303,7 @@ function CrowMascot(opts) {
   this.opt = {
     assetPath: opts.assetPath || 'parts/',
     anchor: opts.anchor || 'bottom-right',
+    align: opts.align || 'center',
     width: opts.width || 260,
     speed: opts.speed || 1,
     followCursor: opts.followCursor !== false,
@@ -338,7 +369,11 @@ CrowMascot.prototype.build = function () {
     // В потоке контейнера, не углом экрана: обычный блок с явными
     // width/height, отцентрован полями (задача 10 – иллюстрация в пустом
     // результате фильтров каталога, не помощник поверх контента).
-    host.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin:0 auto;z-index:' + o.zIndex + ';' + fade;
+    // align:'right' (задача 13, выход в содержимое): маскот стоит у ПРАВОГО
+    // края слота, а не по центру – так после walkAcross он останавливается
+    // у края блока, а не посередине пустого слота.
+    var margin = o.align === 'right' ? '0 0 0 auto' : '0 auto';
+    host.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin:' + margin + ';z-index:' + o.zIndex + ';' + fade;
     o.anchor.appendChild(host);
   } else {
     var side = o.anchor === 'bottom-left' ? 'left:24px' : 'right:24px';
@@ -385,6 +420,43 @@ CrowMascot.prototype.bind = function () {
 CrowMascot.prototype.play = function (name) {
   if (!A[name]) return;
   this.anim = name; this.t0 = null; this.queue = ['idle'];
+};
+
+/**
+ * Выход в содержимое (задача 13): пробег через слот и остановка у края с
+ * репликой «Подсказать?». Вызывается сразу после mount() у инстанса,
+ * смонтированного В СЛОТ (anchor – HTMLElement, не угол экрана).
+ *
+ *   skipWalk – true, когда сама анимация выхода не нужна (телефон: 390px
+ *              мало для пробега; узкий экран решает вызывающий код) –
+ *              маскот сразу встаёт в позу приглашения с репликой.
+ *
+ * prefers-reduced-motion уже решён в конструкторе: RAF не запускается,
+ * поза статична (кадр t=0 idle), tick()/bubble() не вызываются никогда –
+ * поэтому play()/queue здесь бессмысленны, и вместо анимации реплика
+ * проставляется на разметку напрямую, без перехода прозрачности.
+ *
+ * ЛОВУШКА (нашлась в браузере, не по коду): A.walkAcross зациклена
+ * (loop:1, из пакета – так же зациклен A.idle/A.think и другие). Очередь
+ * this.queue, которой play() пользуется для перехода к следующей
+ * анимации, читается ТОЛЬКО в нецикличной ветке tick() – у зацикленной
+ * walkAcross её никто не проверяет, и она крутилась бы вечно, если просто
+ * положить туда 'invite'. Переход делает явный таймер на длительность
+ * самого пробега (A.walkAcross.dur, с поправкой на speed).
+ */
+CrowMascot.prototype.walkIn = function (skipWalk) {
+  if (this.reducedMotion) {
+    if (this.parts.bubbleText) this.parts.bubbleText.textContent = A.invite.text;
+    if (this.parts.bubble) this.parts.bubble.style.opacity = '1';
+    return;
+  }
+  if (skipWalk) { this.play('invite'); return; }
+  this.play('walkAcross');
+  var self = this;
+  clearTimeout(this.walkInTimer);
+  this.walkInTimer = setTimeout(function () {
+    if (self.anim === 'walkAcross') self.play('invite');
+  }, A.walkAcross.dur * 1000 / (this.opt.speed || 1));
 };
 
 CrowMascot.prototype.frame = function (now) {
@@ -522,6 +594,7 @@ CrowMascot.prototype.destroy = function () {
   window.removeEventListener('keydown', this.onAct);
   if (this.io) this.io.disconnect();
   clearTimeout(this.hideTimer);
+  clearTimeout(this.walkInTimer);
   if (this.host && this.host.parentNode) this.host.parentNode.removeChild(this.host);
   var idx = LIVE.indexOf(this);
   if (idx !== -1) LIVE.splice(idx, 1);
@@ -531,8 +604,99 @@ CrowMascot.prototype.destroy = function () {
   }
 };
 
+/**
+ * Выход в содержимое (задача 13): каталог (слот у панели поиска/фильтров)
+ * и лента «Топ-5» на лендинге. Слот, переданный сюда (data-crow-walk в
+ * разметке страницы), служит СРАЗУ двум ролям – это и «блок», за
+ * появлением которого в кадре следит наблюдатель пересечения, и место,
+ * куда встаёт сам маскот (anchor у mount) – одна граница вместо двух
+ * вложенных друг в друга, отдельный wrapper не заводим.
+ *
+ * КАЖДЫЙ раз, когда слот попадает в кадр (решение владельца 08.09.2026, а
+ * не один раз за визит): инстанс создаётся заново при входе в кадр и
+ * уничтожается при выходе – тот же приём, что у зациклённой inspect в
+ * пустом результате каталога (js/../Каталог программ.html, задача 10):
+ * кадры вхолостую не считаются, пока слота нет на экране.
+ *
+ * По клику открывает окно бота: кнопка-хит несёт [data-bot-open] – тот же
+ * делегированный на document слушатель, что у угловой вороны лендинга
+ * (js/support-bot.js, комментарий в начале файла). Слушатель на самой
+ * кнопке срабатывает раньше, чем событие успевает дойти по пузырьку до
+ * document (кнопка ближе к месту клика), поэтому teardown() (он же
+ * crow.destroy(), а значит и restoreSuppressed любого подавленного этим
+ * маскотом инстанса – угловой вороны лендинга) отрабатывает ДО того, как
+ * support-bot.js спрячет её на время открытого окна – порядок совпадает,
+ * лишнего мигания нет.
+ *
+ * vi-mode: маскот и так скрыт целиком глобальным правилом (см.
+ * ensureViModeStyle), а кнопка-хит – своим (ensureWalkStyle ниже);
+ * проверка здесь просто экономит 11 картинок и цикл кадров, если
+ * html.vi-mode уже стоит на момент показа слота.
+ */
+function ensureWalkStyle() {
+  if (document.getElementById('crow-walk-style')) return;
+  var style = document.createElement('style');
+  style.id = 'crow-walk-style';
+  style.textContent = '.crow-walk-hit:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 4px rgb(var(--accent,22 88 218))}' +
+    'html.vi-mode .crow-walk-hit{display:none!important}';
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function mountWalkIn(slot, opts) {
+  opts = opts || {};
+  var assetPath = opts.assetPath || 'images/crow/';
+  var width = opts.width || 120;
+  slot.style.position = 'relative';
+  var current = null;
+
+  function teardown() {
+    if (!current) return;
+    current.crow.destroy();
+    if (current.hit.parentNode) current.hit.parentNode.removeChild(current.hit);
+    current = null;
+  }
+
+  function spawn() {
+    if (current || document.documentElement.classList.contains('vi-mode')) return;
+    ensureWalkStyle();
+    var crow = new CrowMascot({
+      assetPath: assetPath,
+      anchor: slot,
+      align: 'right',
+      width: width,
+      followCursor: false,
+      idleSeconds: 0,
+      onClick: function () {} // клики ловит .crow-walk-hit поверх, см. ниже
+    });
+    var hit = document.createElement('button');
+    hit.type = 'button';
+    hit.className = 'crow-walk-hit';
+    hit.setAttribute('data-bot-open', '');
+    hit.setAttribute('aria-label', 'Спросить у бота');
+    // z-index ВЫШЕ маскота (у него z-index:40 по умолчанию, см. build()) –
+    // тот же порядок, что у угловой .crow-hit-btn поверх .crow-mascot
+    // (index.html: 921 против 920): иначе клик ловит сам рисунок маскота
+    // (data-part="jaw" и подобные слои лежат выше по DOM) и до кнопки не
+    // доходит вовсе.
+    hit.style.cssText = 'position:absolute;inset:0;background:transparent;border:0;padding:0;margin:0;cursor:pointer;z-index:41';
+    hit.addEventListener('click', teardown);
+    slot.appendChild(hit);
+    current = { crow: crow, hit: hit };
+    // Телефон: 390px мало для пробега на всю длину walkAcross – маскот
+    // появляется сразу в позе приглашения, без бега.
+    var narrow = typeof matchMedia === 'function' && matchMedia('(max-width:600px)').matches;
+    crow.walkIn(narrow);
+  }
+
+  if (typeof IntersectionObserver !== 'function') { spawn(); return; }
+  new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) { if (entry.isIntersecting) spawn(); else teardown(); });
+  }, { threshold: 0.3 }).observe(slot);
+}
+
 global.CrowMascot = {
   mount: function (o) { return new CrowMascot(o); },
+  mountWalkIn: mountWalkIn,
   animations: Object.keys(A)
 };
 })(window);
