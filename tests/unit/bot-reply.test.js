@@ -228,3 +228,32 @@ test('очередь: run после reject сразу отвечает «failed
   assert.equal(failed, true);
   assert.equal(q.status(), false);
 });
+
+/**
+ * Данные, перенесённые с маркетплейса 09.09.2026, закрыли два вопроса, на
+ * которые бот честно отвечал «на сайте не написано». Порядок ответов в
+ * bot-faq.json значим: findByTriggers отдаёт ПЕРВЫЙ подошедший, и
+ * «какие документы нужны для поступления» уходило в ответ про документ об
+ * ОКОНЧАНИИ, пока admission-docs стоял ниже.
+ */
+test('скидки и вычет – это ответ, а не пробел', () => {
+  for (const q of ['какие есть скидки', 'налоговый вычет', 'есть ли скидка для организации']) {
+    const out = DpoBotReply.reply(q, data);
+    assert.equal(out.kind, 'answer', q);
+    assert.equal(out.answer.id, 'discounts', q);
+  }
+});
+
+test('документы для приёма и документ об окончании не путаются', () => {
+  const admission = DpoBotReply.reply('какие документы нужны для поступления', data);
+  assert.equal(admission.answer && admission.answer.id, 'admission-docs');
+  const diploma = DpoBotReply.reply('какой документ выдают', data);
+  assert.equal(diploma.answer && diploma.answer.id, 'document');
+});
+
+test('карточка программы несёт объём в часах, если он известен', () => {
+  const withHours = data.programs.filter((p) => p.hours);
+  assert.ok(withHours.length >= 20, 'часы пропали из данных бота');
+  assert.match(withHours[0].hours, /час/);
+});
+

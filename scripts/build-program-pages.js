@@ -150,6 +150,14 @@ function writeBotCatalog(programs, spheres) {
         : typeof p.educationPricing === 'number' ? p.educationPricing : null,
       priceLabel: formatPrice(p),
       duration: p.duration ? cleanText(String(p.duration)) : null,
+      // Объём и график занятий сняты со страницы маркетплейса 09.09.2026.
+      // Боту они нужны в карточке программы: «1,5 месяца» не отвечает на
+      // вопрос, сколько это занятий и по каким дням. Остальные новые поля
+      // (документы для приёма, скидки, преимущества) в бота не идут: они
+      // одинаковы у всех программ и живут готовым ответом в bot-faq.json,
+      // а дублировать их 26 раз – это лишние килобайты в браузере.
+      hours: p.hours ? cleanText(String(p.hours)) : null,
+      schedule: p.schedule ? cleanText(String(p.schedule)) : null,
       // start и startIso всегда заданы или пусты вместе: startIso – тот же
       // p.startDate, разобранный isoDate() (та же функция, что даёт дату
       // для микроразметки Schema.org), и он есть ровно тогда, когда есть

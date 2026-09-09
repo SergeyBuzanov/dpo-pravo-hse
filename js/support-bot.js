@@ -197,7 +197,9 @@
 
   function programCard(p) {
     var link = el('a', { href: href(p.url), text: p.title });
-    var meta = [p.formatLabel, p.priceLabel, p.start].filter(Boolean).join(' · ');
+    // Объём в часах – после формата: он отвечает на «сколько это длится»
+    // точнее, чем «1,5 месяца» (данные с маркетплейса, 09.09.2026).
+    var meta = [p.formatLabel, p.hours, p.priceLabel, p.start].filter(Boolean).join(' · ');
     return el('article', { class: 'dpo-bot-card' }, [link, el('p', { text: meta })]);
   }
 
@@ -248,6 +250,11 @@
     }
     if (out.kind === 'answer') {
       out.answer.text.split('\n').forEach(say);
+      // Пояснение к цитате (поле note): у скидок сумма вычета и условия
+      // разные у каждой программы, и цитата без этой оговорки читалась бы
+      // как «одинаково для всех». Не цитата, а наша строка – поэтому
+      // отдельным полем, а не внутри text (его сверяет тест bot-faq).
+      if (out.answer.note) say(out.answer.note);
       moreLink(out.answer.anchor);
       renderExtra(out.extra);
       return;

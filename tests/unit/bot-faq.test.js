@@ -35,7 +35,19 @@ function plainText(file) {
     .replace(/\s+/g, ' ');
 }
 
-const CORPUS = plainText('index.html') + ' ' + plainText('privacy.html');
+/**
+ * Корпус сверки. С 09.09.2026 в него входят и СТРАНИЦЫ ПРОГРАММ: скидки,
+ * налоговый вычет и документы для приёма перенесены с маркетплейса и
+ * живут именно там, а не на лендинге. Ответ бота обязан оставаться
+ * дословной цитатой сайта – меняется источник, а не правило.
+ */
+const PROGRAM_PAGES = fs
+  .readdirSync(path.join(ROOT, 'programs'))
+  .filter((f) => f.endsWith('.html'))
+  .map((f) => plainText(path.join('programs', f)))
+  .join(' ');
+
+const CORPUS = plainText('index.html') + ' ' + plainText('privacy.html') + ' ' + PROGRAM_PAGES;
 const FAQ = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'bot-faq.json'), 'utf8'));
 
 const ANCHOR_RE = /^(index\.html|privacy\.html|Каталог программ\.html)(#[\w-]+)?$/;
@@ -104,3 +116,16 @@ test('пробелы (gaps) не хранят цитату – бот честн
     assert.equal(gap.text, undefined, gap.id);
   }
 });
+
+test('пояснение к ответу (note) выводится ботом и не притворяется цитатой', () => {
+  const withNote = FAQ.answers.filter((a) => a.note);
+  assert.ok(withNote.length > 0, 'ни у одного ответа нет пояснения – поле осталось мёртвым');
+  const bot = fs.readFileSync(path.join(ROOT, 'js', 'support-bot.js'), 'utf8');
+  assert.match(bot, /answer\.note/, 'бот не показывает пояснение – поле мёртвое');
+  for (const a of withNote) {
+    // Пояснение – НАША строка, а не цитата сайта: в корпусе её быть не
+    // обязано, но и в text ей не место, иначе сверка цитат станет ложью.
+    assert.ok(!a.text.includes(a.note), a.id + ': пояснение затекло в цитату');
+  }
+});
+
