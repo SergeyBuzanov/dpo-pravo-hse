@@ -563,6 +563,28 @@
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(11, 42, 105, 0.55) 0%, rgba(6, 23, 57, 0.72) 100%);
   }
+  /* Заглушка обложки (владелец 09.09.2026). У одной программы обложки нет
+     ни на hse.ru, ни у центра, и карточка без полосы выходила на 138px
+     короче соседей – ряд читался как поломка. Полоса та же, но красится
+     сама: под фотографию сделанный градиент вуали здесь берётся ПЛОТНЫМ
+     (те же две опорные точки, без прозрачности – под ним ничего нет), а
+     поверх – знак центра кругом, тот же файл, что на плашке шапки.
+     ВАЖНО: правило псевдоэлемента обязано стоять НИЖЕ .card-media::after –
+     вес одинаковый (0,1,1), решает порядок. */
+  .card-media-blank{
+    background: linear-gradient(180deg, #0B2A69 0%, #061739 100%);
+  }
+  /* Знак центра – КРУГОМ, тем же кадром и той же формой, что на плашке
+     шапки: рисунок непрозрачный, со своим оранжево-синим фоном, и
+     водяным знаком поверх заливки выглядел грязным квадратом. */
+  .card-media-blank::before{
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 72px; height: 72px; margin: -36px 0 0 -36px;
+    border-radius: 50%;
+    background: url('images/logo/brand-mark-96.webp') center / cover no-repeat;
+  }
+  /* Вуаль гасится: под ней нет фотографии, а знак она бы притушила. */
+  .card-media-blank::after{ background: none; }
   /* Бейдж «ПК»/«ПП» над сферой снят 02.09.2026 (вторая итерация пометок,
      решение заказчика): тип программы теперь показывает овал документа в
      ряду .card-tags, бейдж дублировал его на той же карточке. */
@@ -810,7 +832,7 @@
   <p style="margin-bottom:10px;">В каталоге – все программы дополнительного образования факультета права НИУ ВШЭ: повышение квалификации, профессиональная переподготовка, второе высшее образование.</p>
   <p>Выбирайте по направлениям, форматам и срокам. Изучайте содержание, знакомьтесь с преподавателями, смотрите даты старта.</p>
   <!-- CATALOG:META -->
-<!-- каталог обновлён: 5 сентября 2026 г. в 21:09, программ: 26 -->
+<!-- каталог обновлён: 9 сентября 2026 г. в 11:38, программ: 26 -->
   <!-- /CATALOG:META -->
 </section>
 
@@ -824,29 +846,21 @@
 <section class="starts" aria-label="Ближайшие старты программ">
   <div class="starts-head">
     <h2>Ближайшие старты</h2>
-    <p class="starts-sub">24 старта с сентября по ноябрь – каждый на своей дате. Прокрутите ось или выберите месяц.</p>
+    <p class="starts-sub">23 старта с сентября по ноябрь – каждый на своей дате. Прокрутите ось или выберите месяц.</p>
   </div>
   <div class="starts-months" aria-label="Месяцы">
-    <button type="button" class="starts-chip" data-scroll="0" aria-pressed="true">Сентябрь <b>10</b></button>
+    <button type="button" class="starts-chip" data-scroll="0" aria-pressed="true">Сентябрь <b>9</b></button>
     <button type="button" class="starts-chip" data-scroll="952" aria-pressed="false">Октябрь <b>5</b></button>
     <button type="button" class="starts-chip" data-scroll="1944" aria-pressed="false">Ноябрь <b>9</b></button>
   </div>
   <div class="tl-wrap" tabindex="0" role="region" aria-label="Ось времени ближайших стартов, прокручивается горизонтально">
     <div class="tl" style="width:2912px">
-      <div class="tl-month" style="left:0px;width:960px" aria-hidden="true"><span class="tl-month-label">Сентябрь <b>10</b></span></div>
+      <div class="tl-month" style="left:0px;width:960px" aria-hidden="true"><span class="tl-month-label">Сентябрь <b>9</b></span></div>
       <div class="tl-month" style="left:960px;width:992px" aria-hidden="true"><span class="tl-month-label">Октябрь <b>5</b></span></div>
       <div class="tl-month" style="left:1952px;width:960px" aria-hidden="true"><span class="tl-month-label">Ноябрь <b>9</b></span></div>
       <div class="tl-axis" aria-hidden="true"><i class="tl-tick is-month" style="left:16px"></i><i class="tl-tick" style="left:48px"></i><i class="tl-tick" style="left:80px"></i><i class="tl-tick" style="left:112px"></i><i class="tl-tick" style="left:144px"></i><i class="tl-tick" style="left:176px"></i><i class="tl-tick is-week" style="left:208px"></i><i class="tl-tick" style="left:240px"></i><i class="tl-tick" style="left:272px"></i><i class="tl-tick" style="left:304px"></i><i class="tl-tick" style="left:336px"></i><i class="tl-tick" style="left:368px"></i><i class="tl-tick" style="left:400px"></i><i class="tl-tick is-week" style="left:432px"></i><i class="tl-tick" style="left:464px"></i><i class="tl-tick" style="left:496px"></i><i class="tl-tick" style="left:528px"></i><i class="tl-tick" style="left:560px"></i><i class="tl-tick" style="left:592px"></i><i class="tl-tick" style="left:624px"></i><i class="tl-tick is-week" style="left:656px"></i><i class="tl-tick" style="left:688px"></i><i class="tl-tick" style="left:720px"></i><i class="tl-tick" style="left:752px"></i><i class="tl-tick" style="left:784px"></i><i class="tl-tick" style="left:816px"></i><i class="tl-tick" style="left:848px"></i><i class="tl-tick is-week" style="left:880px"></i><i class="tl-tick" style="left:912px"></i><i class="tl-tick" style="left:944px"></i><i class="tl-tick is-month" style="left:976px"></i><i class="tl-tick" style="left:1008px"></i><i class="tl-tick" style="left:1040px"></i><i class="tl-tick" style="left:1072px"></i><i class="tl-tick" style="left:1104px"></i><i class="tl-tick" style="left:1136px"></i><i class="tl-tick is-week" style="left:1168px"></i><i class="tl-tick" style="left:1200px"></i><i class="tl-tick" style="left:1232px"></i><i class="tl-tick" style="left:1264px"></i><i class="tl-tick" style="left:1296px"></i><i class="tl-tick" style="left:1328px"></i><i class="tl-tick" style="left:1360px"></i><i class="tl-tick is-week" style="left:1392px"></i><i class="tl-tick" style="left:1424px"></i><i class="tl-tick" style="left:1456px"></i><i class="tl-tick" style="left:1488px"></i><i class="tl-tick" style="left:1520px"></i><i class="tl-tick" style="left:1552px"></i><i class="tl-tick" style="left:1584px"></i><i class="tl-tick is-week" style="left:1616px"></i><i class="tl-tick" style="left:1648px"></i><i class="tl-tick" style="left:1680px"></i><i class="tl-tick" style="left:1712px"></i><i class="tl-tick" style="left:1744px"></i><i class="tl-tick" style="left:1776px"></i><i class="tl-tick" style="left:1808px"></i><i class="tl-tick is-week" style="left:1840px"></i><i class="tl-tick" style="left:1872px"></i><i class="tl-tick" style="left:1904px"></i><i class="tl-tick" style="left:1936px"></i><i class="tl-tick is-month" style="left:1968px"></i><i class="tl-tick" style="left:2000px"></i><i class="tl-tick" style="left:2032px"></i><i class="tl-tick" style="left:2064px"></i><i class="tl-tick" style="left:2096px"></i><i class="tl-tick" style="left:2128px"></i><i class="tl-tick is-week" style="left:2160px"></i><i class="tl-tick" style="left:2192px"></i><i class="tl-tick" style="left:2224px"></i><i class="tl-tick" style="left:2256px"></i><i class="tl-tick" style="left:2288px"></i><i class="tl-tick" style="left:2320px"></i><i class="tl-tick" style="left:2352px"></i><i class="tl-tick is-week" style="left:2384px"></i><i class="tl-tick" style="left:2416px"></i><i class="tl-tick" style="left:2448px"></i><i class="tl-tick" style="left:2480px"></i><i class="tl-tick" style="left:2512px"></i><i class="tl-tick" style="left:2544px"></i><i class="tl-tick" style="left:2576px"></i><i class="tl-tick is-week" style="left:2608px"></i><i class="tl-tick" style="left:2640px"></i><i class="tl-tick" style="left:2672px"></i><i class="tl-tick" style="left:2704px"></i><i class="tl-tick" style="left:2736px"></i><i class="tl-tick" style="left:2768px"></i><i class="tl-tick" style="left:2800px"></i><i class="tl-tick is-week" style="left:2832px"></i><i class="tl-tick" style="left:2864px"></i><i class="tl-tick" style="left:2896px"></i></div>
-      <div class="tl-today" style="left:144px" aria-hidden="true"><span>Сегодня</span></div>
-      <div class="tl-item tl-up1" style="left:56px;--tl-pin:152px">
-        <a class="tl-card" href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" title="Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса – старт: 7 сентября 2026 г.">
-          <span class="tl-when">7 сентября</span>
-          <span class="tl-name">Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</span>
-          <span class="tl-meta"><i class="tl-dot" data-sphere="finance" aria-hidden="true"></i>ПК · Онлайн асинхронный · 57 000 ₽</span>
-        </a>
-        <span class="tl-pin" aria-hidden="true"></span>
-      </div>
-      <div class="tl-item tl-up1" style="left:260px;--tl-pin:44px">
+      <div class="tl-today" style="left:272px" aria-hidden="true"><span>Сегодня</span></div>
+      <div class="tl-item tl-up1" style="left:152px;--tl-pin:152px">
         <a class="tl-card" href="programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html" title="Правовые вопросы банкротства: теории и практики – старт: 10 сентября 2026 г.">
           <span class="tl-when">10 сентября</span>
           <span class="tl-name">Правовые вопросы банкротства: теории и практики</span>
@@ -854,7 +868,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:280px;--tl-pin:152px">
+      <div class="tl-item tl-up1" style="left:368px;--tl-pin:64px">
         <a class="tl-card" href="programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html" title="Французское (европейское) экономическое право / Droit économique français (européen) – старт: 14 сентября 2026 г.">
           <span class="tl-when">14 сентября</span>
           <span class="tl-name">Французское (европейское) экономическое право / Droit économique français (européen)</span>
@@ -862,7 +876,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:312px;--tl-pin:152px">
+      <div class="tl-item tl-down1" style="left:312px;--tl-pin:152px">
         <a class="tl-card" href="programs/kontraktnoe-pravo-gonkonga-1025688553.html" title="Контрактное право Гонконга – старт: 15 сентября 2026 г.">
           <span class="tl-when">15 сентября</span>
           <span class="tl-name">Контрактное право Гонконга</span>
@@ -870,7 +884,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:476px;--tl-pin:116px">
+      <div class="tl-item tl-up1" style="left:564px;--tl-pin:28px">
         <a class="tl-card" href="programs/personalnyy-assistent-pro-829977883.html" title="Персональный ассистент PRO – старт: 19 сентября 2026 г.">
           <span class="tl-when">19 сентября</span>
           <span class="tl-name">Персональный ассистент PRO</span>
@@ -886,7 +900,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:676px;--tl-pin:44px">
+      <div class="tl-item tl-down2" style="left:568px;--tl-pin:152px">
         <a class="tl-card" href="programs/tsifrovoe-pravo-dlya-biznesa-837181759.html" title="Цифровое право для бизнеса – старт: 23 сентября 2026 г.">
           <span class="tl-when">23 сентября</span>
           <span class="tl-name">Цифровое право для бизнеса</span>
@@ -894,7 +908,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:708px;--tl-pin:44px">
+      <div class="tl-item tl-up2" style="left:600px;--tl-pin:152px">
         <a class="tl-card" href="programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html" title="Международное частное право: трансграничные операции – старт: 24 сентября 2026 г.">
           <span class="tl-when">24 сентября</span>
           <span class="tl-name">Международное частное право: трансграничные операции</span>
@@ -902,7 +916,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up2" style="left:728px;--tl-pin:152px">
+      <div class="tl-item tl-up1" style="left:764px;--tl-pin:116px">
         <a class="tl-card" href="programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html" title="Исламские финансы: правовые основы, комплаенс и бизнес-практика – старт: 28 сентября 2026 г.">
           <span class="tl-when">28 сентября</span>
           <span class="tl-name">Исламские финансы: правовые основы, комплаенс и бизнес-практика</span>
@@ -910,7 +924,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-up1" style="left:900px;--tl-pin:44px">
+      <div class="tl-item tl-down1" style="left:792px;--tl-pin:152px">
         <a class="tl-card" href="programs/pravo-na-angliyskom-legal-english-474776084.html" title="Право на английском / Legal English – старт: 30 сентября 2026 г.">
           <span class="tl-when">30 сентября</span>
           <span class="tl-name">Право на английском / Legal English</span>
@@ -918,7 +932,7 @@
         </a>
         <span class="tl-pin" aria-hidden="true"></span>
       </div>
-      <div class="tl-item tl-down1" style="left:952px;--tl-pin:152px">
+      <div class="tl-item tl-up1" style="left:968px;--tl-pin:136px">
         <a class="tl-card" href="programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html" title="Авторское право в информационном обществе – старт: 5 октября 2026 г.">
           <span class="tl-when">5 октября</span>
           <span class="tl-name">Авторское право в информационном обществе</span>
@@ -1147,7 +1161,7 @@
         </span>
       </div>
     </div>
-    <div class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="57000" data-start="1788728400000" data-title="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" data-search="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса пк онлайн асинхронный старт: 7 сентября 2026 г." data-id="1129129055" data-cmp-format="Онлайн асинхронный" data-cmp-duration="" data-cmp-start="Старт: 7 сентября 2026 г." data-cmp-modules="Модуль 1. Актуальные вопросы налогового администрирования бизнеса. · Тема 1. Налоговый контроль – основная функция Федеральной налоговой службы. · Тема 2. Особенности налогового администрирования крупного бизнеса. · Тема 3. Особенности налогового администрирования субъектов малого и среднего бизнеса. · Тема 4. Налоговый мониторинг – новый этап развития налогового контроля. · Модуль 2. Налоговая оптимизация бизнеса. · Тема 1. Налоговые льготы – законные и эффективные механизмы снижения нагрузки бизнеса. · Тема 2. Механизмы оптимизации крупного бизнеса. · Тема 3. Механизмы оптимизации бизнеса для субъектов МСП. · Тема 4. IT сфера. Способы оптимизации инноваций и разработок. · Итоговая аттестация." data-cmp-teachers="2" data-cmp-audience="Финансовые директора и руководители финансово-экономических служб, · Собственники и топ-менеджеры компаний, · Налоговые консультанты и юристы, · Главные бухгалтеры и аудиторы, · Специалисты консалтинговых компаний,">
+    <div class="card" data-type="ПК" data-format="online" data-sphere="finance" data-duration="unknown" data-price="57000" data-start="1788728400000" data-title="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса" data-search="актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса пк онлайн асинхронный" data-id="1129129055" data-cmp-format="Онлайн асинхронный" data-cmp-duration="" data-cmp-start="" data-cmp-modules="Модуль 1. Актуальные вопросы налогового администрирования бизнеса. · Тема 1. Налоговый контроль – основная функция Федеральной налоговой службы. · Тема 2. Особенности налогового администрирования крупного бизнеса. · Тема 3. Особенности налогового администрирования субъектов малого и среднего бизнеса. · Тема 4. Налоговый мониторинг – новый этап развития налогового контроля. · Модуль 2. Налоговая оптимизация бизнеса. · Тема 1. Налоговые льготы – законные и эффективные механизмы снижения нагрузки бизнеса. · Тема 2. Механизмы оптимизации крупного бизнеса. · Тема 3. Механизмы оптимизации бизнеса для субъектов МСП. · Тема 4. IT сфера. Способы оптимизации инноваций и разработок. · Итоговая аттестация." data-cmp-teachers="2" data-cmp-audience="Финансовые директора и руководители финансово-экономических служб, · Собственники и топ-менеджеры компаний, · Налоговые консультанты и юристы, · Главные бухгалтеры и аудиторы, · Специалисты консалтинговых компаний,">
       <button type="button" class="card-compare" data-compare-toggle aria-pressed="false"
         aria-label="Сравнить: Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса"><span class="card-compare-box" aria-hidden="true"></span>Сравнить</button>
       <a href="programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html" class="card-link">
@@ -1155,7 +1169,6 @@
       <div class="sphere">Финансы, налоги и банкротство</div>
       <h3>Актуальные вопросы налогового администрирования и современные подходы в налоговой оптимизации бизнеса</h3>
       <span class="card-tags"><span class="tag" data-tip="Занятия в записи: материалы проходят в удобное время, без привязки к расписанию.">Онлайн асинхронный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
-      <div class="meta">Старт: 7 сентября 2026 г.</div>
       </a>
       <div class="foot">
         <span class="price">57 000 ₽</span>
@@ -1437,6 +1450,7 @@
       <button type="button" class="card-compare" data-compare-toggle aria-pressed="false"
         aria-label="Сравнить: Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования"><span class="card-compare-box" aria-hidden="true"></span>Сравнить</button>
       <a href="programs/bezopasnoe-vnedrenie-tsifrovyh-instrumentov-v-kadrovuyu-rabo-1129129056.html" class="card-link">
+      <span class="card-media card-media-blank" aria-hidden="true"></span>
       <div class="sphere">Цифровое право и интеллектуальная собственность</div>
       <h3>Безопасное внедрение цифровых инструментов в кадровую работу: юридические требования</h3>
       <span class="card-tags"><span class="tag" data-tip="Занятия проходят очно, в аудиториях факультета права НИУ ВШЭ в Москве.">Очный</span><span class="tag tag-doc" data-tip="Повышение квалификации. Итоговый документ – удостоверение о повышении квалификации НИУ ВШЭ.">ПК</span></span>
