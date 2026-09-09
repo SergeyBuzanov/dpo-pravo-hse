@@ -8,7 +8,7 @@
   },
   "scripts": {
     "admin": "node admin-server.js",
-    "update-catalog": "node update-catalog.js && node scripts/build-program-pages.js",
+    "update-catalog": "node update-catalog.js && node scripts/fetch-program-descriptions.js --all && node scripts/fetch-program-media.js && node scripts/build-program-pages.js",
     "start": "node admin-server.js",
     "serve": "node scripts/static-server.js",
     "load-test": "node scripts/load-test.js --concurrency 2500 --duration 25 --sockets 400",
@@ -23,6 +23,7 @@
     "set-domain": "node scripts/set-domain.js",
     "build-public": "node scripts/build-public.js",
     "prerender": "node scripts/prerender-landing.js",
-    "publish-mirror": "node scripts/build-public.js --publish"
+    "publish-mirror": "node scripts/build-public.js --publish",
+    "update-details": "node scripts/fetch-program-descriptions.js --all && node scripts/fetch-program-media.js && node scripts/build-program-pages.js"
   }
 }

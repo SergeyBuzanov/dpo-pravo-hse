@@ -43,6 +43,8 @@ const {
   PAGE_DIRS,
   PAGE_EXT,
   DATA_DIRS,
+  FILE_DIRS,
+  FILE_EXT,
   DATA_EXT,
 } = require('../lib/static-http');
 const { prerender } = require('./prerender-landing');
@@ -158,7 +160,13 @@ function build() {
 
   let data = 0;
   for (const dir of DATA_DIRS) data += copyDir(dir, DATA_EXT);
+
+  // Учебные планы и расписания программ (владелец 09.09.2026): те же
+  // файлы, что отдаёт превью-сервер по белому списку.
+  let files = 0;
+  for (const dir of FILE_DIRS) files += copyDir(dir, FILE_EXT);
   report.push(`данные для браузера: ${data}`);
+  report.push(`учебные планы и расписания: ${files}`);
 
   // Признак того, что Pages не должен пропускать выкладку через Jekyll:
   // иначе каталоги, начинающиеся с подчёркивания, молча не публикуются.

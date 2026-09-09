@@ -43,6 +43,8 @@ const STORE = path.join(ROOT, '.catalog-data.json');
 const PROGRAMS_DIR = path.join(ROOT, 'images', 'programs');
 const THUMBS_DIR = path.join(PROGRAMS_DIR, 'thumbs');
 const TEACHERS_DIR = path.join(ROOT, 'images', 'teachers');
+/** Учебные планы и расписания программ, зеркало hse.ru (владелец 09.09.2026). */
+const FILES_DIR = path.join(ROOT, 'files');
 
 const DELAY_MS = 800;
 const TIMEOUT_MS = 15000;
@@ -109,6 +111,33 @@ async function downloadImage(url, destBase) {
   if (!buf.length) throw new Error('пустой ответ');
   fs.writeFileSync(destBase + '.' + ext, buf);
   return ext;
+}
+
+/**
+ * Скачивает PDF программы (учебный план, расписание) к себе.
+ *
+ * Зеркалим по решению владельца 09.09.2026: ссылка на hse.ru умирает при
+ * первой же перестройке их каталога, а файл нужен слушателю. Тип ответа
+ * проверяем: по ссылке «…pdf» маркетплейс может отдать страницу-заглушку,
+ * и тогда у нас лёг бы HTML с расширением pdf.
+ */
+const MAX_PDF_BYTES = 4 * 1024 * 1024;
+
+async function downloadPdf(url, dest) {
+  const res = await fetch(assertHseUrl(url), {
+    headers: { 'User-Agent': UA, Accept: 'application/pdf' },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const ct = res.headers.get('content-type') || '';
+  if (!/^application\/pdf/i.test(ct)) throw new Error('не PDF: ' + ct);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (!buf.length) throw new Error('пустой ответ');
+  if (buf.length > MAX_PDF_BYTES) throw new Error('слишком большой файл: ' + buf.length);
+  // Подпись формата: content-type подделать проще, чем первые байты.
+  if (buf.subarray(0, 4).toString('latin1') !== '%PDF') throw new Error('это не PDF по сигнатуре');
+  fs.writeFileSync(dest, buf);
+  return buf.length;
 }
 
 /** Уже скачанный файл с любым из допустимых расширений. */
@@ -454,6 +483,39 @@ async function main() {
     }
   }
 
+  // Файлы программ: учебный план и расписание. Ссылки на оригиналы кладёт
+  // scripts/fetch-program-descriptions.js, сюда приходит только доставка.
+  // Расписание перекачиваем ВСЕГДА (решение владельца 09.09.2026:
+  // «обновлять вместе»): у него меняется содержимое при том же адресе, и
+  // пропуск по «файл уже есть» показывал бы слушателю прошлый семестр.
+  fs.mkdirSync(FILES_DIR, { recursive: true });
+  let programDocs = 0;
+  const docFails = [];
+  for (const p of programs) {
+    if (!Array.isArray(p.files) || !p.files.length) continue;
+    for (const f of p.files) {
+      if (!f || !f.url || (f.kind !== 'plan' && f.kind !== 'schedule')) continue;
+      const rel = `files/${p.id}-${f.kind}.pdf`;
+      const dest = path.join(ROOT, rel);
+      const stale = f.kind === 'schedule' || force || !fs.existsSync(dest);
+      if (!stale) { f.path = rel; continue; }
+      try {
+        await downloadPdf(f.url, dest);
+        f.path = rel;
+        programDocs++;
+        await sleep(DELAY_MS);
+      } catch (err) {
+        docFails.push(`${p.title.slice(0, 40)} (${f.kind}): ${err.message}`);
+        if (!fs.existsSync(dest)) f.path = null;
+      }
+    }
+  }
+  if (docFails.length) {
+    console.warn('\nФайлы программ, которые не скачались:');
+    for (const line of docFails) console.warn('  - ' + line);
+  }
+  console.log(`Файлы программ: скачано ${programDocs}, всего с файлами ${programs.filter((x) => (x.files || []).some((f) => f.path)).length}/${programs.length}.`);
+
   store.teacherPhotos = photos;
   fs.writeFileSync(STORE, JSON.stringify(store, null, 2) + '\n', 'utf8');
 
@@ -481,4 +543,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { extractOgImage, extractTeacherPhotos, extractCertificate, extByContentType };
+module.exports = { extractOgImage, extractTeacherPhotos, extractCertificate, extByContentType, main };
