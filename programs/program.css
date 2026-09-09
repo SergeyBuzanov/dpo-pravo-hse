@@ -51,7 +51,10 @@ html.vi-mode header::after{display:none !important}
 @media (prefers-contrast: more){
   header{background:rgb(var(--surface));backdrop-filter:none;border-bottom:1px solid rgb(var(--ink))}
   header::after{display:none}}
-.logo{display:flex;align-items:center;gap:10px}
+/* Мишень касания 44px (WCAG 2.5.5, владелец 09.09.2026) добирается
+   ОТСТУПОМ С ОБРАТНЫМ ПОЛЕМ: min-height растил липкую шапку телефона.
+   Плашка 35px + 2×5. */
+.logo{display:flex;align-items:center;gap:10px;padding:5px 0;margin:-5px 0}
 /* Знак центра: 34px вровень с двумя строками слов. В vi-режиме уходит –
    страница там ч/б, знак остался бы единственным цветным пятном. */
 .brand-mark{display:block;flex:none;width:34px;height:34px;border-radius:50%}
@@ -60,7 +63,10 @@ html.vi-mode .brand-mark{display:none}
 .logo .sub{font-size:0.8125rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--accent))}
 .header-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .header-nav{display:flex;align-items:center;gap:14px}
-.nav-link{font-size:0.875rem;font-weight:600;color:rgb(var(--accent))}
+/* «Программы»: тем же приёмом – 19px текста плюс 2×13 отступа, обратное
+   поле возвращает ряд шапки на место. */
+.nav-link{font-size:0.9375rem;font-weight:600;color:rgb(var(--accent));
+  display:block;padding:13px 0;margin:-13px 0}
 .nav-link:hover{text-decoration:underline}
 .vi-btn{font:inherit;font-size:0.8125rem;font-weight:600;cursor:pointer;color:var(--ink-soft);
   background:transparent;border:1px solid rgb(var(--ink) / .25);border-radius:999px;padding:8px 14px;
@@ -86,7 +92,12 @@ html.vi-mode .brand-mark{display:none}
 .hero-veil{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,
   rgba(11,42,105,.80) 0%,rgba(8,33,83,.84) 55%,rgba(6,23,57,.90) 100%)}
 .crumbs{font-size:0.8125rem;color:rgb(var(--surface) / .88);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-.crumbs a{text-decoration:underline}
+/* Цепочка – элемент флекса: мишень 44px тем же приёмом, 18px текста
+   плюс 2×13 отступа, обратное поле держит ряд на месте. position:relative
+   обязателен: на 390px имя сферы переносится на вторую строку и, будучи
+   ниже по разметке, накрывало нижнюю треть мишени – хит-тест давал 39px
+   вместо 44. */
+.crumbs a{text-decoration:underline;padding:13px 0;margin:-13px 0;position:relative}
 .hero h1{font-weight:600;font-size: clamp(1.75rem,3.2vw,2.625rem);line-height:1.15;letter-spacing:-0.01em;max-width:20ch;
   max-width:900px;text-wrap:balance}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
@@ -164,7 +175,7 @@ html.vi-mode .brand-mark{display:none}
 .siblings li{border-top:1px solid var(--line)}
 /* Ссылки на соседние программы выглядят ссылками: цвет акцента и
    проявляющееся подчёркивание по системной кривой. */
-.siblings a{display:block;padding:14px 0;font-size:0.9062rem;line-height:1.5;color:rgb(var(--accent));
+.siblings a{display:block;padding:14px 0;font-size:0.9375rem;line-height:1.5;color:rgb(var(--accent));
   text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;
   transition:color .28s var(--ease),text-decoration-color .28s var(--ease)}
 .siblings a:hover{color:var(--accent-dark);text-decoration-color:currentColor}
@@ -224,16 +235,20 @@ html.vi-mode .buy-bar{display:none !important}
 .doc>*{position:relative;z-index:1}
 .doc-vignette{position:absolute;right:-14px;bottom:-18px;width:132px;height:132px;
   color:rgb(var(--accent));opacity:.12;pointer-events:none;z-index:0}
-.doc-tag{display:inline-block;font-size:0.7812rem;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
+.doc-tag{display:inline-block;font-size:0.8125rem;font-weight:700;color:rgb(var(--surface));background:rgb(var(--accent));
   border-radius:999px;padding:4px 11px;margin-bottom:12px}
 .doc h2{font-size:1.1875rem;font-weight:600;margin-bottom:8px}
-.doc p{font-size:0.9062rem;line-height:1.55;color:var(--ink-soft);margin:0}
+.doc p{font-size:0.9375rem;line-height:1.55;color:var(--ink-soft);margin:0}
 .doc-note{font-size:0.8125rem;color:var(--ink-mute);margin-top:10px}
 
 footer{padding:28px var(--gutter);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;
   align-items:center;justify-content:space-between;gap:12px;font-size:0.8125rem;color:var(--ink-mute)}
-.footer-links{display:flex;gap:18px;flex-wrap:wrap}
-.footer-links a{color:rgb(var(--accent))}
+/* Ссылки подвала: мишень 44px, а шаг между ними не меньше мишени. На
+   телефоне ссылки идут стопкой, и при шаге 36px мишени перекрылись бы –
+   нижняя забрала бы часть верхней. row-gap в ноль ставит их вплотную,
+   зазор между словами остаётся прежним; column-gap не тронут. */
+.footer-links{display:flex;align-items:center;column-gap:18px;row-gap:0;flex-wrap:wrap}
+.footer-links a{color:rgb(var(--accent));display:flex;align-items:center;min-height:44px}
 
 /* Версия для слабовидящих (ГОСТ Р 52872-2019) */
 html.vi-mode body{zoom:1.25;background:rgb(var(--surface)) !important}

@@ -55,7 +55,10 @@
     padding: 16px clamp(20px, 6vw, 64px);
     border-bottom: 1px solid var(--line);
   }
-  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  /* Мишень касания 44px (WCAG 2.5.5, владелец 09.09.2026) – отступом с
+     обратным полем: раскладка шапки остаётся прежней. Плашка 34px + 2×5. */
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none;
+    padding: 5px 0; margin: -5px 0; }
   .logo .mark { width: 34px; height: 34px; flex: none; }
   .logo .brand-mark { width: 34px; height: 34px; flex: none; border-radius: 50%; }
   /* Подпись – единственные слова плашки: крупнее прежнего и в фирменном
@@ -65,7 +68,8 @@
     font-size: 0.8125rem; letter-spacing: .08em; text-transform: uppercase;
     font-weight: 600; color: rgb(var(--accent));
   }
-  .back { font-size: 0.9062rem; font-weight: 600; color: rgb(var(--accent)); text-decoration: none; }
+  .back { font-size: 0.9375rem; font-weight: 600; color: rgb(var(--accent)); text-decoration: none;
+    display: block; padding: 11px 0; margin: -11px 0; }
   .back:hover { text-decoration: underline; }
 
   /* Основной блок. Ширина в 30em держит строку около 65 знаков – та же
@@ -148,6 +152,11 @@
   }
   .elsewhere a:hover { border-bottom-color: rgb(var(--accent)); }
 
+  /* Мишени касания 44px (WCAG 2.5.5): ссылки списка «Куда ещё можно
+     зайти» и ссылка подвала. Список идёт стопкой, элементы <li> растут
+     вместе с мишенью – перекрытия нет. */
+  .elsewhere li a { display: inline-flex; align-items: center; min-height: 44px; }
+  footer a { display: inline-flex; align-items: center; min-height: 44px; }
   footer {
     padding: 22px clamp(20px, 6vw, 64px);
     border-top: 1px solid var(--line);

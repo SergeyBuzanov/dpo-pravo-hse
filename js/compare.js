@@ -87,7 +87,10 @@
     'color:rgb(var(--ink));background:rgb(var(--surface) / .92);backdrop-filter:blur(6px);',
     'border:1px solid var(--line);border-radius:999px;padding:7px 12px 7px 9px;cursor:pointer;',
     'transition:background .2s ease,border-color .2s ease,color .2s ease}',
-    '.card-compare::before{content:"";position:absolute;inset:-8px -6px}',
+    /* -9px, а не -8: с восемью мишень выходила 44,5px и на части карточек
+       округлялась до 43 – хит-тест ловил это по одной карточке из 26
+       (замер 09.09.2026). Лишний пиксель уводит от порога. */
+    '.card-compare::before{content:"";position:absolute;inset:-9px -6px}',
     '.card-compare-box{width:13px;height:13px;border:1.5px solid rgb(var(--ink) / .45);',
     'border-radius:4px;display:inline-block;position:relative;transition:background .2s ease,border-color .2s ease}',
     '.card-compare[aria-pressed="true"]{background:rgb(var(--accent));border-color:rgb(var(--accent));color:rgb(var(--surface))}',

@@ -69,8 +69,12 @@
   }
   /* Плашка та же, что в каталоге и на страницах программ: подпись прописными
      в фирменном синем, слева знак центра. */
+  /* Мишень касания 44px (WCAG 2.5.5, владелец 09.09.2026) добирается
+     ОТСТУПОМ С ОБРАТНЫМ ПОЛЕМ: min-height растил липкую шапку, а отступ
+     попадает в мишень и возвращается обратным полем. Плашка 30px + 2×7. */
   .logo{ font-weight:600; font-size:0.8125rem; letter-spacing:0.08em; text-transform:uppercase;
-         color:rgb(var(--accent)); display:flex; align-items:center; gap:10px; }
+         color:rgb(var(--accent)); display:flex; align-items:center; gap:10px;
+         padding:7px 0; margin:-7px 0; }
   /* Знак центра. В режиме для слабовидящих уходит: страница там ч/б, знак
      остался бы единственным цветным пятном (то же правило, что на лендинге). */
   .brand-mark{ display:block; flex:none; width:30px; height:30px; border-radius:50%; }
@@ -92,9 +96,16 @@
   td.none{ color:var(--ink-mute); font-weight:400; }
   tr:last-child td{ border-bottom:0; }
   footer{ padding:28px clamp(20px,6vw,64px); border-top:1px solid rgb(var(--ink) / 0.1); font-size:0.8125rem; color:var(--ink-mute); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  /* Мишени касания 44px (WCAG 2.5.5, владелец 09.09.2026). Элементы
+     флекса, поэтому min-height, а не отступ. Ссылки ВНУТРИ текста –
+     адрес почты в «Контактах» и ссылки таблицы – не добираются: WCAG
+     выводит строчную ссылку в предложении из-под правила, а растянутая
+     мишень перекрыла бы соседние строки. */
+  header a.back{ display:block; padding:8px 0; margin:-8px 0; }
+  footer a{ display:inline-flex; align-items:center; min-height:44px; }
   .vi-btn{ font:inherit; font-size:0.8125rem; font-weight:600; cursor:pointer; color:var(--ink-soft);
     background:transparent; border:1px solid rgb(var(--ink) / 0.25); border-radius:999px;
-    padding:8px 14px; white-space:nowrap; }
+    padding:8px 14px; white-space:nowrap; min-height:44px; /* мишень касания, WCAG 2.5.5 */ }
   .vi-btn:hover{ border-color:rgb(var(--accent)); color:rgb(var(--accent)); }
   a:focus-visible, button:focus-visible{ outline:none; box-shadow:0 0 0 3px rgb(var(--accent) / .18), 0 0 0 1px rgb(var(--accent)); border-radius:4px; }
   /* Версия для слабовидящих (ГОСТ Р 52872-2019) */
@@ -123,7 +134,7 @@
     <img class="brand-mark" src="images/logo/brand-mark-96.webp" width="30" height="30" alt="">Центр ДПО · НИУ ВШЭ</a>
   <span style="display:flex; align-items:center; gap:14px;">
     <button id="viToggle" class="vi-btn" type="button" aria-pressed="false" title="Версия для слабовидящих">Версия для слабовидящих</button>
-    <a href="index.html">← На главную</a>
+    <a class="back" href="index.html">← На главную</a>
   </span>
 </header>
 
