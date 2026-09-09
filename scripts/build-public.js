@@ -7,7 +7,7 @@
  *
  * Зачем
  * -----
- * Публичное зеркало (`SergeyBuzanov/dpo-pravo-hse`, GitHub Pages) публикует
+ * Публичное зеркало (`itspecR/dpo-pravo-hse`, GitHub Pages) публикует
  * ветку `main` ЦЕЛИКОМ, а в ней лежит вся рабочая копия. Проверено
  * 21.08.2026: наружу отдавались `admin.html`, `docker-compose.yml`,
  * `.catalog-data.json` и `tests/run.sh` – каждый со своим кодом 200.
@@ -52,7 +52,7 @@ const { strip, sameLiterals } = require('./strip-comments');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, '.public');
-const MIRROR = 'https://github.com/SergeyBuzanov/dpo-pravo-hse.git';
+const MIRROR = 'https://github.com/itspecR/dpo-pravo-hse.git';
 const BRANCH = 'gh-pages';
 
 /** Локальной админке страница нужна, зеркалу – нет. */

@@ -112,8 +112,9 @@ web
 
 **Статус: внутренний прототип для согласования.** Боевой домен не выбран, и на
 нём сайт не опубликован. **Но публичное зеркало существует и его показывают
-людям:** `sergeybuzanov.github.io/dpo-pravo-hse/` – GitHub Pages с ветки `main`
-второго remote (`git push mirror main` обязателен отдельно от `origin`). На
+людям:** `itspecr.github.io/dpo-pravo-hse/` – GitHub Pages с ветки `gh-pages`
+второго remote, куда выкладывает `npm run publish-mirror` (`git push mirror main`
+обязателен отдельно от `origin`). На
 зеркале не работают форма заявки и сбор аналитики: обе требуют Node, а Pages
 отдаёт только статику. Это ожидаемо и не дефект.
 
