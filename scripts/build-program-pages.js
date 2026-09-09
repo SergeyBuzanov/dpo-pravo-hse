@@ -369,13 +369,38 @@ function typeLabel(p) {
   return s || 'Программа ДПО';
 }
 
+/**
+ * Условия оплаты под ценой: сумма налогового вычета и скидки – ровно так,
+ * как они написаны на официальной странице программы (разведка
+ * 09.09.2026: вычет у 17 программ, скидки у 20). Своими словами это не
+ * пересказывается: условия денежные, и вольная формулировка тут дороже
+ * места, которое она экономит.
+ */
+function renderPriceTerms(p) {
+  const lines = [];
+  if (p.taxRefund) lines.push(`${p.taxRefund} можно вернуть налоговым вычетом`);
+  for (const d of p.discounts || []) lines.push(d);
+  if (!lines.length) return '';
+  return `      <ul class="price-terms">
+${lines.map((t) => `        <li>${esc(t)}</li>`).join('\n')}
+      </ul>`;
+}
+
 function renderFacts(p) {
+  // Часы, язык и график занятий сняты со страницы маркетплейса
+  // (разведка 09.09.2026): «1,5 месяца» не отвечает на вопрос, сколько это
+  // занятий и когда они идут. Пустые строки не выводятся: у части программ
+  // блока «Формат обучения» на hse.ru нет, и «уточняется» там, где мы
+  // просто не знаем, обещало бы уточнение.
   const rows = [
     ['Тип программы', typeLabel(p)],
     ['Формат', p.studyFormat?.title || 'уточняется'],
     ['Длительность', p.duration || 'уточняется'],
+    ['Объём', p.hours || null],
+    ['Язык', p.language || null],
+    ['График занятий', p.schedule || null],
     ['Старт', formatDate(p) || 'уточняется'],
-  ];
+  ].filter(([, v]) => v);
   return rows
     .map(
       ([k, v]) =>
@@ -457,13 +482,28 @@ function renderModules(p) {
   if (!p.modules || !p.modules.length) {
     return slot('Программа обучения', 'Модули и объём часов пока не заполнены. Заполняются полем modules у программы – его подтягивает scripts/fetch-program-descriptions.js.');
   }
+  // Подтемы модуля (разведка 09.09.2026: 848 строк на 18 программах из 26)
+  // показываются РАСКРЫТИЕМ – решение владельца. <details> нативный:
+  // работает без JavaScript, доступен с клавиатуры и открывается поиском
+  // по странице в браузере. Модуль без подтем остаётся обычной строкой:
+  // пустая стрелка раскрытия обещала бы содержимое, которого нет.
   const items = p.modules
-    .map(
-      (m) =>
-        `          <li><span class="module-title">${esc(m.title)}</span>` +
-        (m.hours ? `<span class="module-hours">${esc(m.hours)}</span>` : '') +
-        '</li>',
-    )
+    .map((m) => {
+      const head =
+        `<span class="module-title">${esc(m.title)}</span>` +
+        (m.hours ? `<span class="module-hours">${esc(m.hours)}</span>` : '');
+      const topics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
+      if (!topics.length) return `          <li>${head}</li>`;
+      const list = topics.map((t) => `              <li>${esc(t)}</li>`).join('\n');
+      return `          <li class="module-open">
+            <details>
+              <summary>${head}</summary>
+              <ul class="module-topics">
+${list}
+              </ul>
+            </details>
+          </li>`;
+    })
     .join('\n');
   const total = p.modules.length;
   return `      <section class="block">
@@ -542,6 +582,117 @@ function renderFeedback(p) {
         <h2>Отзывы выпускников</h2>
         <p class="block-sub">С официальной страницы программы на hse.ru</p>
         <ul class="reviews">
+${items}
+        </ul>
+      </section>`;
+}
+
+/**
+ * «Преимущества программы» – нумерованные пункты с официальной страницы
+ * (есть у 25 программ из 26). Нумерация рисуется счётчиком, как в учебном
+ * плане: в тексте её нет, и дублировать цифру словом незачем.
+ */
+function renderAdvantages(p) {
+  if (!p.advantages || !p.advantages.length) return '';
+  const items = p.advantages.map((t) => `          <li>${esc(t)}</li>`).join('\n');
+  return `      <section class="block">
+        <h2>Преимущества программы</h2>
+        <ol class="advantages">
+${items}
+        </ol>
+      </section>`;
+}
+
+/**
+ * Документы для приёма на обучение – список, который просят у слушателя
+ * (25 программ из 26). Стоит рядом с заявкой: это то, что понадобится
+ * сразу после неё.
+ */
+function renderAdmissionDocs(p) {
+  if (!p.admissionDocs || !p.admissionDocs.length) return '';
+  const items = p.admissionDocs.map((t) => `          <li>${esc(t)}</li>`).join('\n');
+  return `      <section class="block">
+        <h2>Документы для приёма на обучение</h2>
+        <ul class="admission">
+${items}
+        </ul>
+      </section>`;
+}
+
+/**
+ * Файлы программы: учебный план (есть у всех 26) и расписание (у 14).
+ * Ссылки ведут на НАШИ копии (files/<id>-plan.pdf): оригиналы на hse.ru
+ * переезжают при каждой перестройке их каталога. Если копии почему-то нет,
+ * строка не рисуется вовсе – битая ссылка хуже отсутствующей.
+ */
+const FILE_LABELS = Object.freeze({ plan: 'Учебный план', schedule: 'Расписание занятий' });
+
+function renderFiles(p) {
+  const files = (p.files || []).filter((f) => f && f.path);
+  if (!files.length) return '';
+  const items = files
+    .map((f) => {
+      const label = FILE_LABELS[f.kind] || f.title || 'Документ';
+      const size = f.size ? `<span class="file-size">${esc(f.size)}</span>` : '';
+      return `          <li><a class="file" href="../${esc(f.path)}" download>
+            <span class="file-name">${esc(label)}</span>${size}
+          </a></li>`;
+    })
+    .join('\n');
+  return `      <section class="block">
+        <h2>Документы программы</h2>
+        <p class="block-sub">Официальные файлы центра, PDF</p>
+        <ul class="files">
+${items}
+        </ul>
+      </section>`;
+}
+
+/**
+ * «Важно» – срочное объявление центра со страницы программы (10 из 26).
+ * Стоит первым в содержимом: у объявления есть дата, и ниже него оно
+ * перестаёт быть срочным.
+ *
+ * Ссылка ведёт на чужую площадку (записи вебинаров), поэтому рядом с
+ * действием ВИДЕН ХОСТ: переход по чужому адресу вслепую – не то, что
+ * можно позволить себе на сайте университета.
+ */
+function renderNotice(p) {
+  if (!p.notice || !p.notice.text) return '';
+  const date = p.notice.date ? `<span class="notice-date">${esc(p.notice.date)}</span>` : '';
+  let link = '';
+  if (p.notice.url) {
+    let host = '';
+    try { host = new URL(p.notice.url).host.replace(/^www\./, ''); } catch { host = ''; }
+    link = `\n        <a class="notice-link" href="${esc(p.notice.url)}" target="_blank" rel="noopener noreferrer">Смотреть${host ? ` на ${esc(host)}` : ''}</a>`;
+  }
+  return `      <section class="notice">
+        <p class="notice-head"><span class="notice-tag">Важно</span>${date}</p>
+        <p class="notice-text">${esc(p.notice.text)}</p>${link}
+      </section>`;
+}
+
+/**
+ * «Вопросы и ответы» с официальной страницы (3 программы из 26). Тем же
+ * раскрытием, что учебный план: список вопросов читается глазами, ответ
+ * открывается по нужному.
+ */
+function renderFaq(p) {
+  if (!p.faq || !p.faq.length) return '';
+  const items = p.faq
+    .map(
+      (x) => `          <li>
+            <details>
+              <summary><span class="faq-q">${esc(x.q)}</span></summary>
+              <p class="faq-a">${esc(x.a)}</p>
+            </details>
+          </li>`,
+    )
+    .join('\n');
+  return `      <section class="block">
+        <h2>Вопросы и ответы</h2>
+        <p class="block-sub">С официальной страницы программы на hse.ru</p>
+        <ul class="faq">
 ${items}
         </ul>
       </section>`;
@@ -857,8 +1008,7 @@ function renderPage(rawProgram, sphere) {
   const cta = `        <button type="button" class="cta" data-application
           data-program-id="${esc(String(p.id || ''))}"
           data-program-title="${esc(p.title)}"
-          data-program-url="${esc(SITE)}/${esc(programHref(p))}">Подать заявку</button>
-        <p class="cta-note">Заявку принимает учебный офис Центра ДПО. Мы свяжемся с вами по телефону или почте.</p>${secondary}`;
+          data-program-url="${esc(SITE)}/${esc(programHref(p))}">Подать заявку</button>${secondary}`;
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -923,18 +1073,24 @@ ${heroMedia}` : '<section class="hero">'}
 
 <main id="main" class="layout">
   <div class="content">
+${renderNotice(p)}
 ${renderAbout(p)}
 ${renderAudience(p)}
 ${renderResults(p)}
+${renderAdvantages(p)}
 ${renderModules(p)}
+${renderFiles(p)}
 ${renderTeachers(p)}
 ${renderFeedback(p)}
+${renderAdmissionDocs(p)}
+${renderFaq(p)}
 ${renderSiblings(sphere || { title: '', items: [] }, p)}
   </div>
 
   <aside class="side">
     <div class="card">
       <div class="price">${esc(formatPrice(p))}</div>
+${renderPriceTerms(p)}
       <dl class="facts">
 ${renderFacts(p)}
       </dl>
@@ -1181,7 +1337,7 @@ html.vi-mode .brand-mark{display:none}
 /* Мера строки: длинные текстовые блоки держим около 72ch, сетка колонок
    при этом не меняется – ограничивается только ширина самого текста. */
 .about-lead,.about-body,.about-list li,.block-sub,.block-note,.slot,
-.results li,.modules li,.teachers li,.siblings a{max-width:72ch}
+.results li,.modules > li,.teachers li,.siblings a{max-width:72ch}
 .slot{font-size:0.9688rem;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgb(var(--ink) / .25);border-radius:16px;padding:20px;margin:0}
 .pills{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0}
@@ -1200,14 +1356,97 @@ html.vi-mode .brand-mark{display:none}
 /* Учебный план. Номер рисуется счётчиком, а не маркером списка: нужен
    моноширинный столбец, иначе двузначные номера сдвигают все названия. */
 .modules{list-style:none;margin:0;padding:0;counter-reset:module}
-.modules li{counter-increment:module;display:grid;
+/* Только ПРЯМЫЕ дети: внутри модуля лежит список подтем, и без «>»
+   сетка строки модуля доставала до каждой подтемы – план рассыпался в
+   столбец по слову на строку (поймано снимком, замеры молчали). */
+.modules > li{counter-increment:module;display:grid;
   grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;
   padding:13px 0;border-top:1px solid var(--line)}
-.modules li::before{content:counter(module);font-size:0.8125rem;color:var(--ink-mute);
+.modules > li::before{content:counter(module);font-size:0.8125rem;color:var(--ink-mute);
   font-variant-numeric:tabular-nums}
 .module-title{font-size:0.9688rem;line-height:1.5;color:var(--ink-soft)}
 .module-hours{font-size:0.8125rem;color:var(--ink-mute);white-space:nowrap;
   font-variant-numeric:tabular-nums}
+/* Модуль с подтемами – нативное раскрытие. Строка модуля выглядит так же,
+   как у модуля без подтем: разница только в стрелке справа, иначе план
+   рассыпался бы на два разных вида строк. Маркер списка у summary снимаем
+   в обоих синтаксисах – webkit до сих пор рисует свой. */
+/* Вес селектора обязан перебивать .modules > li (0,1,1): у голого
+   .module-open (0,1,0) сетка строки оставалась в силе, details попадал в
+   первую колонку шириной 28px и название рассыпалось по слову на строку. */
+.modules > li.module-open{display:block;padding:0}
+.modules > li.module-open::before{display:none}
+.module-open details{display:block;padding:13px 0}
+.module-open summary{display:grid;grid-template-columns:28px minmax(0,1fr) auto 12px;
+  gap:4px 12px;align-items:baseline;cursor:pointer;list-style:none}
+.module-open summary::-webkit-details-marker{display:none}
+.module-open summary::before{content:counter(module);font-size:0.8125rem;
+  color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.module-open summary::after{content:'';width:7px;height:7px;justify-self:end;
+  border-right:1.6px solid var(--ink-mute);border-bottom:1.6px solid var(--ink-mute);
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s var(--ease)}
+.module-open details[open] summary::after{transform:rotate(225deg) translate(-2px,-2px)}
+.module-open summary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(var(--accent) / .18)}
+.module-topics{margin:8px 0 2px;padding:0 0 0 40px;list-style:disc}
+.module-topics li{font-size:0.9375rem;line-height:1.55;color:var(--ink-soft);
+  margin:0 0 4px;max-width:72ch}
+
+/* Преимущества программы: тот же счётчик, что у учебного плана. */
+.advantages{list-style:none;margin:0;padding:0;counter-reset:adv}
+.advantages li{counter-increment:adv;display:grid;grid-template-columns:28px minmax(0,1fr);
+  gap:4px 12px;padding:13px 0;border-top:1px solid var(--line);
+  font-size:0.9375rem;line-height:1.55;color:var(--ink-soft);max-width:72ch}
+.advantages li::before{content:counter(adv,decimal-leading-zero);font-size:0.8125rem;
+  color:rgb(var(--accent));font-variant-numeric:tabular-nums}
+
+/* Документы для приёма – простой список без украшений: это чек-лист. */
+.admission{margin:0;padding:0 0 0 20px;list-style:disc}
+.admission li{font-size:0.9375rem;line-height:1.55;color:var(--ink-soft);
+  margin:0 0 8px;max-width:72ch}
+
+/* Файлы программы: строка-ссылка с названием и весом. Скачивание – это
+   действие, поэтому строка ведёт себя как кнопка-список, а не как текст. */
+.files{list-style:none;margin:0;padding:0}
+.files li{border-top:1px solid var(--line)}
+.file{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 0;text-decoration:none;color:rgb(var(--accent));min-height:44px}
+.file-name{font-size:0.9375rem;font-weight:600}
+.file-size{font-size:0.8125rem;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.file:hover .file-name{text-decoration:underline}
+
+/* «Важно»: срочное объявление центра. Золото надзаголовка и тонкая рамка,
+   без заливки во всю ширину – это сообщение, а не тревога. */
+.notice{border:1px solid rgb(var(--accent) / .35);border-radius:16px;
+  padding:16px 18px;margin:0 0 28px;background:rgb(var(--accent) / .05)}
+.notice-head{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+.notice-tag{font-size:0.8125rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:rgb(var(--accent))}
+.notice-date{font-size:0.8125rem;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.notice-text{margin:0;font-size:0.9375rem;line-height:1.55;color:rgb(var(--ink));max-width:72ch}
+.notice-link{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;
+  font-size:0.9375rem;font-weight:600;color:rgb(var(--accent))}
+.notice-link:hover{text-decoration:underline}
+
+/* Вопросы и ответы: то же раскрытие, что у учебного плана. */
+.faq{list-style:none;margin:0;padding:0}
+.faq li{border-top:1px solid var(--line)}
+.faq summary{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:14px 0;cursor:pointer;list-style:none;min-height:44px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'';flex:none;width:7px;height:7px;align-self:center;
+  border-right:1.6px solid var(--ink-mute);border-bottom:1.6px solid var(--ink-mute);
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s var(--ease)}
+.faq details[open] summary::after{transform:rotate(225deg) translate(-2px,-2px)}
+.faq summary:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(var(--accent) / .18)}
+.faq-q{font-size:0.9688rem;font-weight:600;color:rgb(var(--ink))}
+.faq-a{margin:0 0 14px;font-size:0.9375rem;line-height:1.6;color:var(--ink-soft);max-width:72ch}
+
+/* Условия оплаты под ценой. Мелко и вторым планом: цена остаётся главной. */
+.price-terms{list-style:none;margin:10px 0 0;padding:0}
+.price-terms li{position:relative;padding-left:14px;margin:0 0 6px;
+  font-size:0.8125rem;line-height:1.45;color:var(--ink-mute)}
+.price-terms li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;
+  border-radius:50%;background:rgb(var(--accent) / .5)}
 
 /* Преподаватели. Фотографий нет: снимки лежат на hse.ru, а CSP страницы
    запрещает внешние картинки. Поэтому вес несёт имя, а не портрет. */
@@ -1252,7 +1491,6 @@ html.vi-mode .brand-mark{display:none}
   transition:background .28s var(--ease),transform 140ms ease}
 .cta:hover{background:var(--accent-dark)}
 .cta:active{transform:scale(.97)}
-.cta-note{font-size:0.8125rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}
 .cta-alt{display:block;text-align:center;font-size:0.8125rem;color:var(--ink-mute);margin:14px 0 0;
   text-decoration:underline;text-underline-offset:3px}
 .cta-alt:hover{color:rgb(var(--accent))}
