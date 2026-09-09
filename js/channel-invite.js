@@ -78,7 +78,7 @@
     // font:inherit обязателен: кнопки не наследуют шрифт сами, и крестик
     // рисовался системным Arial (замер аудита 18.08).
     '#channelInvite .ci-close{position:absolute;top:4px;right:4px;width:44px;height:44px;border-radius:999px;',
-    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:1.0625rem;line-height:1;cursor:pointer}',
+    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font:inherit;font-size:1.125rem;line-height:1;cursor:pointer}',
     '#channelInvite .ci-close:hover{background:var(--bg-tint)}',
     '@media (prefers-reduced-motion:reduce){#channelInvite{transition:none;transform:none}}',
     // На телефоне карточка сворачивается в одну строку (решение владельца
@@ -93,7 +93,7 @@
     // ссылка в ряд, а не столбиком.
     '#channelInvite > div{display:flex;align-items:center;gap:10px;flex:1;min-width:0}',
     '#channelInvite .ci-icon{width:32px;height:32px}',
-    '#channelInvite .ci-title{font-size:0.875rem;margin:0;flex:1;min-width:0;',
+    '#channelInvite .ci-title{font-size:0.8125rem;margin:0;flex:1;min-width:0;',
     'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '#channelInvite .ci-desc{display:none}',
     // Ссылкой, а не пилюлей: в одной строке две заливки (она и кнопка
@@ -104,7 +104,7 @@
     '#channelInvite .ci-join{min-height:44px;padding:0 4px;background:none;color:rgb(var(--accent));',
     'text-decoration:underline;text-underline-offset:3px}',
     '#channelInvite .ci-join:hover{background:none}',
-    '#channelInvite .ci-close{top:6px;right:6px;font-size:1rem}',
+    '#channelInvite .ci-close{top:6px;right:6px}',
     '}',
     // На телефоне маскот уже 96px с полем 8px (порог 1023px – см.
     // index.html), поэтому карточке и бейджу нужно меньше отступа, чем на

@@ -109,7 +109,7 @@
     'border-radius:18px;box-shadow:0 24px 60px rgb(var(--ink) / .28);padding:clamp(22px,4vw,34px);',
     'transform:translateY(12px) scale(.985);transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.dpo-app-backdrop.is-open .dpo-app{transform:none}',
-    '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size: clamp(1.375rem,3.4vw,1.75rem);',
+    '.dpo-app h2{font-family:"HSE Slab","Source Serif 4",Georgia,serif;font-size: clamp(1.3125rem,2.2vw,1.75rem);',
     'line-height:1.15;margin:0 48px 6px 0;font-weight:600}',
     // Заголовок получает программный фокус при открытии (tabindex=-1), и
     // браузерная рамка рисовала его как текстовое поле – «Заявка на
@@ -121,7 +121,7 @@
     '.dpo-app h2:focus-visible{text-decoration:underline;text-decoration-color:rgb(var(--accent));text-decoration-thickness:2px;text-underline-offset:6px}',
     '.dpo-app-program{font-size:0.9375rem;line-height:1.5;color:var(--ink-mute);margin:0 0 20px}',
     '.dpo-app-close{position:absolute;top:11px;right:11px;width:44px;height:44px;border-radius:999px;',
-    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:1.25rem;line-height:1;',
+    'border:1px solid rgb(var(--ink) / .12);background:rgb(var(--surface));color:rgb(var(--ink));font-size:1.125rem;line-height:1;',
     'cursor:pointer;transition:background .15s,border-color .15s}',
     '.dpo-app-close:hover{background:var(--bg-tint)}',
     '.dpo-app-row{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-bottom:14px}',
@@ -132,7 +132,7 @@
     // у иконок контактов.
     '.dpo-app-more{margin:2px 0 14px;border-top:1px solid rgb(var(--ink) / .1);border-bottom:1px solid rgb(var(--ink) / .1)}',
     '.dpo-app-more summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;',
-    'font-size:0.875rem;font-weight:600;color:rgb(var(--accent));list-style:none}',
+    'font-size:0.9375rem;font-weight:600;color:rgb(var(--accent));list-style:none}',
     '.dpo-app-more summary::-webkit-details-marker{display:none}',
     '.dpo-app-more summary::after{content:"";width:8px;height:8px;border-right:1.6px solid currentColor;',
     'border-bottom:1.6px solid currentColor;transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s}',
@@ -175,7 +175,7 @@
     '.dpo-app-submit:hover{background:#1145AA}',
     '.dpo-app-submit:active{transform:scale(.985)}',
     '.dpo-app-submit[disabled]{opacity:.6;cursor:progress}',
-    '.dpo-app-note{font-size:0.75rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
+    '.dpo-app-note{font-size:0.8125rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}',
     '.dpo-app-status{margin:0;font-size:0.9375rem;line-height:1.5;border-radius:10px;padding:0}',
     '.dpo-app-status:not(:empty){padding:12px 14px}',
     // Цвет ошибки – системный #B00020; фон и граница выведены из него, а не
@@ -213,7 +213,7 @@
     '.dpo-app-done-program b{font-weight:600}',
     '.dpo-app-next{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}',
     '.dpo-app-next a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;',
-    'font-size:0.875rem;font-weight:600;text-decoration:none;color:rgb(var(--accent));background:rgb(var(--surface));',
+    'font-size:0.9375rem;font-weight:600;text-decoration:none;color:rgb(var(--accent));background:rgb(var(--surface));',
     'border:1px solid rgb(var(--accent) / .3);transition:background .15s,border-color .15s}',
     '.dpo-app-next a:hover{background:rgb(var(--accent));border-color:rgb(var(--accent));color:rgb(var(--surface))}',
     'html.vi-mode .dpo-app-next a{border:2px solid #000}',

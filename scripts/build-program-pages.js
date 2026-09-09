@@ -1167,8 +1167,8 @@ html.vi-mode .brand-mark{display:none}
 
 .block{margin-bottom:clamp(28px,4vw,48px)}
 .block h2{font-size: clamp(1.3125rem,2.2vw,1.75rem);font-weight:600;margin-bottom:12px}
-.block-sub{font-size:0.8438rem;color:var(--ink-mute);margin:0 0 16px}
-.about-lead{font-size:1.0625rem;line-height:1.6;font-weight:600;color:rgb(var(--ink));margin:0 0 14px}
+.block-sub{font-size:0.8125rem;color:var(--ink-mute);margin:0 0 16px}
+.about-lead{font-size:1.0938rem;line-height:1.6;font-weight:600;color:rgb(var(--ink));margin:0 0 14px}
 .about-body{font-size:0.9688rem;line-height:1.7;color:var(--ink-soft);margin:0 0 14px}
 /* about, склеенный источником из <li>, возвращаем к виду списка. */
 .about-list{list-style:none;margin:0 0 14px;padding:0}
@@ -1185,7 +1185,7 @@ html.vi-mode .brand-mark{display:none}
 .slot{font-size:0.9688rem;line-height:1.6;color:var(--ink-mute);background:var(--bg-tint);
   border:1px dashed rgb(var(--ink) / .25);border-radius:16px;padding:20px;margin:0}
 .pills{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0}
-.pills li{font-size:0.9062rem;line-height:1.4;color:var(--ink-soft);background:var(--bg-tint);
+.pills li{font-size:0.9375rem;line-height:1.4;color:var(--ink-soft);background:var(--bg-tint);
   border-radius:999px;padding:10px 18px}
 .results{list-style:none;margin:0;padding:0;display:grid;gap:2px}
 .results li{position:relative;font-size:0.9688rem;line-height:1.6;color:var(--ink-soft);
@@ -1195,7 +1195,7 @@ html.vi-mode .brand-mark{display:none}
 .results li::before{content:"";position:absolute;left:8px;top:19px;width:7px;height:12px;
   border-right:2px solid rgb(var(--accent));border-bottom:2px solid rgb(var(--accent));
   transform:rotate(45deg)}
-.block-note{font-size:0.8438rem;color:var(--ink-mute);margin:0 0 14px}
+.block-note{font-size:0.8125rem;color:var(--ink-mute);margin:0 0 14px}
 
 /* Учебный план. Номер рисуется счётчиком, а не маркером списка: нужен
    моноширинный столбец, иначе двузначные номера сдвигают все названия. */
@@ -1219,9 +1219,9 @@ html.vi-mode .brand-mark{display:none}
 .reviews blockquote{margin:0;font-size:0.9375rem;line-height:1.65;color:var(--ink-soft)}
 .reviews blockquote::before{content:"« "}
 .reviews blockquote::after{content:" »"}
-.review-author{margin:12px 0 0;font-size:0.8438rem;font-weight:600;color:rgb(var(--ink))}
+.review-author{margin:12px 0 0;font-size:0.8125rem;font-weight:600;color:rgb(var(--ink))}
 .teacher-name{font-size:1rem;font-weight:600;margin:0 0 4px;color:rgb(var(--ink))}
-.teacher-about{font-size:0.9062rem;line-height:1.55;color:var(--ink-soft);margin:0}
+.teacher-about{font-size:0.9375rem;line-height:1.55;color:var(--ink-soft);margin:0}
 
 @media (max-width:520px){
   .modules li{grid-template-columns:22px minmax(0,1fr);gap:2px 10px}
@@ -1246,14 +1246,14 @@ html.vi-mode .brand-mark{display:none}
 .fact{display:flex;justify-content:space-between;gap:12px;padding:10px 0;
   border-top:1px solid var(--line)}
 .fact dt{font-size:0.8125rem;color:var(--ink-mute);margin:0}
-.fact dd{font-size:0.9062rem;font-weight:600;margin:0;text-align:right}
+.fact dd{font-size:0.9375rem;font-weight:600;margin:0;text-align:right}
 .cta{display:block;width:100%;font:inherit;border:0;cursor:pointer;text-align:center;font-size:0.9375rem;font-weight:600;color:rgb(var(--surface));
   background:rgb(var(--accent));border-radius:999px;padding:15px 24px;
   transition:background .28s var(--ease),transform 140ms ease}
 .cta:hover{background:var(--accent-dark)}
 .cta:active{transform:scale(.97)}
 .cta-note{font-size:0.8125rem;line-height:1.5;color:var(--ink-mute);margin:12px 0 0;text-align:center}
-.cta-alt{display:block;text-align:center;font-size:0.875rem;color:var(--ink-mute);margin:14px 0 0;
+.cta-alt{display:block;text-align:center;font-size:0.8125rem;color:var(--ink-mute);margin:14px 0 0;
   text-decoration:underline;text-underline-offset:3px}
 .cta-alt:hover{color:rgb(var(--accent))}
 /* Вторичная кнопка оплаты: контур в акцент, не спорит с primary.
@@ -1274,7 +1274,7 @@ html.vi-mode .brand-mark{display:none}
     border:1px solid rgb(var(--ink) / .1);border-radius:18px;
     box-shadow:0 12px 40px rgb(var(--ink) / .16)}
   .buy-bar-price{font-family:'HSE Slab','Source Serif 4',serif;font-weight:400;
-    font-size:1.0625rem;white-space:nowrap}
+    font-size:1.0938rem;white-space:nowrap}
   .buy-bar .cta{flex:1;min-height:44px;padding:12px 18px}
   body{padding-bottom:84px}
 }
