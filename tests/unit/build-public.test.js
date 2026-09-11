@@ -48,6 +48,7 @@ test('наружу не уезжает ничего, кроме сайта', () 
   for (const rel of [
     'admin.html',
     'admin-server.js',
+    'js/admin-crow.js',
     'docker-compose.yml',
     'Dockerfile',
     'docker',

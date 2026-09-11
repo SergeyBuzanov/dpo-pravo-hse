@@ -55,8 +55,8 @@ const OUT = path.join(ROOT, '.public');
 const MIRROR = 'https://github.com/itspecR/dpo-pravo-hse.git';
 const BRANCH = 'gh-pages';
 
-/** Локальной админке страница нужна, зеркалу – нет. */
-const NEVER_PUBLISH = new Set(['admin.html']);
+/** Локальной админке страница и её ворона нужны, зеркалу – нет. */
+const NEVER_PUBLISH = new Set(['admin.html', 'js/admin-crow.js']);
 
 /**
  * Файлы корня, которых нет в белых списках серверов, но на витрине они
@@ -86,6 +86,7 @@ function copyDir(dir, allowedExt, { recursive = false } = {}) {
       continue;
     }
     if (!allowedExt.has(path.extname(entry.name).toLowerCase())) continue;
+    if (NEVER_PUBLISH.has(rel.split(path.sep).join('/'))) continue;
     if (copyFile(rel)) n++;
   }
   return n;
@@ -177,7 +178,7 @@ function build() {
 
   // То, чего в выкладке нет намеренно: печатаем, чтобы отсутствие было
   // видимым решением, а не случайностью.
-  const excluded = ['admin.html', 'admin-server.js', 'docker-compose.yml', '.catalog-data.json', 'tests', 'docs', 'scripts', 'lib']
+  const excluded = ['admin.html', 'js/admin-crow.js', 'admin-server.js','docker-compose.yml', '.catalog-data.json', 'tests', 'docs', 'scripts', 'lib']
     .filter((name) => fs.existsSync(path.join(ROOT, name)))
     .filter((name) => !fs.existsSync(path.join(OUT, name)));
   console.log('  не публикуется: ' + excluded.join(', '));
