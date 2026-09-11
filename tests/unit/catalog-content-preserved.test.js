@@ -23,7 +23,7 @@ const path = require('node:path');
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dpo-catalog-'));
 process.env.CATALOG_DATA_FILE = path.join(DIR, 'catalog.json');
 
-const { saveStore, loadStore } = require('../../lib/catalog-store');
+const { saveStore, loadStore, CONTENT_FIELDS } = require('../../lib/catalog-store');
 
 /** Программа со всем, что подтягивается скриптами со страниц hse.ru. */
 function richProgram() {
@@ -41,7 +41,25 @@ function richProgram() {
     results: ['Изучите правовой режим нейроданных', 'Разберёте судебную практику'],
     modules: [{ title: 'Введение в нейроправо', hours: 8 }],
     teachers: [{ name: 'Будник Руслан Александрович', about: 'Ведущий научный сотрудник' }],
+    feedback: [{ author: 'Иван', text: 'Сильный курс' }],
     image: 'images/programs/905186485.png',
+    hours: '68 часов',
+    language: 'русский',
+    schedule: 'среда 18:30 – 21:40',
+    taxRefund: '7 150 рублей',
+    discounts: ['Скидки 5-10% студентам'],
+    admissionDocs: ['Паспорт'],
+    advantages: ['Практика на кейсах'],
+    files: [
+      {
+        kind: 'plan',
+        title: 'Учебный план',
+        url: 'https://www.hse.ru/pubs/share/folder/aa/1.pdf',
+        path: 'files/905186485-plan.pdf',
+      },
+    ],
+    notice: { date: '10.09.2026', text: 'Запись вебинара', url: 'https://my.mts-link.ru/j/1/2' },
+    faq: [{ q: 'В каком формате занятия?', a: 'Онлайн' }],
   };
 }
 
@@ -61,8 +79,6 @@ function editorRow(p) {
   };
 }
 
-const CONTENT_FIELDS = ['tagline', 'about', 'audience', 'results', 'modules', 'teachers', 'image'];
-
 test('сохранение из админки не стирает описания, преподавателей и обложки', async () => {
   await saveStore({ programs: [richProgram()], source: 'hse' });
 
@@ -81,6 +97,10 @@ test('сохранение из админки не стирает описан�
   assert.strictEqual(p.about, richProgram().about, 'описание изменилось');
   assert.strictEqual(p.teachers.length, 1, 'преподаватели потеряны');
   assert.strictEqual(p.image, 'images/programs/905186485.png', 'обложка потеряна');
+  assert.strictEqual(p.hours, '68 часов', 'часы потеряны');
+  assert.strictEqual(p.notice.text, 'Запись вебинара', 'объявление «Важно» потеряно');
+  assert.strictEqual(p.faq.length, 1, 'FAQ потерян');
+  assert.strictEqual(p.files[0].path, 'files/905186485-plan.pdf', 'файлы потеряны');
 });
 
 test('поля редактора при этом обновляются, а не залипают', async () => {

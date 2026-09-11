@@ -13,7 +13,6 @@ from __future__ import annotations
 import base64
 import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -112,39 +111,58 @@ def test_admin_authed() -> None:
         shutil.copytree(ROOT / "lib", sandbox / "lib")
 
         env = os.environ.copy()
-        env.update({"PORT": str(port), "PYTHONIOENCODING": "utf-8"})
+        env.update({
+            "PORT": str(port),
+            "HOST": "127.0.0.1",
+            "PYTHONIOENCODING": "utf-8",
+            # Как в Docker: вход через форму и cookie, не через Basic.
+            "ADMIN_ALLOW_BASIC": "0",
+        })
         proc = subprocess.Popen(
             ["node", "admin-server.js"], cwd=str(sandbox), env=env,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         )
         try:
-            # Пароль печатается один раз при первом запуске — забираем из вывода
-            password = None
-            deadline = time.time() + 15
-            while time.time() < deadline and password is None:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-                m = re.search(r"Пароль[^:]*:\s*(\S+)", line)
-                if m:
-                    password = m.group(1)
-            if not password:
-                proc.terminate()
-                raise RuntimeError("не удалось получить пароль из вывода админ-сервера")
-
-            # Дальше вывод сервера нужно КУДА-ТО девать. Если этого не делать,
-            # буфер канала (64 КБ) заполняется, Node блокируется на записи в
-            # stdout и перестаёт отвечать — тест падал с «connection reset»
-            # ровно тогда, когда сервер писал чуть больше логов.
+            # Вывод сервера нужно куда-то девать, иначе буфер канала (64 КБ)
+            # заполняется и Node блокируется на stdout.
             threading.Thread(target=lambda: proc.stdout.read(), daemon=True).start()
 
             base = f"http://127.0.0.1:{port}"
-            wait_http(f"{base}/api/status")
-            auth = "Basic " + base64.b64encode(f"admin:{password}".encode()).decode()
-            code, _, body = http_req(f"{base}/api/status", headers={"Authorization": auth})
-            check("authed", "вход по сгенерированному паролю", code == 200, f"status={code}")
-            csrf = json.loads(body).get("csrfToken", "")
-            hdr = {"Authorization": auth, "X-CSRF-Token": csrf,
+            wait_http(f"{base}/admin.html")
+
+            # Одноразовый пароль больше не печатается в stdout — лежит в файле.
+            pwd_file = sandbox / ".admin-password.txt"
+            password = None
+            deadline = time.time() + 8
+            while time.time() < deadline:
+                if pwd_file.is_file():
+                    lines = pwd_file.read_text(encoding="utf-8").splitlines()
+                    if len(lines) >= 2 and lines[1].strip():
+                        password = lines[1].strip()
+                        break
+                time.sleep(0.05)
+            if not password:
+                proc.terminate()
+                raise RuntimeError("не удалось прочитать одноразовый пароль из .admin-password.txt")
+
+            login_body = json.dumps({"username": "admin", "password": password}).encode()
+            code, headers, body = http_req(
+                f"{base}/api/login",
+                method="POST",
+                data=login_body,
+                headers={"Content-Type": "application/json", "Origin": base},
+            )
+            cookie = (headers.get("Set-Cookie") or headers.get("set-cookie") or "").split(";", 1)[0]
+            check(
+                "authed",
+                "вход по cookie с одноразовым паролем",
+                code == 200 and cookie.startswith("dpo_admin="),
+                f"status={code}",
+            )
+            code, _, body = http_req(f"{base}/api/status", headers={"Cookie": cookie})
+            check("authed", "status после входа", code == 200, f"status={code}")
+            csrf = json.loads(body).get("csrfToken", "") if code == 200 else ""
+            hdr = {"Cookie": cookie, "X-CSRF-Token": csrf,
                    "Origin": base, "Content-Type": "application/json"}
 
             # Слишком большое тело: клиент должен получить 413, а не обрыв связи.
@@ -160,7 +178,7 @@ def test_admin_authed() -> None:
                                            for i in range(1000)]}).encode()
             code, _, _ = http_req(f"{base}/api/programs", method="PUT", data=big, headers=hdr)
             check("authed", "тело сверх лимита → 413, а не обрыв", code == 413, f"status={code}")
-            code, _, _ = http_req(f"{base}/api/status", headers={"Authorization": auth})
+            code, _, _ = http_req(f"{base}/api/status", headers={"Cookie": cookie})
             check("authed", "сервер жив после отказа по размеру", code == 200, f"status={code}")
 
             # Расписание: мусор отвергается, а не зажимается молча в диапазон
@@ -318,9 +336,11 @@ def test_application_intake() -> None:
                   "bot@example.org" not in saved, "заявка из ловушки попала в журнал")
             check("application", "заявка без согласия НЕ сохранена",
                   "b@example.org" not in saved, "заявка без согласия попала в журнал")
-            check("application", "файл заявок доступен только владельцу (0600)",
-                  bool(files) and (files[0].stat().st_mode & 0o777) == 0o600,
-                  f"mode={oct(files[0].stat().st_mode & 0o777) if files else 'нет файла'}")
+            check("application", "файл заявок создан на диске", bool(files), "нет файла")
+            if os.name != "nt" and files:
+                mode = files[0].stat().st_mode & 0o777
+                check("application", "файл заявок доступен только владельцу (0600)",
+                      mode == 0o600, f"mode={oct(mode)}")
 
             # Разметка в имени — это ДАННЫЕ. В журнале она хранится как есть
             # (JSONL не HTML-файл), а безопасность обеспечивает вывод: список
@@ -366,23 +386,31 @@ def test_admin_server() -> None:
     try:
         code, headers, _ = http_req(f"{base}/api/status")
         check("admin", "status without auth → 401", code == 401, f"status={code}")
+        www = (headers.get("WWW-Authenticate") or headers.get("www-authenticate") or "")
         check(
             "admin",
-            "WWW-Authenticate present",
-            "basic" in (headers.get("WWW-Authenticate") or headers.get("www-authenticate") or "").lower(),
-            str(headers.get("WWW-Authenticate") or headers.get("www-authenticate")),
+            "без Authorization нет WWW-Authenticate (форма, не Basic-диалог)",
+            "basic" not in www.lower(),
+            www,
         )
 
         code, _, _ = http_req(f"{base}/.admin-credentials.json")
         check("admin", "credentials path without auth → 401", code == 401, f"status={code}")
 
-        # Wrong password still 401
+        # Wrong password still 401; Basic-заголовок есть — тогда и challenge.
         bad_auth = "Basic " + base64.b64encode(b"admin:definitely-wrong-password").decode()
-        code, _, _ = http_req(
+        code, headers, _ = http_req(
             f"{base}/api/status",
             headers={"Authorization": bad_auth},
         )
         check("admin", "wrong password → 401", code == 401, f"status={code}")
+        www = (headers.get("WWW-Authenticate") or headers.get("www-authenticate") or "")
+        check(
+            "admin",
+            "неверный Basic → WWW-Authenticate",
+            "basic" in www.lower(),
+            www,
+        )
 
         # Collect: evil Origin rejected; no ACAO on success
         code, headers, body = http_req(
@@ -409,7 +437,7 @@ def test_admin_server() -> None:
         check("admin", "collect success has no ACAO", not acao, f"ACAO={acao!r}")
 
         # Mutating POST without auth → 401 (CSRF not reached)
-        code, _, _ = http_req(
+        code_update, _, _ = http_req(
             f"{base}/api/update",
             method="POST",
             data=b"{}",
@@ -424,7 +452,7 @@ def test_admin_server() -> None:
                               headers={"Content-Type": "application/json"})
         check("admin", "смена статуса заявки без авторизации → 401", code == 401, f"status={code}")
 
-        check("admin", "update without auth → 401", code == 401, f"status={code}")
+        check("admin", "update without auth → 401", code_update == 401, f"status={code_update}")
 
         # With bogus auth, still 401 (cannot reach CSRF without valid password)
         code, _, _ = http_req(

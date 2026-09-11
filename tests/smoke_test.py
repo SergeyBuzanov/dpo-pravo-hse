@@ -107,7 +107,7 @@ def test_index(context):
     )
     check(lbl, "CSP meta после рендера", has_csp)
     check(lbl, "favicon подключён",
-          page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") == "favicon.svg")
+          "favicon-32.png" in (page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") or ""))
     check(lbl, "theme-color = #1658DA",
           page.eval_on_selector('meta[name="theme-color"]', "el => el.content") == "#1658DA")
     check(lbl, "шрифты HSE Sans/Slab загружены",
@@ -202,7 +202,7 @@ def test_catalog(context):
     page.wait_for_timeout(400)
 
     check(lbl, "favicon подключён",
-          page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") == "favicon.svg")
+          "favicon-32.png" in (page.eval_on_selector('link[rel="icon"]', "el => el.getAttribute('href')") or ""))
     check(lbl, "ссылка «← На главную» → index.html",
           page.eval_on_selector('header a.back', "el => el.getAttribute('href')") == "index.html")
     check(lbl, "нет ошибок в консоли", not errors, "; ".join(errors[:3]))

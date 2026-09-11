@@ -38,7 +38,7 @@ function rule(src, selector) {
 test('полоса обложки есть у каждой карточки каталога', () => {
   const cards = CATALOG.match(/<div class="card"/g) || [];
   const covers = CATALOG.match(/class="card-media/g) || [];
-  assert.equal(cards.length, 26, 'в каталоге не 26 карточек – проверить .catalog-data.json');
+  assert.equal(cards.length, 27, 'в каталоге не 27 карточек – проверить .catalog-data.json');
   assert.equal(covers.length, cards.length, 'карточка без полосы обложки снова короче соседей');
 });
 

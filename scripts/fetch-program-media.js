@@ -26,9 +26,10 @@
  * Запросы идут последовательно с паузой: это чужой сайт, и обходить его
  * двадцатью шестью параллельными запросами невежливо.
  *
- * Уменьшенные копии: при наличии sips (macOS) обложки ужимаются в
- * images/programs/thumbs/<id>.jpg шириной 640px для карточек, фото людей –
- * до 160px по ширине. Без sips используются оригиналы.
+ * Уменьшенные копии: sips (macOS) или Python+Pillow (Windows и остальные).
+ * Обложки ужимаются в images/programs/thumbs/<id>.jpg шириной 640px для
+ * карточек, фото людей – до 160px. Без обоих инструментов остаются оригиналы.
+ * WebP-спутники: cwebp, иначе тот же Python.
  */
 
 'use strict';
@@ -203,6 +204,8 @@ function extractCertificate(html) {
   return src ? decodeEntities(src[1]).trim() : null;
 }
 
+const IMAGE_TOOLS = path.join(__dirname, 'image-tools.py');
+
 function hasSips() {
   try {
     execFileSync('/usr/bin/sips', ['--help'], { stdio: 'ignore' });
@@ -221,22 +224,47 @@ function hasCwebp() {
   }
 }
 
+function hasPythonTools() {
+  try {
+    execFileSync('python', ['-c', 'from PIL import Image'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function runPython(args) {
+  execFileSync('python', [IMAGE_TOOLS, ...args], { stdio: 'ignore' });
+}
+
+function canResize() {
+  return hasSips() || hasPythonTools();
+}
+
+function canWebp() {
+  return hasCwebp() || hasPythonTools();
+}
+
 /**
- * WebP-спутник скана бланка. Сканы – единственные тяжёлые картинки сайта
- * (палитровый PNG 1200×848 весит 220–253 КБ), и WebP срезает их втрое:
- * 220 → 70 КБ на том же качестве. Разметка показывает их через <picture>,
- * где WebP – <source>, а исходный файл остаётся запасным.
+ * WebP-спутник. Сканы бланков и обложки/портреты показывают его через
+ * <picture>: WebP – <source>, исходный файл остаётся запасным.
  *
  * ВАЖНО: спутник обязан обновляться ВМЕСТЕ с оригиналом. Если <source>
  * укажет на исчезнувший файл, браузер не откатится на <img> – он уже выбрал
  * источник и покажет битую картинку. Поэтому webp пересоздаётся всякий раз,
- * когда скан скачан заново.
+ * когда оригинал новее спутника.
  */
 function makeWebp(srcFile) {
   const dest = srcFile.replace(/\.(png|jpe?g)$/i, '.webp');
   if (dest === srcFile) return false;
   try {
-    execFileSync('cwebp', ['-quiet', '-q', '80', srcFile, '-o', dest], { stdio: 'ignore' });
+    if (hasCwebp()) {
+      execFileSync('cwebp', ['-quiet', '-q', '80', srcFile, '-o', dest], { stdio: 'ignore' });
+    } else if (hasPythonTools()) {
+      runPython(['webp', srcFile, dest, '80']);
+    } else {
+      return false;
+    }
     return fs.existsSync(dest);
   } catch {
     return false;
@@ -252,27 +280,46 @@ function makeWebp(srcFile) {
  * 21.08.2026). Возвращает новое расширение.
  */
 function toWebpInPlace(fileBase, ext) {
-  if (ext !== 'png' || !hasCwebp()) return ext;
+  if (ext !== 'png' || !canWebp()) return ext;
+  const src = fileBase + '.png';
+  const dest = fileBase + '.webp';
   try {
-    execFileSync('cwebp', ['-quiet', '-q', '80', fileBase + '.png', '-o', fileBase + '.webp'], {
-      stdio: 'ignore',
-    });
-    if (!fs.existsSync(fileBase + '.webp')) return ext;
-    fs.unlinkSync(fileBase + '.png');
-    return 'webp';
+    if (makeWebp(src) && fs.existsSync(dest)) {
+      fs.unlinkSync(src);
+      return 'webp';
+    }
   } catch {
-    return ext;
+    /* оставляем png */
   }
+  return ext;
 }
 
-/** Миниатюра обложки: jpg шириной THUMB_WIDTH. Ошибка sips – не фатальна. */
+/** Миниатюра обложки: jpg шириной THUMB_WIDTH. Ошибка конвертера – не фатальна. */
 function makeThumb(srcFile, destFile) {
   try {
-    execFileSync(
-      '/usr/bin/sips',
-      ['-s', 'format', 'jpeg', '--resampleWidth', String(THUMB_WIDTH), srcFile, '--out', destFile],
-      { stdio: 'ignore' },
-    );
+    if (hasSips()) {
+      execFileSync(
+        '/usr/bin/sips',
+        [
+          '-s',
+          'format',
+          'jpeg',
+          '-s',
+          'formatOptions',
+          '80',
+          '--resampleWidth',
+          String(THUMB_WIDTH),
+          srcFile,
+          '--out',
+          destFile,
+        ],
+        { stdio: 'ignore' },
+      );
+    } else if (hasPythonTools()) {
+      runPython(['thumb', srcFile, destFile, String(THUMB_WIDTH)]);
+    } else {
+      return false;
+    }
     return fs.existsSync(destFile);
   } catch {
     return false;
@@ -281,18 +328,26 @@ function makeThumb(srcFile, destFile) {
 
 /** PNG-фото человека -> JPEG q82: hse.ru отдаёт портреты PNG-кругом с
  *  альфой, но альфа не нужна – и CSS, и сам вырез круглые, а PNG весит
- *  вдесятеро дороже (аудит 2026-08, находка 9). sips плющит альфу на белое.
+ *  вдесятеро дороже (аудит 2026-08, находка 9). Конвертер плющит альфу на белое.
  *  Возвращает новое расширение файла. */
 function toJpegInPlace(fileBase, ext) {
   if (ext !== 'png') return ext;
+  const src = fileBase + '.png';
+  const dest = fileBase + '.jpg';
   try {
-    execFileSync(
-      '/usr/bin/sips',
-      ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', fileBase + '.png', '--out', fileBase + '.jpg'],
-      { stdio: 'ignore' },
-    );
-    if (!fs.existsSync(fileBase + '.jpg')) return ext;
-    fs.unlinkSync(fileBase + '.png');
+    if (hasSips()) {
+      execFileSync(
+        '/usr/bin/sips',
+        ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', src, '--out', dest],
+        { stdio: 'ignore' },
+      );
+    } else if (hasPythonTools()) {
+      runPython(['jpeg', src, dest, '82']);
+    } else {
+      return ext;
+    }
+    if (!fs.existsSync(dest)) return ext;
+    fs.unlinkSync(src);
     return 'jpg';
   } catch {
     return ext;
@@ -302,18 +357,41 @@ function toJpegInPlace(fileBase, ext) {
 /** Ужимает файл по ширине на месте, если он шире порога. */
 function shrinkInPlace(file, width) {
   try {
-    const out = execFileSync('/usr/bin/sips', ['-g', 'pixelWidth', file], { encoding: 'utf8' });
-    const w = Number(out.match(/pixelWidth:\s*(\d+)/)?.[1]);
-    if (!Number.isFinite(w) || w <= width) return false;
-    execFileSync('/usr/bin/sips', ['--resampleWidth', String(width), file], { stdio: 'ignore' });
-    return true;
+    if (hasSips()) {
+      const out = execFileSync('/usr/bin/sips', ['-g', 'pixelWidth', file], { encoding: 'utf8' });
+      const w = Number(out.match(/pixelWidth:\s*(\d+)/)?.[1]);
+      if (!Number.isFinite(w) || w <= width) return false;
+      execFileSync('/usr/bin/sips', ['--resampleWidth', String(width), file], { stdio: 'ignore' });
+      return true;
+    }
+    if (hasPythonTools()) {
+      runPython(['shrink', file, String(width)]);
+      return true;
+    }
   } catch {
     return false;
   }
+  return false;
+}
+
+/** WebP-спутники для уже лежащих на диске обложек, миниатюр и портретов. */
+function makeCompanions(dir) {
+  if (!canWebp() || !fs.existsSync(dir)) return 0;
+  let n = 0;
+  for (const name of fs.readdirSync(dir)) {
+    const ext = path.extname(name).toLowerCase();
+    if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') continue;
+    const src = path.join(dir, name);
+    const dest = src.replace(/\.(png|jpe?g)$/i, '.webp');
+    if (fs.existsSync(dest) && fs.statSync(dest).mtimeMs >= fs.statSync(src).mtimeMs) continue;
+    if (makeWebp(src)) n++;
+  }
+  return n;
 }
 
 async function main() {
   const force = process.argv.includes('--force');
+  const localOnly = process.argv.includes('--local');
   if (!fs.existsSync(STORE)) {
     console.error('Нет .catalog-data.json — сначала запустите node update-catalog.js');
     process.exitCode = 1;
@@ -327,9 +405,65 @@ async function main() {
   fs.mkdirSync(PROGRAMS_DIR, { recursive: true });
   fs.mkdirSync(TEACHERS_DIR, { recursive: true });
 
-  const sips = hasSips();
-  if (sips) fs.mkdirSync(THUMBS_DIR, { recursive: true });
-  else console.warn('sips не найден: миниатюры не создаются, будут использоваться оригиналы.');
+  const resizer = canResize();
+  if (resizer) fs.mkdirSync(THUMBS_DIR, { recursive: true });
+  else console.warn('Ни sips, ни Python+Pillow: миниатюры не создаются, будут использоваться оригиналы.');
+
+  if (localOnly) {
+    let thumbs = 0;
+    if (resizer) {
+      for (const p of programs) {
+        if (!p.image) continue;
+        const src = path.join(ROOT, p.image);
+        const dest = path.join(THUMBS_DIR, String(p.id) + '.jpg');
+        if (!fs.existsSync(src)) continue;
+        if (!force && fs.existsSync(dest)) continue;
+        if (makeThumb(src, dest)) thumbs++;
+      }
+    }
+    let teacherJpeg = 0;
+    if (resizer && fs.existsSync(TEACHERS_DIR)) {
+      for (const name of fs.readdirSync(TEACHERS_DIR)) {
+        if (!/\.png$/i.test(name)) continue;
+        const base = path.join(TEACHERS_DIR, name.replace(/\.png$/i, ''));
+        shrinkInPlace(base + '.png', TEACHER_WIDTH);
+        const next = toJpegInPlace(base, 'png');
+        if (next === 'jpg') {
+          const slug = path.basename(base);
+          for (const [person, rel] of Object.entries(photos)) {
+            if (rel === `images/teachers/${slug}.png`) {
+              photos[person] = `images/teachers/${slug}.jpg`;
+            }
+          }
+          teacherJpeg++;
+        }
+      }
+    }
+    const coverWebp = makeCompanions(PROGRAMS_DIR);
+    const thumbWebp = makeCompanions(THUMBS_DIR);
+    const teacherWebp = makeCompanions(TEACHERS_DIR);
+    let docsWebp = 0;
+    if (canWebp()) {
+      for (const base of ['document-pk', 'document-pp', 'document-vo', 'document-cert']) {
+        const stem = path.join(ROOT, 'images', base);
+        const ext = existingFile(stem);
+        if (!ext || ext === 'webp') continue;
+        const file = `${stem}.${ext}`;
+        const webp = `${stem}.webp`;
+        if (!force && fs.existsSync(webp) && fs.statSync(webp).mtimeMs >= fs.statSync(file).mtimeMs) continue;
+        if (makeWebp(file)) docsWebp++;
+      }
+    }
+    if (teacherJpeg) {
+      store.teacherPhotos = photos;
+      fs.writeFileSync(STORE, JSON.stringify(store, null, 2) + '\n', 'utf8');
+    }
+    console.log(
+      `Локально: миниатюр ${thumbs}, портретов PNG→JPEG ${teacherJpeg}, ` +
+        `WebP обложек ${coverWebp}, миниатюр ${thumbWebp}, портретов ${teacherWebp}, бланков ${docsWebp}.`,
+    );
+    return;
+  }
 
   let covers = 0;
   let teacherFiles = 0;
@@ -396,7 +530,7 @@ async function main() {
       }
       try {
         let ext = await downloadImage(person.src, base);
-        if (sips) {
+        if (resizer) {
           shrinkInPlace(base + '.' + ext, TEACHER_WIDTH);
           ext = toJpegInPlace(base, ext);
         }
@@ -467,12 +601,12 @@ async function main() {
       if (makeWebp(file)) webps++;
     }
   } else {
-    console.warn('cwebp не найден: WebP-спутники сканов не обновлены – проверьте блок «Документ».');
+    console.warn('Ни cwebp, ни Python+Pillow: WebP-спутники сканов не обновлены – проверьте блок «Документ».');
   }
 
   // Миниатюры обложек для карточек.
   let thumbs = 0;
-  if (sips) {
+  if (resizer) {
     for (const p of programs) {
       if (!p.image) continue;
       const src = path.join(ROOT, p.image);
@@ -516,6 +650,10 @@ async function main() {
   }
   console.log(`Файлы программ: скачано ${programDocs}, всего с файлами ${programs.filter((x) => (x.files || []).some((f) => f.path)).length}/${programs.length}.`);
 
+  const coverWebp = makeCompanions(PROGRAMS_DIR);
+  const thumbWebp = makeCompanions(THUMBS_DIR);
+  const teacherWebp = makeCompanions(TEACHERS_DIR);
+
   store.teacherPhotos = photos;
   fs.writeFileSync(STORE, JSON.stringify(store, null, 2) + '\n', 'utf8');
 
@@ -524,7 +662,7 @@ async function main() {
     `\nГотово. Обложек скачано: ${covers} (всего с обложкой ${withImage}/${programs.length}), ` +
       `миниатюр создано: ${thumbs}, фото людей скачано: ${teacherFiles} ` +
       `(в справочнике ${Object.keys(photos).length}), документы: ${docs.join(', ') || 'нет'}, ` +
-      `WebP-спутников обновлено: ${webps}.`,
+      `WebP-спутников обновлено: ${webps + coverWebp + thumbWebp + teacherWebp}.`,
   );
   if (noCover.length) {
     console.warn(`Без обложки (${noCover.length}):`);

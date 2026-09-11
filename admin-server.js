@@ -7,12 +7,15 @@
  *
  * Security model (local tool, not for public internet):
  *  - Binds only to 127.0.0.1
- *  - HTTP Basic auth with scrypt-hashed password
+ *  - Session cookie (HttpOnly, SameSite=Strict) after login; TOTP required
+ *  - HTTP Basic still accepted for автотестов, если сессии нет
  *  - CSRF token required for state-changing POSTs
  *  - Brute-force lockout + request throttling
  *  - Path traversal blocked; allowlisted static assets only
  *  - Strict security headers on every response
  *  - Single-flight lock around catalog updates
+ *  - Публичный приём заявок можно вынести в intake-server.js
+ *    (DISABLE_PUBLIC_INTAKE=1)
  */
 
 'use strict';
@@ -38,6 +41,12 @@ const {
   safeEqualStr,
   loadOrCreateCredentials,
 } = require('./lib/admin-credentials');
+const { dataFile } = require('./lib/data-dir');
+const { SECURITY_HEADERS: SHARED_HEADERS, ADMIN_CSP } = require('./lib/security-headers');
+const { verifyTotp } = require('./lib/totp');
+const { createSessionStore, wantSecureCookie } = require('./lib/admin-session');
+const intake = require('./lib/public-intake');
+const { attachShutdown } = require('./lib/http-shutdown');
 
 
 const PORT = Number(process.env.PORT) || 5178;
@@ -51,9 +60,21 @@ const HOST = process.env.HOST || '127.0.0.1';
 // для всех. Заголовку X-Real-IP верим только по явному флагу (docker-compose):
 // без прокси клиент мог бы подставить его сам и обойти per-IP лимиты.
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+
+function clientIp(req, { trustProxy } = {}) {
+  if (trustProxy) {
+    const forwarded = String(req.headers['x-real-ip'] || '').trim();
+    if (forwarded && forwarded.length < 64 && /^[0-9a-fA-F.:]+$/.test(forwarded)) {
+      return forwarded;
+    }
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
 const ROOT = __dirname;
-const STATUS_FILE = path.join(ROOT, '.admin-status.json');
-const CREDENTIALS_FILE = path.join(ROOT, '.admin-credentials.json');
+const STATUS_FILE = dataFile('.admin-status.json');
+const CREDENTIALS_FILE = dataFile('.admin-credentials.json');
+const DISABLE_PUBLIC_INTAKE = process.env.DISABLE_PUBLIC_INTAKE === '1';
+const sessions = createSessionStore();
 const STARTED_AT = Date.now();
 
 /**
@@ -62,17 +83,7 @@ const STARTED_AT = Date.now();
  * через SITE_ORIGIN (можно несколько через запятую), потому что там страницу
  * отдаёт nginx с другого адреса, а маяк проксируется в этот сервис.
  */
-const COLLECT_ORIGINS = new Set(
-  [
-    `http://${HOST}:${PORT}`,
-    `http://127.0.0.1:${PORT}`,
-    `http://localhost:${PORT}`,
-    ...String(process.env.SITE_ORIGIN || '')
-      .split(',')
-      .map((s) => s.trim().replace(/\/+$/, ''))
-      .filter(Boolean),
-  ].filter(Boolean),
-);
+const COLLECT_ORIGINS = intake.collectOrigins(HOST, PORT, process.env.SITE_ORIGIN);
 
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
@@ -255,6 +266,10 @@ async function handleApplication(req, res) {
       sendTooLarge(req, res);
       return;
     }
+    if (err.code === 'QUOTA') {
+      sendJson(res, 503, { error: 'save failed' });
+      return;
+    }
     // Заявка не сохранена — человек должен об этом узнать и попробовать
     // ещё раз или позвонить. Молчаливый 200 здесь был бы обманом.
     console.error('application error:', err.message);
@@ -286,6 +301,10 @@ setInterval(() => {
 let verifiedAuthDigest = null;
 
 async function checkAuth(req, credentials) {
+  const session = sessions.get(req);
+  if (session) return { ok: true, session };
+
+  if (process.env.ADMIN_ALLOW_BASIC === '0') return false;
   const header = req.headers.authorization || '';
   const [scheme, encoded] = header.split(' ');
   if (scheme !== 'Basic' || !encoded) return false;
@@ -304,13 +323,64 @@ async function checkAuth(req, credentials) {
 
   const digest = crypto.createHash('sha256').update(decoded, 'utf8').digest();
   if (verifiedAuthDigest && crypto.timingSafeEqual(digest, verifiedAuthDigest)) {
-    return true;
+    return { ok: true, session: null, basic: true };
   }
 
   if (!safeEqualStr(user, credentials.username)) return false;
   const ok = await verifyPassword(pass, credentials.passwordSalt, credentials.passwordHash);
   if (ok) verifiedAuthDigest = digest;
-  return ok;
+  return ok ? { ok: true, session: null, basic: true } : false;
+}
+
+function loginAllowedOrigin(req) {
+  const origin = req.headers.origin;
+  const allowed = new Set([
+    `http://127.0.0.1:${PORT}`,
+    `http://localhost:${PORT}`,
+    `http://[::1]:${PORT}`,
+  ]);
+  if (HOST !== '0.0.0.0' && HOST !== '::') allowed.add(`http://${HOST}:${PORT}`);
+  if (!origin) return true;
+  return allowed.has(origin);
+}
+
+async function handleLoginWithCookie(req, res, credentials, ip) {
+  if (!loginAllowedOrigin(req)) {
+    sendJson(res, 403, { error: 'Недопустимый Origin' });
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse((await readBody(req, 4 * 1024)) || '{}');
+  } catch (err) {
+    if (err.code === 'BODY_TOO_LARGE') {
+      sendTooLarge(req, res);
+      return;
+    }
+    sendJson(res, 400, { error: 'invalid json' });
+    return;
+  }
+  const user = String(parsed.username || '');
+  const pass = String(parsed.password || '');
+  const totp = String(parsed.totp || '');
+  const userOk = safeEqualStr(user, credentials.username);
+  const passOk = userOk && (await verifyPassword(pass, credentials.passwordSalt, credentials.passwordHash));
+  const totpOk = !credentials.totpEnrolled || verifyTotp(credentials.totpSecret, totp);
+  if (!passOk || !totpOk) {
+    recordAuthFail(ip);
+    await sleep(FAIL_DELAY_MS);
+    sendJson(res, 401, { error: 'Неверный логин, пароль или код' });
+    return;
+  }
+  const session = sessions.create();
+  const buf = Buffer.from(JSON.stringify({ ok: true, csrfToken: session.csrf }), 'utf8');
+  res.writeHead(200, {
+    ...SECURITY_HEADERS,
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': buf.length,
+    'Set-Cookie': sessions.cookieHeader(session.id, { secure: wantSecureCookie(req) }),
+  });
+  res.end(buf);
 }
 
 // ─── CSRF (per-process token; double-submit via header) ───────────────────────
@@ -325,20 +395,9 @@ function checkCsrf(req) {
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
 
 const SECURITY_HEADERS = Object.freeze({
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
+  ...SHARED_HEADERS,
   'Cache-Control': 'no-store, max-age=0',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  'Cross-Origin-Resource-Policy': 'same-origin',
-  'X-DNS-Prefetch-Control': 'off',
 });
-
-const ADMIN_CSP =
-  "default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
-  "font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; " +
-  "form-action 'none'; frame-ancestors 'none'; object-src 'none'";
 
 function send(res, code, body, headers = {}) {
   const payload = body == null ? '' : body;
@@ -376,7 +435,10 @@ async function writeStatus(status) {
 function captureConsole(fn) {
   const lines = [];
   const orig = { log: console.log, error: console.error, warn: console.warn };
-  const push = (...args) => lines.push(args.map(String).join(' '));
+  const push = (...args) => {
+    lines.push(args.map(String).join(' '));
+    if (lastUpdateSnapshot.running) lastUpdateSnapshot.log = lines.join('\n');
+  };
   console.log = (...a) => {
     push(...a);
     orig.log(...a);
@@ -409,6 +471,8 @@ function captureConsole(fn) {
 // ─── Update lock (single-flight) ──────────────────────────────────────────────
 
 let updateInFlight = null;
+let updateQueued = false;
+let lastUpdateSnapshot = { running: false, log: '', error: null, startedAt: null, status: null };
 
 function clearCatalogRequireCache() {
   for (const key of Object.keys(require.cache)) {
@@ -485,9 +549,9 @@ function buildStatus(prev, result, { source, onlyActual, log }) {
   };
 }
 
-async function handleUpdate(res, { fromStore = false } = {}) {
-  const prev = await readStatus();
+async function runUpdateJob(fromStore) {
   try {
+    const prev = await readStatus();
     const { result, log } = await runCatalogJob(() => {
       const { main } = require('./update-catalog');
       return main({ fromStore });
@@ -498,24 +562,74 @@ async function handleUpdate(res, { fromStore = false } = {}) {
       log,
     });
     await writeStatus(status);
-    sendJson(res, 200, { ...status, csrfToken });
+    lastUpdateSnapshot = {
+      running: false,
+      log,
+      error: null,
+      startedAt: lastUpdateSnapshot.startedAt,
+      status,
+    };
   } catch (err) {
     if (err.code === 'UPDATE_IN_FLIGHT') {
-      sendJson(res, 409, {
-        error: 'Обновление уже выполняется',
-        log: 'Дождитесь завершения текущего запроса.',
-        csrfToken,
-      });
+      lastUpdateSnapshot.log = lastUpdateSnapshot.log || 'Обновление уже выполняется…';
       return;
     }
+    const prev = await readStatus().catch(() => ({}));
     const status = {
       ...prev,
       error: err.message,
       log: err.log || err.message,
     };
-    await writeStatus(status);
-    sendJson(res, 500, { ...status, csrfToken });
+    await writeStatus(status).catch(() => {});
+    lastUpdateSnapshot = {
+      running: false,
+      log: err.log || err.message,
+      error: err.message,
+      startedAt: lastUpdateSnapshot.startedAt,
+      status,
+    };
+  } finally {
+    updateQueued = false;
   }
+}
+
+async function handleUpdate(res, { fromStore = false } = {}) {
+  // Долгий синк (hse.ru + 27 страниц) нельзя держать открытым HTTP-запросом:
+  // прокси Docker Desktop на Windows рвёт молчаливое соединение, кнопка
+  // «Актуализировать» получает обрыв, повтор — 409 «уже выполняется».
+  // Запускаем работу в фоне и сразу отвечаем; клиент опрашивает /api/status.
+  if (updateInFlight || updateQueued) {
+    sendJson(res, 200, {
+      running: true,
+      log: lastUpdateSnapshot.log || 'Обновление уже выполняется…',
+      csrfToken,
+    });
+    return;
+  }
+  updateQueued = true;
+  lastUpdateSnapshot = {
+    running: true,
+    log: fromStore
+      ? 'Пересобираем страницы из локального каталога…'
+      : 'Тянем актуальные программы с hse.ru…',
+    error: null,
+    startedAt: Date.now(),
+    status: null,
+  };
+  sendJson(res, 200, { running: true, log: lastUpdateSnapshot.log, csrfToken });
+  setImmediate(() => {
+    runUpdateJob(fromStore).catch((err) => {
+      console.error('update job:', err.message);
+      updateQueued = false;
+      lastUpdateSnapshot = {
+        running: false,
+        log: err.message,
+        error: err.message,
+        startedAt: lastUpdateSnapshot.startedAt,
+        status: null,
+      };
+    });
+  });
 }
 
 function programToEditorRow(p) {
@@ -694,9 +808,30 @@ async function handleStatus(req, res) {
   } catch {
     /* ignore */
   }
+  let mail = null;
+  try {
+    mail = require('./lib/application-delivery').mailStatus();
+  } catch {
+    /* ignore */
+  }
+  let applications = null;
+  try {
+    applications = await require('./lib/application-store').stats();
+  } catch {
+    /* ignore */
+  }
+  const running = Boolean(updateInFlight || updateQueued);
   sendJson(res, 200, {
     ...status,
+    ...(lastUpdateSnapshot.status && !running ? lastUpdateSnapshot.status : {}),
     schedule,
+    mail,
+    applications,
+    running,
+    updating: running,
+    log: running ? lastUpdateSnapshot.log : (lastUpdateSnapshot.log || status.log),
+    error: running ? null : (lastUpdateSnapshot.error || status.error),
+    updateStartedAt: lastUpdateSnapshot.startedAt || null,
     csrfToken,
     server: {
       uptimeSec: Math.round((Date.now() - STARTED_AT) / 1000),
@@ -766,7 +901,13 @@ async function handleApplicationsList(req, res) {
   const limit = Math.min(Number(urlObj.searchParams.get('limit') || 200), 1000);
   const store = require('./lib/application-store');
   const [items, stats] = await Promise.all([store.list({ limit }), store.stats()]);
-  sendJson(res, 200, { items, stats, csrfToken });
+  let mail = null;
+  try {
+    mail = require('./lib/application-delivery').mailStatus();
+  } catch {
+    /* ignore */
+  }
+  sendJson(res, 200, { items, stats, mail, csrfToken });
 }
 
 async function handleApplicationStatus(req, res) {
@@ -790,6 +931,26 @@ async function handleApplicationStatus(req, res) {
       return;
     }
     sendJson(res, 400, { error: 'invalid json', csrfToken });
+  }
+}
+
+async function handleMailTest(req, res) {
+  const { sendTestMail, mailStatus } = require('./lib/application-delivery');
+  const status = mailStatus();
+  if (!status.configured) {
+    sendJson(res, 400, {
+      ok: false,
+      error: `Почта не настроена: нет ${status.missing.join(', ')}`,
+      mail: status,
+      csrfToken,
+    });
+    return;
+  }
+  try {
+    const result = await sendTestMail();
+    sendJson(res, 200, { ok: true, ...result, mail: mailStatus(), csrfToken });
+  } catch (err) {
+    sendJson(res, 502, { ok: false, error: err.message, mail: mailStatus(), csrfToken });
   }
 }
 
@@ -949,11 +1110,38 @@ async function runHealthCheck() {
     push('applications:dir', false, err.message);
   }
   try {
-    const { mailConfig } = require('./lib/application-delivery');
-    const mc = mailConfig();
-    push('applications:mail', true, mc ? `SMTP ${mc.smtp.host}:${mc.smtp.port}, получателей: ${mc.to.length}` : 'SMTP не настроен – письма менеджеру не уходят');
+    const { mailStatus } = require('./lib/application-delivery');
+    const ms = mailStatus();
+    if (ms.configured) {
+      push('applications:mail', true, `SMTP ${ms.host}:${ms.port}, получателей: ${ms.to.length}`);
+    } else {
+      // Сайт при этом жив: заявки пишутся на диск. Это предупреждение
+      // дежурному, а не поломка витрины – health.ok из-за него не падает.
+      checks.push({
+        name: 'applications:mail',
+        ok: true,
+        warn: true,
+        detail: `письма менеджеру не уходят — нет ${ms.missing.join(', ')}`,
+      });
+    }
   } catch (err) {
     push('applications:mail', false, err.message);
+  }
+
+  try {
+    const { loadStore, isNoticeFresh, NOTICE_MAX_AGE_DAYS } = require('./lib/catalog-store');
+    const store = await loadStore();
+    const notices = (store.programs || []).filter((p) => p.notice && p.notice.text);
+    const stale = notices.filter((p) => !isNoticeFresh(p.notice));
+    push(
+      'catalog:notices',
+      true,
+      stale.length
+        ? `${stale.length} из ${notices.length} объявлений старше ${NOTICE_MAX_AGE_DAYS} дней скрыты`
+        : `${notices.length} актуальных`,
+    );
+  } catch (err) {
+    push('catalog:notices', false, err.message);
   }
 
   // Reachability of the upstream catalog (does not rewrite local files).
@@ -1021,6 +1209,7 @@ const API_ROUTES = [
   { method: 'GET',  path: '/api/applications',   handler: handleApplicationsList },
   { method: 'POST', path: '/api/applications/status', csrf: true, handler: handleApplicationStatus },
   { method: 'POST', path: '/api/applications/delete', csrf: true, handler: handleApplicationDelete },
+  { method: 'POST', path: '/api/mail/test',     csrf: true, handler: handleMailTest },
   { method: 'POST', path: '/api/update',         csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: false }) },
   { method: 'POST', path: '/api/rebuild',        csrf: true, handler: (req, res) => handleUpdate(res, { fromStore: true }) },
 ];
@@ -1028,10 +1217,6 @@ const API_ROUTES = [
 async function createServer(credentials) {
   const server = http.createServer(async (req, res) => {
     try {
-      const ip =
-        (TRUST_PROXY && String(req.headers['x-real-ip'] || '').trim()) ||
-        req.socket.remoteAddress ||
-        'unknown';
       const method = req.method || 'GET';
       const rawUrl = req.url || '/';
 
@@ -1057,8 +1242,14 @@ async function createServer(credentials) {
         return;
       }
 
-      // Public analytics collect — no auth (same-origin only; no CORS).
-      if (method === 'POST' && pathname === '/api/collect') {
+      // X-Real-IP доверяем только публичным маршрутам за nginx. На логин
+      // админки заголовок не смотрим: иначе с Docker-сети обходятся лимиты
+      // перебора пароля.
+      const publicUnauth =
+        method === 'POST' && (pathname === '/api/collect' || pathname === '/api/application');
+      const ip = clientIp(req, { trustProxy: TRUST_PROXY && publicUnauth });
+
+      if (!DISABLE_PUBLIC_INTAKE && method === 'POST' && pathname === '/api/collect') {
         if (isThrottled(ip, collectCounts, COLLECT_REQS_PER_MIN)) {
           send(res, 429, 'Too many beacons', {
             'Content-Type': 'text/plain; charset=utf-8',
@@ -1066,34 +1257,64 @@ async function createServer(credentials) {
           });
           return;
         }
-        // Reject cross-origin browser POSTs (no ACAO headers either).
-        // На проде сайт отдаётся nginx с другого адреса, а маяк проксируется
-        // сюда — Origin приходит сайтовый. Разрешённые адреса сайта задаются
-        // переменной SITE_ORIGIN (см. docker-compose.yml); без неё поведение
-        // прежнее — принимаются только собственные локальные адреса.
-        const collectOrigin = req.headers.origin;
-        if (collectOrigin && !COLLECT_ORIGINS.has(collectOrigin)) {
+        if (!intake.originAllowed(req, COLLECT_ORIGINS)) {
           sendJson(res, 403, { error: 'origin not allowed' });
           return;
         }
-        await handleCollect(req, res);
+        await intake.handleCollect(req, res);
         return;
       }
 
-      // Публичный приём заявок — тоже без авторизации: форму заполняет
-      // посетитель. Проверка Origin общая с маяком: и то и другое приходит
-      // со страниц сайта, адрес которого задан переменной SITE_ORIGIN.
-      if (method === 'POST' && pathname === '/api/application') {
+      if (!DISABLE_PUBLIC_INTAKE && method === 'POST' && pathname === '/api/application') {
         if (isThrottled(ip, applicationCounts, APPLICATION_REQS_PER_MIN)) {
           sendJson(res, 429, { error: 'too many applications' });
           return;
         }
-        const appOrigin = req.headers.origin;
-        if (appOrigin && !COLLECT_ORIGINS.has(appOrigin)) {
+        if (!intake.originAllowed(req, COLLECT_ORIGINS)) {
           sendJson(res, 403, { error: 'origin not allowed' });
           return;
         }
-        await handleApplication(req, res);
+        await intake.handleApplication(req, res);
+        return;
+      }
+
+      if (method === 'GET' && pathname === '/api/ready') {
+        sendJson(res, 200, { ok: true, role: 'admin' });
+        return;
+      }
+
+      if (pathname === '/' || pathname === '/admin.html') {
+        if (method === 'GET' || method === 'HEAD') {
+          await serveFile(res, path.join(ROOT, 'admin.html'), {
+            'Content-Security-Policy': ADMIN_CSP,
+          });
+          return;
+        }
+      }
+
+      if (method === 'POST' && pathname === '/api/login') {
+        if (isThrottled(ip)) {
+          sendJson(res, 429, { error: 'too many requests' });
+          return;
+        }
+        if (isLockedOut(ip)) {
+          sendJson(res, 429, { error: 'locked' });
+          return;
+        }
+        await handleLoginWithCookie(req, res, credentials, ip);
+        return;
+      }
+
+      if (method === 'POST' && pathname === '/api/logout') {
+        sessions.destroy(req);
+        const buf = Buffer.from(JSON.stringify({ ok: true }), 'utf8');
+        res.writeHead(200, {
+          ...SECURITY_HEADERS,
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Length': buf.length,
+          'Set-Cookie': sessions.clearCookieHeader(wantSecureCookie(req)),
+        });
+        res.end(buf);
         return;
       }
 
@@ -1115,13 +1336,20 @@ async function createServer(credentials) {
 
       const authed = await checkAuth(req, credentials);
       if (!authed) {
-        if (req.headers.authorization) {
+        // Выключенный Basic (ADMIN_ALLOW_BASIC=0) — не подбор пароля:
+        // браузер мог прислать кэш старого Authorization. Считать это
+        // неудачей — значит за 5 запросов закрыть админку на 15 минут.
+        const sentBasic = /^Basic\s/i.test(String(req.headers.authorization || ''));
+        const basicOff = process.env.ADMIN_ALLOW_BASIC === '0';
+        if (req.headers.authorization && !(sentBasic && basicOff)) {
           recordAuthFail(ip);
           await sleep(FAIL_DELAY_MS); // тарпит — только для неверных кред
         }
-        send(res, 401, 'Требуется авторизация', {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'WWW-Authenticate': 'Basic realm="DPO Admin", charset="UTF-8"',
+        send(res, 401, JSON.stringify({ error: 'Требуется авторизация' }), {
+          'Content-Type': 'application/json; charset=utf-8',
+          ...(req.headers.authorization
+            ? { 'WWW-Authenticate': 'Basic realm="DPO Admin", charset="UTF-8"' }
+            : {}),
         });
         return;
       }
@@ -1147,13 +1375,7 @@ async function createServer(credentials) {
       }
 
 
-      // ── Static ───────────────────────────────────────────────────────────
-      if (pathname === '/' || pathname === '/admin.html') {
-        await serveFile(res, path.join(ROOT, 'admin.html'), {
-          'Content-Security-Policy': ADMIN_CSP,
-        });
-        return;
-      }
+      // ── Static (admin.html отдаётся без авторизации — форма входа в нём) ─
 
       const safe = resolveSafe(pathname);
       if (!safe) {
@@ -1255,12 +1477,16 @@ process.on('unhandledRejection', (err) => {
     process.exitCode = 1;
   });
 
+  attachShutdown(server, { name: 'admin' });
   server.listen(PORT, HOST, () => {
     console.log(`Admin panel: http://${HOST}:${PORT}/admin.html`);
     console.log(`Логин: ${credentials.username}`);
     if (credentials.isNew && credentials.plainPassword) {
-      console.log(`Пароль (показывается один раз): ${credentials.plainPassword}`);
-      console.log('Сохраните пароль. Хеш записан в .admin-credentials.json (в git не попадает).');
+      const shown = credentials.passwordFile
+        ? path.basename(credentials.passwordFile)
+        : '.admin-password.txt';
+      console.log(`Одноразовый пароль и секрет TOTP записаны в ${shown} (в git не попадает).`);
+      console.log('Откройте файл, сохраните пароль, добавьте TOTP в приложение-аутентификатор и удалите файл.');
     } else {
       console.log('Пароль: см. ранее сохранённый. Сброс — удалите .admin-credentials.json и перезапустите.');
     }

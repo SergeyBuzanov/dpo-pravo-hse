@@ -535,7 +535,10 @@ html.vi-mode .dpo-mobile-cta{ display: none !important; }
   const paintCover = (el) => {
     const src = el.getAttribute('data-dpo-cover') || '';
     if (!src || src.indexOf('{{') !== -1) return;
-    const want = `url("${src}")`;
+    const webp = el.getAttribute('data-dpo-cover-webp') || '';
+    const want = webp && webp.indexOf('{{') === -1
+      ? `image-set(url("${webp}") type("image/webp"), url("${src}"))`
+      : `url("${src}")`;
     if (el.style.backgroundImage !== want) el.style.backgroundImage = want;
   };
 

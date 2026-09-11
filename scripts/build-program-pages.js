@@ -25,6 +25,9 @@ const { programHref } = require('../lib/program-slug');
 const { formatPrice, formatDate, isoDate, upcomingStartLabel } = require('../lib/hse-catalog');
 const { formatBucket } = require('../lib/program-labels');
 const { canonicalTeacherName } = require('../lib/teacher-names');
+const { isNoticeFresh } = require('../lib/catalog-store');
+const { webpSibling } = require('../lib/picture');
+const { scriptTag } = require('../lib/sri');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'programs');
@@ -666,7 +669,7 @@ ${items}
  * можно позволить себе на сайте университета.
  */
 function renderNotice(p) {
-  if (!p.notice || !p.notice.text) return '';
+  if (!isNoticeFresh(p.notice)) return '';
   const date = p.notice.date ? `<span class="notice-date">${esc(p.notice.date)}</span>` : '';
   let link = '';
   if (p.notice.url) {
@@ -984,12 +987,25 @@ function renderPage(rawProgram, sphere) {
       : '';
     const size = imageSize(path.join(ROOT, srcRel));
     const dims = size ? ` width="${size.w}" height="${size.h}"` : '';
+    const thumbWebp = hasThumb ? webpSibling(ROOT, thumbRel) : null;
+    const fullWebp = webpSibling(ROOT, image);
+    let webpSrcset = '';
+    if (hasThumb && thumbWebp && fullWebp) {
+      webpSrcset = `../${esc(thumbWebp)} 1x, ../${esc(fullWebp)} 2x`;
+    } else if (hasThumb && thumbWebp) {
+      webpSrcset = `../${esc(thumbWebp)} 1x`;
+    } else if (fullWebp) {
+      webpSrcset = `../${esc(fullWebp)}`;
+    }
+    const webpSource = webpSrcset ? `<source srcset="${webpSrcset}" type="image/webp">` : '';
     // alt описывает картинку, а не запрос: набивать сюда ключи нельзя –
     // незрячий человек услышит рекламу вместо подписи, а поисковик получит
     // сигнал переспама на странице, где ключ и так есть в h1 и в title.
     const alt = `Обложка программы «${p.title}»`;
+    const img =
+      `<img class="hero-bg" src="../${esc(srcRel)}"${srcset}${dims} alt="${esc(alt)}" decoding="async">`;
     heroMedia =
-      `  <img class="hero-bg" src="../${esc(srcRel)}"${srcset}${dims} alt="${esc(alt)}" decoding="async">\n` +
+      `  ${webpSource ? `<picture>${webpSource}${img}</picture>` : img}\n` +
       '  <div class="hero-veil" aria-hidden="true"></div>';
   }
 
@@ -1042,7 +1058,7 @@ ${structuredData(p, sphere, official)}
 <link rel="icon" type="image/png" sizes="48x48" href="../images/logo/favicon-48.png">
 <link rel="apple-touch-icon" href="../images/logo/apple-touch-icon-180.png">
 <meta name="theme-color" content="#1658DA">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://mc.yandex.ru; connect-src 'self' https://mc.yandex.ru; base-uri 'self'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="stylesheet" href="../fonts/fonts-hse.css">
 <link rel="stylesheet" href="../fonts/fonts-main.css">
@@ -1138,18 +1154,15 @@ ${cta}
   </span>
 </footer>
 
-<script src="../js/sheet-gesture.js" defer></script>
-<script src="../js/application-form.js" defer></script>
-<!-- Задача 14: ядро поиска и виджет бота подключены заранее (выход вороны
-     на страницы программ – следующая задача, см. task-14-brief.md,
-     раздел «Границы»); проверено tests/unit/bot-wired.test.js. -->
-<script src="../js/crow-mascot.js" defer></script>
-<script src="../js/crow-launcher.js" defer></script>
-<script src="../js/bot-match.js" defer></script>
-<script src="../js/bot-reply.js" defer></script>
-<script src="../js/support-bot.js" defer></script>
-<script src="../js/site-analytics.js" defer></script>
-<script src="../js/cookie-consent.js" defer></script>
+${scriptTag('js/sheet-gesture.js', { prefix: '../' })}
+${scriptTag('js/application-form.js', { prefix: '../' })}
+${scriptTag('js/crow-mascot.js', { prefix: '../' })}
+${scriptTag('js/crow-launcher.js', { prefix: '../' })}
+${scriptTag('js/bot-match.js', { prefix: '../' })}
+${scriptTag('js/bot-reply.js', { prefix: '../' })}
+${scriptTag('js/support-bot.js', { prefix: '../' })}
+${scriptTag('js/site-analytics.js', { prefix: '../' })}
+${scriptTag('js/cookie-consent.js', { prefix: '../' })}
 <script>
 (function () {
   var btn = document.getElementById('viToggle');

@@ -25,6 +25,6 @@ USER node
 # важен сам ответ (зависший, но слушающий Node иначе не распознать;
 # restart: unless-stopped не помогает, пока процесс формально жив).
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||5178)+'/api/csrf',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||5178)+'/api/health',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
 
 CMD ["node", "admin-server.js"]

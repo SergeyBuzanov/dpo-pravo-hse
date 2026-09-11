@@ -118,10 +118,28 @@ test('контекст программы сохраняется', () => {
     ...valid(),
     programId: '958734693',
     programTitle: 'Актуальные вопросы гражданского права',
-    programUrl: 'https://example.com/programs/x.html',
+    programUrl: 'https://www.hse.ru/edu/dpo/958734693',
   });
   assert.equal(res.application.program.id, '958734693');
   assert.equal(res.application.program.title, 'Актуальные вопросы гражданского права');
+  assert.equal(res.application.program.url, 'https://www.hse.ru/edu/dpo/958734693');
+});
+
+test('чужой URL программы отбрасывается — в заявке не будет фишинговой ссылки', () => {
+  const res = parseApplication({
+    ...valid(),
+    programUrl: 'https://evil.example/phish',
+  });
+  assert.equal(res.ok, true);
+  assert.equal(res.application.program.url, '');
+});
+
+test('javascript: в URL программы отбрасывается', () => {
+  const res = parseApplication({
+    ...valid(),
+    programUrl: 'javascript:alert(1)',
+  });
+  assert.equal(res.application.program.url, '');
 });
 
 test('мусор вместо тела не роняет разбор', () => {

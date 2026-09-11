@@ -21,7 +21,7 @@ const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dpo-deliver-'));
 process.env.APPLICATIONS_DIR = DIR;
 
 const store = require('../../lib/application-store');
-const { deliver } = require('../../lib/application-delivery');
+const { deliver, mailStatus, sendTestMail, formatLetter } = require('../../lib/application-delivery');
 const { parseApplication } = require('../../lib/application-form');
 
 test.after(() => fs.rmSync(DIR, { recursive: true, force: true }));
@@ -62,6 +62,39 @@ test('отказ SMTP записывается в хранилище и виде
 
   const stats = await store.stats();
   assert.equal(stats.mailFailed, 1);
+});
+
+test('mailStatus показывает, каких переменных не хватает', () => {
+  const empty = mailStatus({});
+  assert.equal(empty.configured, false);
+  assert.ok(empty.missing.includes('SMTP_HOST'));
+  assert.ok(empty.missing.includes('APPLICATION_MAIL_TO'));
+
+  const ready = mailStatus({
+    SMTP_HOST: 'mail.example.org',
+    SMTP_PORT: '465',
+    APPLICATION_MAIL_TO: 'office@example.org, second@example.org',
+    SMTP_USER: 'site',
+  });
+  assert.equal(ready.configured, true);
+  assert.equal(ready.host, 'mail.example.org');
+  assert.equal(ready.to.length, 2);
+});
+
+test('пробное письмо без настроек не идёт на сервер', async () => {
+  await assert.rejects(() => sendTestMail({}), (err) => {
+    assert.equal(err.code, 'MAIL_NOT_CONFIGURED');
+    assert.match(err.message, /SMTP_HOST/);
+    return true;
+  });
+});
+
+test('в письмо не попадает чужой URL программы', () => {
+  const app = make('phish@example.org');
+  app.program = { id: '1', title: 'Курс', url: 'https://evil.example/login' };
+  const letter = formatLetter(app, 'id-phish');
+  assert.equal(letter.includes('evil.example'), false);
+  assert.equal(letter.includes('Страница программы:'), false);
 });
 
 test('смена статуса заявки не стирает исход письма', async () => {

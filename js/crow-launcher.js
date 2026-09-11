@@ -24,7 +24,9 @@
  * сборщика делает document.documentElement.replaceWith(...) и уносит любую
  * статическую разметку хвоста. По той же причине монтирование отложено до
  * window.load – заодно 11 картинок маскота не спорят за полосу с ресурсами
- * первого экрана.
+ * первого экрана. После load ждём простоя (requestIdleCallback) или первого
+ * жеста посетителя: 11 слоёв (~159 КБ) не нужны, пока человек не дошёл до
+ * угла. На load всё равно нельзя ставить сразу – replaceWith ещё не отжил.
  */
 (function (global) {
   'use strict';
@@ -124,9 +126,25 @@
     });
   }
 
+  function whenIdle(fn) {
+    var ran = false;
+    function run() {
+      if (ran) return;
+      ran = true;
+      fn();
+    }
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 3500 });
+    else setTimeout(run, 1200);
+    var evs = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    for (var i = 0; i < evs.length; i++) {
+      window.addEventListener(evs[i], run, { once: true, passive: true });
+    }
+  }
+
   function boot() {
-    if (document.readyState === 'complete') mount();
-    else window.addEventListener('load', mount);
+    function start() { whenIdle(mount); }
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start);
   }
 
   global.CrowLauncher = { mount: mount, boot: boot };

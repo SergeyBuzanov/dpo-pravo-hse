@@ -28,13 +28,26 @@ test('первый запуск создаёт файл 0600 с одноразо
   const first = await loadOrCreateCredentials(file);
   assert.equal(first.isNew, true);
   assert.equal(typeof first.plainPassword, 'string');
-  assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'креды админки должны быть читаемы только владельцу');
+  if (process.platform !== 'win32') {
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'креды админки должны быть читаемы только владельцу');
+  }
   const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
   assert.equal('password' in stored, false, 'пароль открытым текстом храниться не должен');
   assert.equal(await verifyPassword(first.plainPassword, stored.passwordSalt, stored.passwordHash), true);
+
+  const once = path.join(DIR, '.admin-password.txt');
+  assert.equal(fs.existsSync(once), true, 'одноразовый пароль должен лежать в файле, не в логах');
+  const onceText = fs.readFileSync(once, 'utf8');
+  assert.match(onceText, new RegExp(first.plainPassword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+
+  const storedTotp = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(typeof storedTotp.totpSecret, 'string');
+  assert.equal(storedTotp.totpEnrolled, false);
+  assert.match(onceText, /otpauth:\/\/totp\//);
 
   const second = await loadOrCreateCredentials(file);
   assert.equal(second.isNew, false);
   assert.equal(second.plainPassword, null);
   assert.equal(second.username, first.username);
+  assert.equal(second.totpEnrolled, false);
 });

@@ -1,7 +1,7 @@
 {
   "name": "dpo-pravo-hse",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Статический сайт Центра ДПО факультета права НИУ ВШЭ + локальная админка каталога",
   "engines": {
     "node": ">=18"
@@ -24,6 +24,7 @@
     "build-public": "node scripts/build-public.js",
     "prerender": "node scripts/prerender-landing.js",
     "publish-mirror": "node scripts/build-public.js --publish",
-    "update-details": "node scripts/fetch-program-descriptions.js --all && node scripts/fetch-program-media.js && node scripts/build-program-pages.js"
+    "update-details": "node scripts/fetch-program-descriptions.js --all && node scripts/fetch-program-media.js && node scripts/build-program-pages.js",
+    "backup-data": "node scripts/backup-data.js"
   }
 }

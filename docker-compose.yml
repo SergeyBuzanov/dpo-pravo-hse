@@ -1,7 +1,10 @@
-# Локальный запуск: статический сайт (nginx) + админка каталога (Node).
+# Локальный запуск: статический сайт (nginx) + приём заявок + админка.
 #   docker compose up -d
 #   Сайт:   http://localhost:8080/
-#   Админка: http://localhost:5178/admin.html  (логин/пароль — в логах: docker compose logs admin)
+#   Админка: http://localhost:5178/admin.html
+#   TLS:    docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+#
+# Секреты и журнал заявок живут в .data/ (вне document root nginx).
 
 services:
   site:
@@ -16,11 +19,35 @@ services:
       # при bind-mount ОТДЕЛЬНОГО ФАЙЛА на Linux контейнер остаётся с прежним
       # inode и продолжает отдавать старую страницу. Поэтому публичную
       # поверхность ограничивает белый список в docker/nginx.conf, а не набор
-      # монтирований: код админки, .git и .admin-credentials.json лежат в этом
-      # каталоге, но наружу не отдаются. Список закреплён тестом
-      # tests/security_test.py — «белый список nginx».
+      # монтирований: код админки, .git и креды в dpo-data наружу не отдаются.
       - .:/usr/share/nginx/html:ro
+    depends_on:
+      - intake
     restart: unless-stopped
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    security_opt:
+      - no-new-privileges:true
+
+  intake:
+    build: .
+    container_name: dpo-intake
+    command: ["node", "intake-server.js"]
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5179"
+      SITE_ORIGIN: "http://localhost:8080,http://127.0.0.1:8080"
+      TRUST_PROXY: "1"
+      DPO_DATA_DIR: "/data"
+    volumes:
+      - .:/app
+      - ./.data:/data
+    expose:
+      - "5179"
+    restart: unless-stopped
+    mem_limit: 256m
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
@@ -30,24 +57,19 @@ services:
   admin:
     build: .
     container_name: dpo-admin
-    # Только на localhost хоста — админка не должна быть видна из сети
     ports:
       - "127.0.0.1:5178:5178"
     environment:
-      # Расписание автообновления каталога задаётся в админке и хранится в
-      # .catalog-schedule.json — переменных окружения для него нет.
-      #
-      # Адрес(а), по которым открыт сайт: с них принимается маяк /api/collect,
-      # проксируемый сюда из nginx. Через запятую. На проде — реальный домен.
-      SITE_ORIGIN: "http://localhost:8080"
-      # Доверять X-Real-IP от nginx: иначе троттлинг /api/collect видит адрес
-      # контейнера nginx и считает всех посетителей одним клиентом.
+      SITE_ORIGIN: "http://localhost:8080,http://127.0.0.1:8080"
       TRUST_PROXY: "1"
+      DISABLE_PUBLIC_INTAKE: "1"
+      ADMIN_ALLOW_BASIC: "0"
+      DPO_DATA_DIR: "/data"
     volumes:
-      # rw: обновление переписывает «catalog.html» в рабочей копии,
-      # плюс сюда пишутся .admin-credentials.json и .admin-status.json
       - .:/app
+      - ./.data:/data
     restart: unless-stopped
+    mem_limit: 512m
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }

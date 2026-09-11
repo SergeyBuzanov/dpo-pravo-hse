@@ -41,9 +41,14 @@ test('заявка сохраняется и читается обратно', a
 test('файл месяца доступен только владельцу', async () => {
   await store.save(make({ email: 'b@example.org' }));
   const month = `${new Date().toISOString().slice(0, 7)}.jsonl`;
-  const mode = fs.statSync(path.join(DIR, month)).mode & 0o777;
-  assert.equal(mode, 0o600, `права ${mode.toString(8)} вместо 600`);
-  assert.equal(fs.statSync(DIR).mode & 0o777, 0o700);
+  const file = path.join(DIR, month);
+  assert.equal(fs.existsSync(file), true);
+  // Windows/NTFS не хранит Unix 0600/0700 — chmod там становится 0666.
+  if (process.platform !== 'win32') {
+    const mode = fs.statSync(file).mode & 0o777;
+    assert.equal(mode, 0o600, `права ${mode.toString(8)} вместо 600`);
+    assert.equal(fs.statSync(DIR).mode & 0o777, 0o700);
+  }
 });
 
 test('повторная отправка той же заявки не создаёт вторую', async () => {
@@ -96,8 +101,12 @@ test('неизвестный статус отвергается', async () => {
 });
 
 test('файл статусов тоже закрыт от посторонних', async () => {
-  const mode = fs.statSync(path.join(DIR, 'status.json')).mode & 0o777;
-  assert.equal(mode, 0o600, `права ${mode.toString(8)} вместо 600`);
+  const file = path.join(DIR, 'status.json');
+  assert.equal(fs.existsSync(file), true);
+  if (process.platform !== 'win32') {
+    const mode = fs.statSync(file).mode & 0o777;
+    assert.equal(mode, 0o600, `права ${mode.toString(8)} вместо 600`);
+  }
 });
 
 test('срок хранения: старые месяцы удаляются целиком, свежие остаются', async () => {
@@ -139,6 +148,18 @@ test('вместе с заявкой уходит её статус: сирот 
   const statuses = JSON.parse(fs.readFileSync(path.join(DIR, 'status.json'), 'utf8'));
   assert.equal(statuses['сирота'], undefined, 'статус удалённой заявки остался в файле');
   assert.equal(statuses[id].status, 'in-progress', 'статус живой заявки потерян');
+});
+
+test('переполнение журнала не пишет новую заявку', async () => {
+  process.env.APPLICATION_MAX_BYTES = '1';
+  try {
+    await assert.rejects(
+      () => store.save(make({ email: 'quota@example.org' })),
+      (err) => err.code === 'QUOTA',
+    );
+  } finally {
+    delete process.env.APPLICATION_MAX_BYTES;
+  }
 });
 
 test('заявка уничтожается по запросу: из месяца и из статусов', async () => {

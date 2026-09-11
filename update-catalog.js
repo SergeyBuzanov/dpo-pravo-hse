@@ -33,6 +33,7 @@ const {
 const { programHref } = require('./lib/program-slug');
 const { docBadge, shortFormat, formatTip, formatBucket } = require('./lib/program-labels');
 const { SPHERES, sphereOf } = require('./lib/program-spheres');
+const { webpSibling, picture } = require('./lib/picture');
 
 const CATALOG_FILE = path.join(__dirname, 'Каталог программ.html');
 /** Cross-process lock so CLI and admin-server cannot update concurrently. */
@@ -175,8 +176,15 @@ function renderCard(item) {
   // целиком из CSS, поэтому внутри пусто и подписи нет: описывать нечего,
   // изображения программы не существует.
   const thumb = cardImage(item);
+  const thumbWebp = thumb ? webpSibling(__dirname, thumb) : null;
   const thumbLine = thumb
-    ? `\n      <span class="card-media" aria-hidden="true"><img class="card-thumb" src="${escapeHtml(thumb)}" alt="${escapeHtml(`Обложка программы «${item.title}»`)}" loading="lazy"></span>`
+    ? `\n      <span class="card-media" aria-hidden="true">${picture({
+        src: escapeHtml(thumb),
+        webp: thumbWebp ? escapeHtml(thumbWebp) : null,
+        alt: escapeHtml(`Обложка программы «${item.title}»`),
+        className: 'card-thumb',
+        lazy: true,
+      })}</span>`
     : '\n      <span class="card-media card-media-blank" aria-hidden="true"></span>';
 
   // Овалы-пометки (указание заказчика 02.09.2026, вторая итерация): тип

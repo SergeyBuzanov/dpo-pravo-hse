@@ -136,12 +136,21 @@
   // стоит ровно по левому полю, и посетитель застаёт кадр целым, а не
   // уехавшим за время прокрутки страницы к секции.
   var visible = typeof WeakSet === 'function' ? new WeakSet() : null;
+  var rafStarted = false;
+  function startRaf() {
+    if (rafStarted) return;
+    rafStarted = true;
+    last = null;
+    window.requestAnimationFrame(step);
+  }
   var io = null;
   if (visible && typeof IntersectionObserver === 'function') {
     io = new IntersectionObserver(function (entries) {
       for (var i = 0; i < entries.length; i++) {
-        if (entries[i].isIntersecting) visible.add(entries[i].target);
-        else visible.delete(entries[i].target);
+        if (entries[i].isIntersecting) {
+          visible.add(entries[i].target);
+          startRaf();
+        } else visible.delete(entries[i].target);
       }
     }, { threshold: 0.15 });
   }
@@ -187,7 +196,26 @@
     }
     window.requestAnimationFrame(step);
   }
-  window.requestAnimationFrame(step);
+  // Автоход не крутит requestAnimationFrame, пока ни одна лента не в кадре:
+  // на первом экране крутить нечего, а 60 колбэков в секунду на загрузке
+  // лендинга спорят с распаковкой. Стартуем, когда наблюдатель впервые
+  // увидит дорожку, либо сразу, если IntersectionObserver нет.
+  //
+  // Наблюдатель сам по себе ни к чему не привязан: inView() зовёт observe
+  // при первом обращении, а его звал step(), который больше не крутится
+  // заранее. Поэтому дорожки подписываем отдельно, тем же 10-секундным
+  // окном, что и стрелки: рантайм лендинга дорисовывает ленты не сразу.
+  function watchTracks() {
+    var tracks = loopedTracks();
+    for (var i = 0; i < tracks.length; i++) inView(tracks[i]);
+  }
+  watchTracks();
+  var wn = 0;
+  var wt = setInterval(function () {
+    watchTracks();
+    if (++wn > 40) clearInterval(wt);
+  }, 250);
+  if (!io) startRaf();
 
   // Ручное листание тоже должно перематываться по кругу, иначе стрелка
   // «назад» упрётся в ноль, а «вперёд» – в конец второго набора.

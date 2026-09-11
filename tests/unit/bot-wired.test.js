@@ -23,9 +23,10 @@ const PAGES = [
 test('js/bot-match.js, js/bot-reply.js и js/support-bot.js подключены на всех страницах', () => {
   for (const page of PAGES) {
     const html = read(page);
-    assert.match(html, /<script src="(\.\.\/)?js\/bot-match\.js" defer><\/script>/, `нет bot-match.js: ${page}`);
-    assert.match(html, /<script src="(\.\.\/)?js\/bot-reply\.js" defer><\/script>/, `нет bot-reply.js: ${page}`);
-    assert.match(html, /<script src="(\.\.\/)?js\/support-bot\.js" defer><\/script>/, `нет support-bot.js: ${page}`);
+    const tag = (name) => new RegExp(`<script src="(\\.\\./)?js/${name}\\.js" defer(?: integrity="sha384-[^"]+")?></script>`);
+    assert.match(html, tag('bot-match'), `нет bot-match.js: ${page}`);
+    assert.match(html, tag('bot-reply'), `нет bot-reply.js: ${page}`);
+    assert.match(html, tag('support-bot'), `нет support-bot.js: ${page}`);
   }
 });
 

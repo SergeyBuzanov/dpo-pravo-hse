@@ -32,26 +32,6 @@
   <!-- Адреса страниц программ дописывает scripts/build-program-pages.js. -->
   <!-- PROGRAMS:BEGIN -->
   <url>
-    <loc>https://example.com/programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://example.com/programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://example.com/programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://example.com/programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://example.com/programs/frantsuzskoe-evropeyskoe-ekonomicheskoe-pravo-droit-economiq-961021723.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -62,7 +42,17 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/programs/personalnyy-assistent-pro-829977883.html</loc>
+    <loc>https://example.com/programs/pravovye-voprosy-bankrotstva-teorii-i-praktiki-1008772871.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://example.com/programs/personalnyy-assistent-829977883.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://example.com/programs/aktualnye-voprosy-grazhdanskogo-prava-958734693.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -77,11 +67,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://example.com/programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://example.com/programs/islamskie-finansy-pravovye-osnovy-komplaens-i-biznes-praktik-814248062.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -92,7 +77,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://example.com/programs/masterstvo-yuridicheskogo-angliyskogo-prodvinutye-navyki-dly-959312137.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://example.com/programs/avtorskoe-pravo-v-informatsionnom-obschestve-472681893.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://example.com/programs/aktualnye-voprosy-nalogovogo-administrirovaniya-i-sovremenny-1129129055.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -113,6 +108,11 @@
   </url>
   <url>
     <loc>https://example.com/programs/frantsuzskiy-yuridicheskiy-yazyk-pravo-terminologiya-i-argum-1057557281.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://example.com/programs/mezhdunarodnoe-chastnoe-pravo-transgranichnye-operatsii-474599435.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -148,6 +148,11 @@
   </url>
   <url>
     <loc>https://example.com/programs/transportnoe-pravo-802031223.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://example.com/programs/imuschestvennye-otnosheniya-v-seme-pravo-i-mediatsiya-934858556.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

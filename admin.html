@@ -11,7 +11,8 @@
 <link rel="apple-touch-icon" href="images/logo/apple-touch-icon-180.png">
 <link rel="stylesheet" href="fonts/fonts-hse.css">
 <link rel="stylesheet" href="fonts/fonts-main.css">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta name="theme-color" content="#1658DA">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <style>
   /* Админка — поверхность Operate: оператор здесь работает, а не смотрит.
@@ -30,9 +31,11 @@
   --ink-soft: #48423A;      /* навигация, факты */
   --ink-mute: #6B6459;      /* подписи, мета */
   --accent:   22 88 218;    /* синий ВШЭ: кнопки, ссылки, фокус */
-  --accent-dark: #123F9E;
+  --accent-dark: #1145AA;   /* institute-blue-deep, как на витрине */
   --accent-soft: #4B8BFF;   /* конец градиента полосы в графиках */
-  --line:     rgb(var(--ink) / .08);  /* границы панелей */
+  --line:     rgb(var(--ink) / .1);   /* hairline витрины */
+  --dpo-ease: cubic-bezier(.22, 1, .36, 1);
+  --header-h: 61px;
   /* Граница поля ввода: единственный признак поля, поэтому 3:1 по
      WCAG 1.4.11 – альфа .5 даёт 3,25:1. Панельные линии остаются на --line. */
   --border-field: rgb(var(--ink) / .5);
@@ -61,9 +64,9 @@
     color: rgb(var(--ink));
     font-family: 'HSE Sans', 'IBM Plex Sans', system-ui, sans-serif;
     min-height: 100vh;
-    padding: 36px 16px 64px;
+    padding: 0 0 180px;
   }
-  .wrap { width: 100%; max-width: 1080px; margin: 0 auto; }
+  .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
   /* Ссылка пропуска: в админке её не было вовсе, а до основного содержимого
      здесь три вкладки и панель заголовка. */
   .skip-link {
@@ -104,7 +107,6 @@
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     padding: 28px;
-    box-shadow: 0 1px 3px rgb(var(--ink) / 0.06);
     margin-bottom: 20px;
   }
   /* Стек был обрезан до 'HSE Slab', serif — при отсутствии фирменного
@@ -290,6 +292,41 @@
     color: var(--err-ink);
   }
   .banner.visible { display: block; }
+  .banner.warn {
+    background: var(--warn-bg);
+    border-color: #E8C48A;
+    color: var(--warn-ink);
+  }
+  .tab-count {
+    display: inline-flex;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: var(--err);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .tab.active .tab-count {
+    background: rgb(var(--surface));
+    color: rgb(var(--accent));
+  }
+  .application-facts a { color: rgb(var(--accent)); }
+  .corp-mark {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    margin-left: 8px;
+  }
   .banner code, .hint code {
     background: rgb(var(--ink) / 0.08);
     padding: 1px 6px;
@@ -449,34 +486,205 @@
     margin-right: 6px;
     vertical-align: middle;
   }
+
+  /* Шапка как на главной: плашка, капсула вкладок, синяя кнопка.
+     Не липнет — уезжает вместе со страницей. */
+  header.admin-top {
+    --hdr-bg: #FAF7F1;
+    --hdr-line: #E6E0D6;
+    --hdr-capsule: #F1EBE0;
+    --hdr-capsule-line: #E3DCD0;
+    --hdr-deep: #10306B;
+    --hdr-item: #3A3833;
+    background: var(--hdr-bg);
+    border-bottom: 1px solid var(--hdr-line);
+  }
+  .admin-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    min-height: 72px; padding: 12px clamp(20px, 5vw, 56px);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; flex: none; }
+  .brand-mark { display: block; flex: none; width: 34px; height: 34px; border-radius: 50%; }
+  .logo .sub {
+    font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgb(var(--accent));
+  }
+  header.admin-top .tabs {
+    display: flex; flex-wrap: wrap; gap: 4px; margin: 0 auto;
+    padding: 5px; border-radius: 999px;
+    background: var(--hdr-capsule); border: 1px solid var(--hdr-capsule-line);
+  }
+  header.admin-top .tab {
+    background: transparent; border: 0; color: var(--hdr-item);
+    font-size: 0.9375rem; font-weight: 500; min-height: 40px; padding: 8px 14px;
+  }
+  header.admin-top .tab:hover:not(.active) {
+    background: #fff; color: var(--hdr-deep); border: 0; transform: none;
+  }
+  header.admin-top .tab.active {
+    background: #fff; color: var(--hdr-deep); border: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  header.admin-top .tab.active .tab-count {
+    background: var(--err); color: #fff;
+  }
+  .header-nav { display: flex; align-items: center; gap: 12px; flex: none; }
+  .admin-pill {
+    font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--hdr-deep); background: #fff; border: 1px solid var(--hdr-capsule-line);
+    border-radius: 999px; padding: 8px 14px;
+  }
+  .admin-cta {
+    display: inline-flex; align-items: center; height: 40px; padding: 0 18px;
+    border-radius: 999px; background: rgb(var(--accent)); color: #fff !important;
+    font-size: 0.9375rem; font-weight: 600; text-decoration: none;
+  }
+  .admin-cta:hover { background: var(--hdr-deep); text-decoration: none !important; }
+  @media (max-width: 900px) {
+    .admin-bar { flex-wrap: wrap; }
+    header.admin-top .tabs { order: 3; width: 100%; margin: 0; }
+  }
+  .hero {
+    position: relative;
+    background: var(--bg);
+    color: rgb(var(--ink));
+    padding: clamp(48px, 8vw, 72px) clamp(20px, 5vw, 56px) clamp(28px, 4vw, 40px);
+    border-bottom: 1px solid var(--line);
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero-pattern {
+    position: absolute; top: 0; right: 0; height: 100%;
+    width: clamp(240px, 28vw, 440px); pointer-events: none; z-index: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+  }
+  @media (max-width: 900px) { .hero-pattern { display: none; } }
+  .hero .eyebrow {
+    font-size: 0.8125rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgb(var(--accent)); font-weight: 600; margin: 0;
+  }
+  .hero h1 {
+    font-family: 'HSE Slab', 'Source Serif 4', serif;
+    font-weight: 600; font-size: clamp(1.75rem, 3.2vw, 2.625rem);
+    line-height: 1.15; letter-spacing: -0.01em; margin: 14px 0 16px;
+    color: rgb(var(--ink)); max-width: 720px;
+  }
+  .hero p {
+    font-size: 1rem; line-height: 1.65; color: var(--ink-soft);
+    max-width: 620px; margin: 0;
+  }
+  .tabs { margin-top: 28px; }
+  .tab { font-size: 0.9375rem; padding: 9px 16px; min-height: 44px; }
+  .tab:hover:not(.active) {
+    transform: translateY(-1px);
+    transition: transform .32s var(--dpo-ease), background var(--t), color var(--t), border-color var(--t);
+  }
+  footer.admin-foot {
+    margin: 48px clamp(20px, 5vw, 56px) 0;
+    padding: 24px 0 8px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-mute);
+    font-size: 0.8125rem;
+  }
+  footer.admin-foot a { color: rgb(var(--accent)); }
+  @media (prefers-reduced-motion: reduce) {
+    .tab:hover:not(.active) { transform: none; }
+  }
+  #loginGate {
+    position: fixed; inset: 0; z-index: 10050;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #loginGate[hidden] { display: none !important; }
+  .login-card {
+    width: min(420px, 100%);
+    background: rgb(var(--surface));
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 28px 24px 24px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .login-card h1 {
+    font-family: 'HSE Slab', 'Source Serif 4', serif;
+    font-size: 1.75rem; margin: 4px 0 0; color: rgb(var(--ink));
+  }
+  .login-lead { color: var(--ink-soft); font-size: 0.9375rem; line-height: 1.5; margin: 0 0 8px; }
+  .login-card label { font-size: 0.8125rem; font-weight: 600; color: var(--ink-mute); }
+  .login-card input {
+    min-height: 44px; border-radius: 12px; border: 1px solid var(--border-field);
+    padding: 0 12px; font: inherit; background: rgb(var(--surface)); color: rgb(var(--ink));
+  }
+  .login-err { color: var(--err); font-size: 0.875rem; margin: 0; }
+  #logoutBtn { cursor: pointer; font: inherit; }
 </style>
 </head>
 <body>
   <a href="#tabpanels" class="skip-link">Перейти к содержанию</a>
+  <div id="loginGate" hidden>
+    <form id="loginForm" class="login-card">
+      <p class="eyebrow">Админка</p>
+      <h1>Вход</h1>
+      <p class="login-lead">Логин <code>admin</code>. Пароль — в файле <code>.data/.admin-password.txt</code> в папке проекта (Docker пишет его туда при первом запуске). Код TOTP сейчас не обязателен.</p>
+      <label for="loginUser">Логин</label>
+      <input id="loginUser" name="username" autocomplete="username" required value="admin">
+      <label for="loginPass">Пароль</label>
+      <input id="loginPass" name="password" type="password" autocomplete="current-password" required>
+      <label for="loginTotp">Код TOTP (если включён)</label>
+      <input id="loginTotp" name="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
+      <p id="loginErr" class="login-err" hidden></p>
+      <button type="submit" class="primary" id="loginBtn">Войти</button>
+    </form>
+  </div>
+  <header class="admin-top">
+    <div class="admin-bar">
+      <a href="#tabpanels" class="logo">
+        <img class="brand-mark" src="images/logo/brand-mark-96.webp" width="34" height="34" alt="">
+        <span class="sub">Центр ДПО · НИУ ВШЭ</span>
+      </a>
+      <div class="tabs" role="tablist" aria-label="Разделы админки">
+        <button type="button" class="tab active" data-tab="catalog"
+                id="tabbtn-catalog" role="tab" aria-selected="true" aria-controls="tab-catalog">Каталог</button>
+        <button type="button" class="tab" data-tab="analytics"
+                id="tabbtn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics">Аналитика</button>
+        <button type="button" class="tab" data-tab="applications"
+                id="tabbtn-applications" role="tab" aria-selected="false" aria-controls="tab-applications">Заявки<span id="appBadge" class="tab-count hidden" aria-hidden="true"></span></button>
+        <button type="button" class="tab" data-tab="health"
+                id="tabbtn-health" role="tab" aria-selected="false" aria-controls="tab-health">Диагностика</button>
+      </div>
+      <nav class="header-nav" aria-label="Служебная навигация">
+        <span class="admin-pill">Админка</span>
+        <button type="button" class="admin-cta" id="logoutBtn" hidden>Выйти</button>
+        <a class="admin-cta" href="http://127.0.0.1:8080/" target="_blank" rel="noopener">На сайт</a>
+      </nav>
+    </div>
+  </header>
+  <section class="hero">
+    <svg class="hero-pattern" aria-hidden="true" viewBox="0 0 400 640" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <g fill="rgba(22, 88, 218, 0.07)">
+        <rect x="80" y="0" width="80" height="80"/><rect x="240" y="80" width="80" height="80"/>
+        <rect x="0" y="160" width="80" height="80"/><rect x="320" y="160" width="80" height="160"/>
+        <rect x="160" y="240" width="80" height="80"/><rect x="80" y="320" width="40" height="160"/>
+        <rect x="240" y="400" width="80" height="80"/><rect x="0" y="480" width="80" height="80"/>
+      </g>
+      <g fill="rgba(33, 30, 27, 0.045)">
+        <rect x="0" y="0" width="80" height="80"/><rect x="320" y="80" width="80" height="80"/>
+        <rect x="80" y="160" width="80" height="80"/><rect x="240" y="160" width="40" height="160"/>
+        <rect x="0" y="320" width="80" height="80"/><rect x="320" y="320" width="80" height="80"/>
+      </g>
+    </svg>
+    <p class="eyebrow">Операционная панель</p>
+    <h1>Каталог, заявки и аналитика</h1>
+    <p>То же пространство, что на витрине: кремовая бумага, слэб и синий акцент. Ворона Шерлок дежурит в углу и комментирует синк и заявки.</p>
+  </section>
   <main class="wrap">
-    <h1>Центр ДПО · факультет права</h1>
-    <p class="sub">Админка: каталог, диагностика и менеджерская аналитика посещений</p>
-
     <div class="banner" id="banner" role="alert">
       Запустите <code>node admin-server.js</code> и откройте
       <code>http://127.0.0.1:5178/admin.html</code>. Для сбора статистики посетителей
       также используйте <code>npm run serve</code> (порт 5180) – посетители должны
       <b>принять cookies</b>.
     </div>
-
-    <!-- role="tablist" стоял и раньше, но у кнопок не было ни role="tab",
-         ни aria-selected, ни связи с панелями: скринридер объявлял группу
-         вкладок и три обычные кнопки без состояния. -->
-    <div class="tabs" role="tablist" aria-label="Разделы админки">
-      <button type="button" class="tab active" data-tab="catalog"
-              id="tabbtn-catalog" role="tab" aria-selected="true" aria-controls="tab-catalog">Каталог</button>
-      <button type="button" class="tab" data-tab="analytics"
-              id="tabbtn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics">Аналитика</button>
-      <button type="button" class="tab" data-tab="applications"
-              id="tabbtn-applications" role="tab" aria-selected="false" aria-controls="tab-applications">Заявки</button>
-      <button type="button" class="tab" data-tab="health"
-              id="tabbtn-health" role="tab" aria-selected="false" aria-controls="tab-health">Диагностика</button>
-    </div>
+    <div class="banner warn" id="mailBanner" role="status"></div>
 
     <div id="tabpanels">
     <!-- ═══ CATALOG ═══ -->
@@ -661,6 +869,22 @@
           <button type="button" class="secondary" id="applicationsRefresh">Обновить</button>
           <span class="muted" id="applicationsMeta">Загрузка…</span>
         </div>
+        <div class="range" role="group" aria-label="Статус заявки">
+          <label>Статус:</label>
+          <button type="button" class="secondary range-btn active" data-app-status="all" aria-pressed="true">Все</button>
+          <button type="button" class="secondary range-btn" data-app-status="new" aria-pressed="false">Новые</button>
+          <button type="button" class="secondary range-btn" data-app-status="in-progress" aria-pressed="false">В работе</button>
+          <button type="button" class="secondary range-btn" data-app-status="done" aria-pressed="false">Обработаны</button>
+          <button type="button" class="secondary range-btn" data-app-status="rejected" aria-pressed="false">Отклонены</button>
+        </div>
+        <div class="range" role="group" aria-label="Тема обращения">
+          <label>Тема:</label>
+          <button type="button" class="secondary range-btn active" data-app-topic="all" aria-pressed="true">Все</button>
+          <button type="button" class="secondary range-btn" data-app-topic="program" aria-pressed="false">Программа</button>
+          <button type="button" class="secondary range-btn" data-app-topic="course-idea" aria-pressed="false">Идея курса</button>
+          <button type="button" class="secondary range-btn" data-app-topic="teaching" aria-pressed="false">Преподаватель</button>
+          <button type="button" class="secondary range-btn" data-app-topic="feedback" aria-pressed="false">Отзыв</button>
+        </div>
         <!-- Персональные данные заявителей. Админка слушает только 127.0.0.1,
              и этот экран — единственное место, где они показываются. -->
         <div id="applicationsList"></div>
@@ -670,20 +894,30 @@
     <!-- ═══ HEALTH ═══ -->
     <div id="tab-health" class="hidden" role="tabpanel" aria-labelledby="tabbtn-health" tabindex="0">
       <div class="panel">
-        <p class="action-title">Диагностика сайта</p>
-        <p class="action-desc">Файлы, маркеры каталога, доступность hse.ru.</p>
+        <p class="action-title">Почта заявок</p>
+        <p class="action-desc" id="mailHealthDesc">Проверяем настройки SMTP…</p>
+        <button id="mailTestBtn" class="secondary" type="button">Отправить пробное письмо</button>
+        <p class="muted" id="mailTestMeta" style="margin-top:10px"></p>
+        <p class="action-title" style="margin-top:22px">Диагностика сайта</p>
+        <p class="action-desc">Файлы, маркеры каталога, доступность hse.ru, почта, свежесть объявлений «Важно».</p>
         <button id="healthBtn" class="secondary" type="button">Проверить здоровье сайта</button>
         <div class="box" id="healthBox"></div>
         <div class="links">
-          <a href="Каталог программ.html" target="_blank" rel="noopener">Каталог →</a>
-          <a href="index.html" target="_blank" rel="noopener">Лендинг →</a>
-          <a href="http://127.0.0.1:5180/" target="_blank" rel="noopener">Публичный serve :5180 →</a>
+          <a href="http://127.0.0.1:8080/catalog" target="_blank" rel="noopener">Каталог →</a>
+          <a href="http://127.0.0.1:8080/" target="_blank" rel="noopener">Лендинг →</a>
+          <a href="http://127.0.0.1:5178/admin.html" target="_blank" rel="noopener">Админка →</a>
         </div>
       </div>
     </div>
     </div>
   </main>
+  <footer class="admin-foot">
+    Центр ДПО факультета права НИУ ВШЭ · локальная админка.
+    Ворона Шерлок дежурит в углу — кликните, чтобы спросить про заявки и каталог.
+  </footer>
 
+<script src="js/crow-mascot.js"></script>
+<script src="js/admin-crow.js"></script>
 <script>
 (() => {
   'use strict';
@@ -715,6 +949,22 @@
       $('tab-applications').classList.toggle('hidden', name !== 'applications');
       if (name === 'analytics') loadAnalytics();
       if (name === 'applications') loadApplications();
+      if (window.AdminCrow) {
+        if (name === 'applications') {
+          const badge = $('appBadge');
+          const n = badge && !badge.classList.contains('hidden') ? Number(badge.textContent) || 0 : 0;
+          if (n > 0) {
+            AdminCrow.play('jump');
+            AdminCrow.say(n === 1 ? 'Одна новая заявка' : 'Новых заявок: ' + n);
+          } else {
+            AdminCrow.play('inspect');
+          }
+        } else if (name === 'health') {
+          AdminCrow.play('think');
+        } else if (name === 'catalog') {
+          AdminCrow.play('point');
+        }
+      }
     });
   });
 
@@ -746,13 +996,19 @@
       headers: { Accept: 'application/json', ...(options.headers || {}) },
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok && res.status !== 503) {
+    if (data.csrfToken) csrfToken = data.csrfToken;
+    if (res.status === 401) {
+      const err = new Error(data.error || 'Требуется авторизация');
+      err.data = data;
+      err.status = 401;
+      throw err;
+    }
+    if (!res.ok && res.status !== 503 && res.status !== 409) {
       const err = new Error(data.error || `HTTP ${res.status}`);
       err.data = data;
       err.status = res.status;
       throw err;
     }
-    if (data.csrfToken) csrfToken = data.csrfToken;
     return data;
   };
 
@@ -928,10 +1184,14 @@
     if (data.server) {
       $('serverInfo').textContent = `${data.server.node} · uptime ${fmtDuration(data.server.uptimeSec * 1000)}`;
     }
-    if (data.error) setStatus('Ошибка', 'err');
+    if (data.running || data.updating) setStatus('Обновляем каталог…', 'pending');
+    else if (data.error) setStatus('Ошибка', 'err');
     else if (data.updated) setStatus('Актуально', 'ok');
     else setStatus('Ещё не обновлялось', 'pending');
     if (data.schedule) renderSchedule(data.schedule);
+    if (data.log) showLog(data.log);
+    renderMailBanner(data.mail);
+    renderAppBadge(data.applications);
   };
 
   const showLog = (text) => {
@@ -960,11 +1220,103 @@
     $('programCount').textContent = String(editorRows.length);
   };
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const waitWhileUpdating = async () => {
+    const btn = $('refreshBtn');
+    for (let i = 0; i < 240; i += 1) {
+      const data = await api('/api/status');
+      if (data.log) showLog(data.log);
+      if (data.running || data.updating) {
+        setStatus('Обновляем каталог…', 'pending');
+        const started = data.updateStartedAt ? Number(data.updateStartedAt) : 0;
+        const sec = started ? Math.max(0, Math.round((Date.now() - started) / 1000)) : i;
+        btn.textContent = `Обновляем… ${sec} с`;
+        await sleep(800);
+        continue;
+      }
+      renderStatus(data);
+      return data;
+    }
+    throw new Error('Обновление идёт дольше трёх минут. Обновите страницу — если процесс жив, лог подтянется сам.');
+  };
+
+  const showLogin = (msg) => {
+    const gate = $('loginGate');
+    gate.hidden = false;
+    $('logoutBtn').hidden = true;
+    if (msg) {
+      $('loginErr').hidden = false;
+      $('loginErr').textContent = msg;
+    }
+  };
+
+  const hideLogin = () => {
+    $('loginGate').hidden = true;
+    $('logoutBtn').hidden = false;
+    $('loginErr').hidden = true;
+  };
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginBtn').disabled = true;
+    $('loginErr').hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          username: $('loginUser').value,
+          password: $('loginPass').value,
+          totp: $('loginTotp').value.replace(/\s+/g, ''),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось войти');
+      if (data.csrfToken) csrfToken = data.csrfToken;
+      $('loginPass').value = '';
+      $('loginTotp').value = '';
+      hideLogin();
+      await loadStatus();
+    } catch (err) {
+      $('loginErr').hidden = false;
+      $('loginErr').textContent = err.message || String(err);
+    } finally {
+      $('loginBtn').disabled = false;
+    }
+  });
+
+  $('logoutBtn').addEventListener('click', async () => {
+    try {
+      await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'same-origin' });
+    } catch { /* сессия и так мертва */ }
+    csrfToken = '';
+    showLogin();
+  });
+
   const loadStatus = async () => {
     try {
-      renderStatus(await api('/api/status'));
+      const data = await api('/api/status');
+      hideLogin();
+      renderStatus(data);
       await loadEditor();
-    } catch {
+      if (data.running || data.updating) {
+        const btn = $('refreshBtn');
+        btn.disabled = true;
+        try {
+          await waitWhileUpdating();
+          await loadEditor();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = BTN_LABEL;
+        }
+      }
+    } catch (e) {
+      if (e && e.status === 401) {
+        showLogin();
+        return;
+      }
       $('banner').classList.add('visible');
       setStatus('Сервер недоступен', 'err');
     }
@@ -976,7 +1328,7 @@
     }
     const btn = $('refreshBtn');
     btn.disabled = true;
-    btn.textContent = 'Загружаем с hse.ru…';
+    btn.textContent = 'Запускаем…';
     showLog('');
     try {
       await ensureCsrf();
@@ -984,13 +1336,25 @@
         method: 'POST',
         headers: { 'X-CSRF-Token': csrfToken },
       });
-      showLog(data.log || '');
-      renderStatus(data);
+      if (data.log) showLog(data.log);
+      if (window.AdminCrow) AdminCrow.play('inspect');
+      await waitWhileUpdating();
       await loadEditor();
+      if (window.AdminCrow) {
+        const st = $('status').textContent || '';
+        if (/ошиб/i.test(st)) {
+          AdminCrow.play('shake');
+          AdminCrow.say('Что-то пошло не так');
+        } else {
+          AdminCrow.play('nod');
+          AdminCrow.say('Каталог свежий');
+        }
+      }
     } catch (e) {
       showLog((e.data && (e.data.log || e.data.error)) || e.message);
       setStatus('Ошибка', 'err');
       csrfToken = '';
+      if (window.AdminCrow) { AdminCrow.play('shake'); AdminCrow.say('Что-то пошло не так'); }
     } finally {
       btn.disabled = false;
       btn.textContent = BTN_LABEL;
@@ -1277,6 +1641,10 @@
     teaching: 'Заявка преподавателя', feedback: 'Отзыв о работе центра',
   };
 
+  let applicationsCache = [];
+  let applicationsStats = { total: 0, new: 0, mailFailed: 0, retentionDays: 365 };
+  let appFilter = { status: 'all', topic: 'all' };
+
   const fmtMoscow = (iso) => {
     try {
       return new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
@@ -1285,14 +1653,68 @@
     }
   };
 
-  const renderApplications = (data) => {
+  const telHref = (phone) => {
+    const d = String(phone || '').replace(/[^\d+]/g, '');
+    return d ? `tel:${d}` : '';
+  };
+
+  const renderAppBadge = (stats) => {
+    const n = stats && stats.new ? Number(stats.new) : 0;
+    const badge = $('appBadge');
+    if (!badge) return;
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('hidden', n <= 0);
+    badge.setAttribute('aria-hidden', n <= 0 ? 'true' : 'false');
+    const tab = $('tabbtn-applications');
+    tab.setAttribute('aria-label', n > 0 ? `Заявки, новых ${n}` : 'Заявки');
+  };
+
+  const renderMailBanner = (mail) => {
+    const el = $('mailBanner');
+    const desc = $('mailHealthDesc');
+    if (!el) return;
+    if (!mail) {
+      el.classList.remove('visible');
+      if (desc) desc.textContent = 'Статус почты неизвестен.';
+      return;
+    }
+    if (mail.configured) {
+      el.classList.remove('visible');
+      if (desc) {
+        desc.textContent = `Письма уходят на ${mail.to.join(', ')} через ${mail.host}:${mail.port}.`;
+      }
+      return;
+    }
+    const missing = (mail.missing || []).join(', ') || 'SMTP_HOST, APPLICATION_MAIL_TO';
+    el.textContent =
+      `Письма менеджеру не уходят: нет ${missing}. Заявки копятся только в этой админке.`;
+    el.classList.add('visible');
+    if (desc) {
+      desc.textContent =
+        `Почта не настроена (нет ${missing}). Заявки пишутся на диск, письма не отправляются.`;
+    }
+  };
+
+  const renderApplications = () => {
     const box = $('applicationsList');
-    const items = data.items || [];
-    $('applicationsMeta').textContent = items.length
-      ? `Всего ${data.stats.total}, новых ${data.stats.new}` +
-        (data.stats.mailFailed ? `, писем менеджеру не ушло: ${data.stats.mailFailed}` : '') +
-        `. Хранятся ${data.stats.retentionDays} дней.`
+    const items = applicationsCache.filter((a) => {
+      if (appFilter.status !== 'all' && a.status !== appFilter.status) return false;
+      const topic = a.topic || 'program';
+      if (appFilter.topic !== 'all' && topic !== appFilter.topic) return false;
+      return true;
+    });
+    const s = applicationsStats;
+    $('applicationsMeta').textContent = s.total
+      ? `Всего ${s.total}, новых ${s.new}` +
+        (s.mailFailed ? `, писем менеджеру не ушло: ${s.mailFailed}` : '') +
+        `. Хранятся ${s.retentionDays} дней.` +
+        (items.length !== applicationsCache.length ? ` Показано ${items.length}.` : '')
       : 'Заявок пока нет.';
+
+    if (!items.length) {
+      box.textContent = s.total ? 'Нет заявок с такими фильтрами.' : '';
+      return;
+    }
 
     box.innerHTML = items
       .map((a) => {
@@ -1300,24 +1722,36 @@
           .map((x) => SOURCE_LABELS[x] || x)
           .concat(a.sourceOther ? [`«${a.sourceOther}»`] : [])
           .join(', ');
-        const rows = [
+        const tel = telHref(a.phone);
+        const mailTo = a.email ? `mailto:${a.email}` : '';
+        const facts = [
           ['Тема', TOPIC_LABELS[a.topic || 'program'] || a.topic],
-          ['Телефон', a.phone],
-          ['Почта', a.email],
+          a.applicantType === 'corporate' ? ['Тип', 'от организации'] : null,
+          a.applicantType === 'corporate' && a.employeesCount ? ['Сотрудников', a.employeesCount] : null,
+          a.applicantType === 'corporate' && a.timeframe ? ['Сроки', a.timeframe] : null,
+          ['Телефон', a.phone, tel ? `<a href="${escapeHtml(tel)}">${escapeHtml(a.phone)}</a>` : null],
+          ['Почта', a.email, mailTo ? `<a href="${escapeHtml(mailTo)}">${escapeHtml(a.email)}</a>` : null],
           ['Должность', a.position],
           ['Место работы', a.company],
           ['Программа', a.program && a.program.title],
           ['Узнал(а) о нас', sources],
           ['Комментарий', a.comment],
-        ].filter(([, v]) => v);
+        ].filter((row) => row && row[1]);
 
         return `<div class="panel application" data-id="${escapeHtml(a.id)}">
           <div class="application-head">
-            <strong>${escapeHtml(a.lastName + ' ' + a.firstName)}</strong>
+            <strong>${escapeHtml(a.lastName + ' ' + a.firstName)}${
+              a.applicantType === 'corporate' ? '<span class="corp-mark">организация</span>' : ''
+            }</strong>
             <span class="muted">${escapeHtml(fmtMoscow(a.receivedAt))}</span>
           </div>
           <dl class="application-facts">
-            ${rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}
+            ${facts
+              .map(
+                ([k, v, html]) =>
+                  `<div><dt>${escapeHtml(k)}</dt><dd>${html || escapeHtml(v)}</dd></div>`,
+              )
+              .join('')}
           </dl>
           ${a.noAnnouncements ? '<p class="muted">Анонсы получать отказался(лась).</p>' : ''}
           ${a.mail === 'failed' ? `<p class="muted" style="color:var(--err)">Письмо менеджеру не ушло: ${escapeHtml(a.mailError || 'причина неизвестна')}</p>` : ''}
@@ -1338,13 +1772,35 @@
   const loadApplications = async () => {
     $('applicationsMeta').textContent = 'Загрузка…';
     try {
-      renderApplications(await api('/api/applications'));
+      const data = await api('/api/applications');
+      applicationsCache = data.items || [];
+      applicationsStats = data.stats || applicationsStats;
+      renderMailBanner(data.mail);
+      renderAppBadge(applicationsStats);
+      renderApplications();
     } catch (e) {
       $('applicationsMeta').textContent = 'Не удалось загрузить заявки: ' + (e.message || e);
     }
   };
 
   $('applicationsRefresh').addEventListener('click', loadApplications);
+
+  const bindFilterGroup = (attr, key) => {
+    document.querySelectorAll(`[${attr}]`).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll(`[${attr}]`).forEach((b) => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+        appFilter[key] = btn.getAttribute(attr);
+        renderApplications();
+      });
+    });
+  };
+  bindFilterGroup('data-app-status', 'status');
+  bindFilterGroup('data-app-topic', 'topic');
 
   // Делегирование: карточки перерисовываются целиком после каждой смены
   // статуса, и обработчики на самих кнопках пришлось бы вешать заново.
@@ -1383,10 +1839,10 @@
     }
   });
 
-  document.querySelectorAll('.range-btn').forEach((btn) => {
+  document.querySelectorAll('[data-days]').forEach((btn) => {
     btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.range-btn').forEach((b) => {
+      document.querySelectorAll('[data-days]').forEach((b) => {
         b.classList.remove('active');
         b.setAttribute('aria-pressed', 'false');
       });
@@ -1415,6 +1871,36 @@
   });
 
   // health
+  $('mailTestBtn').addEventListener('click', async () => {
+    const btn = $('mailTestBtn');
+    const meta = $('mailTestMeta');
+    btn.disabled = true;
+    meta.textContent = 'Отправляем…';
+    try {
+      await ensureCsrf();
+      const data = await api('/api/mail/test', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+      renderMailBanner(data.mail);
+      meta.textContent = data.ok
+        ? `Письмо ушло на ${(data.to || []).join(', ')}.`
+        : (data.error || 'Не удалось отправить');
+      if (window.AdminCrow) {
+        if (data.ok) { AdminCrow.play('nod'); AdminCrow.say('Письмо ушло'); }
+        else { AdminCrow.play('shake'); AdminCrow.say('Почта молчит'); }
+      }
+    } catch (e) {
+      const msg = (e.data && e.data.error) || e.message || String(e);
+      if (e.data && e.data.mail) renderMailBanner(e.data.mail);
+      meta.textContent = msg;
+      csrfToken = '';
+      if (window.AdminCrow) { AdminCrow.play('shake'); AdminCrow.say('Почта молчит'); }
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   $('healthBtn').addEventListener('click', async () => {
     $('healthBtn').disabled = true;
     try {
@@ -1425,8 +1911,9 @@
       ul.style.paddingLeft = '0';
       for (const c of data.checks || []) {
         const li = document.createElement('li');
-        li.textContent = `${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? ' – ' + c.detail : ''}`;
-        li.style.color = c.ok ? 'var(--ok)' : 'var(--err)';
+        const mark = !c.ok ? '✗' : c.warn ? '!' : '✓';
+        li.textContent = `${mark} ${c.name}${c.detail ? ' – ' + c.detail : ''}`;
+        li.style.color = !c.ok ? 'var(--err)' : c.warn ? 'var(--warn-ink)' : 'var(--ok)';
         ul.append(li);
       }
       $('healthBox').replaceChildren(ul);
@@ -1440,6 +1927,7 @@
   });
 
   loadStatus();
+  if (window.AdminCrow) AdminCrow.boot();
 })();
 </script>
 </body>

@@ -42,6 +42,7 @@ const { programHref } = require('../lib/program-slug');
 const { safeHseUrl, upcomingStartLabel, formatDate } = require('../lib/hse-catalog');
 const { canonicalTeacherName } = require('../lib/teacher-names');
 const labels = require('../lib/program-labels');
+const { webpSibling, picture } = require('../lib/picture');
 
 const ROOT = path.resolve(__dirname, '..');
 const STORE = path.join(ROOT, '.catalog-data.json');
@@ -947,8 +948,16 @@ function renderTeachers(programs, photos = {}, pages = {}) {
       // выставлено РАНЬШЕ src. При прежнем порядке (src первым) все 64
       // портрета скачивались сразу, на 6339px ниже сгиба – 438 КБ
       // впустую на каждой загрузке (замер 21.08.2026).
+      const photoWebp = t.photo ? webpSibling(ROOT, t.photo) : null;
       const photo = t.photo
-        ? `<img loading="lazy" decoding="async" alt="${escapeHtml(photoAlt)}" src="${escapeHtml(t.photo)}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; border-radius: 999px;">`
+        ? picture({
+            src: escapeHtml(t.photo),
+            webp: photoWebp ? escapeHtml(photoWebp) : null,
+            alt: escapeHtml(photoAlt),
+            lazy: true,
+            extra:
+              ' style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; border-radius: 999px;"',
+          })
         : '';
       // Кнопка «N программ» – единственный фокусируемый вход в окно
       // подробностей; клик по всей карточке делает то же (делегирование в
@@ -1118,8 +1127,10 @@ function renderTop5Data(template, programs) {
     // если нет ни того, ни другого, строка остаётся пустой.
     const source = String(p.tagline || p.about || '').trim();
     const tagline = enDash(source.split(/(?<=[.!?])\s+/)[0] || '');
+    const imageWebp = image ? webpSibling(ROOT, image) : null;
     const fields = [
       image ? `image: '${q(image)}'` : null,
+      imageWebp ? `imageWebp: '${q(imageWebp)}'` : null,
       // id уходит в data-program-id кнопки заявки: без него учебный офис
       // получал заявку без названия программы (аудит 21.08.2026).
       `id: '${q(String(p.id || ''))}'`,
@@ -1540,6 +1551,12 @@ function build() {
   if (!programs.length) throw new Error('в каталоге нет программ, лендинг не собирается');
 
   let template = extract(WORK);
+  if (!template.includes('data-dpo-cover-webp')) {
+    template = template.replace(
+      'data-dpo-cover="{{ p.image }}"',
+      'data-dpo-cover="{{ p.image }}" data-dpo-cover-webp="{{ p.imageWebp }}"',
+    );
+  }
   const { html, spheres, unassigned } = buildPanel(programs);
   template = replaceRegion(template, REGIONS.panel, html);
   template = replaceRegion(template, REGIONS.formats, renderFormats(programs));
